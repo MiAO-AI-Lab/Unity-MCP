@@ -106,6 +106,31 @@ Added numerous tool features
 - 🔲 Remove
 - 🔲 Update
 
+### Animation
+
+- ✅ Add Event
+- ✅ Read Clip
+
+### Timeline Manager
+
+- ✅ Create and Attach
+- ✅ Add Track
+- ✅ List Tracks
+- ✅ Add Clip
+- ✅ Add Marker
+- ✅ Get Marker
+- ✅ Add Signal Marker
+
+### Environmental Query System
+
+- ✅ Intelligent spatial queries
+  - ✅ Area of Interest
+  - ✅ Hard Condition
+  - ✅ Soft Scoring
+  - ✅ Weight synthesis
+- ✅ Location selection
+- ✅ Object placement
+
 </td>
 <td valign="top">
 
@@ -131,6 +156,11 @@ Added numerous tool features
 - ✅ Get hierarchy
 - ✅ Search (editor)
 - ✅ Raycast (understand volume)
+
+### Camera
+
+- ✅ Camera Control
+- ✅ Screen Capture
 
 ### Materials
 
@@ -170,19 +200,21 @@ Added numerous tool features
 - ✅ ModelUse Vision
 - ✅ ModelUse Code
 
-### EQS Tools
-
-- ✅ Environmental Query System 
-- ✅ Intelligent spatial queries
-- ✅ Location selection
-- ✅ Object placement
-
-### RayCast Tools
+### Physics Tools
 
 - ✅ Ray casting
 - ✅ Sphere casting
 - ✅ Box casting
 - ✅ Capsule casting
+- ✅ Overlap
+- ✅ Line Of Sight
+- ✅ MultiRay
+
+### Layer Tools
+- ✅ List Layers
+- ✅ Calculate LayerMask
+- ✅ Decode LayerMask
+- ✅ Scene Analysis
 
 </td>
 </tr>
