@@ -31,9 +31,13 @@ namespace com.IvanMurzak.Unity.MCP.Editor
                     ?.FullName;
 
                 if (string.IsNullOrEmpty(sourceDir))
-                    return Path.GetFullPath(Path.Combine(Application.dataPath, "root", "Server"));
+                {
+                    var path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Packages/com.IvanMurzak.Unity.MCP/Editor/Scripts/Server"));
+                    Debug.Log($"{Consts.Log.Tag} Set server path: <color=#8CFFD1>{path}</color>");
+                    return path;
+                }
 
-                return Path.GetFullPath(Path.Combine(sourceDir, "Server"));
+                return sourceDir;
             }
         }
 

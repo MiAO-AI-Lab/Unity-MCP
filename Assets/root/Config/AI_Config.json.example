@@ -1,0 +1,18 @@
+{
+    "openaiApiKey": "",
+    "openaiModel": "gpt-4o",
+    "openaiBaseUrl": "https://openai/v1/chat/completions",
+    "geminiApiKey": "",
+    "geminiModel": "gemini-pro",
+    "geminiBaseUrl": "https://generativelanguage.googleapis.com/v1/models",
+    "claudeApiKey": "",
+    "claudeModel": "claude-3-sonnet-20240229",
+    "claudeBaseUrl": "https://api.anthropic.com/v1/messages",
+    "localApiUrl": "http://localhost:11434/api/generate",
+    "localModel": "llava",
+    "visionModelProvider": "openai",
+    "textModelProvider": "openai",
+    "codeModelProvider": "claude",
+    "timeoutSeconds": 30,
+    "maxTokens": 1000
+}

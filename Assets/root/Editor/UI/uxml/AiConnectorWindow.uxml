@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Assets/root/Editor/UI/uss/AiConnectorWindow.uss?fileID=7433441132597879392&amp;guid=c469a790f6006d54fa1d7bce6ec00d7c&amp;type=3#AiConnectorWindow" />
+    <Style src="project://database/Packages/com.IvanMurzak.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss" />
     <ui:ScrollView>
         <ui:VisualElement class="container" style="min-width: 320px;">
             <ui:Box name="contHeader" style="background-color: rgba(222, 222, 222, 0); flex-direction: row; flex-shrink: 0;">
@@ -9,7 +9,7 @@
                     <ui:EnumField label="Log Level" name="dropdownLogLevel" type="com.IvanMurzak.Unity.MCP.Utils.LogLevel, com.IvanMurzak.Unity.MCP.Runtime" value="Warning" class="ContentItem" style="align-self: flex-start;" />
                 </ui:VisualElement>
                 <ui:VisualElement name="imgLogoPivot" class="AnimatedSelectable" style="flex-grow: 0; height: 90px; width: 90px; right: 0; margin-left: 15px; flex-shrink: 0; margin-right: -8px; margin-top: 10px; flex-direction: row;">
-                    <ui:VisualElement name="imgLogo" style="flex-grow: 1; background-color: rgba(0, 0, 0, 0); background-image: url(&quot;project://database/Assets/root/Editor/Gizmos/logo_512.png?fileID=2800000&amp;guid=bbb0f64bd8f15164781e01168cd6fa4f&amp;type=3#logo_512&quot;); -unity-background-scale-mode: stretch-to-fill; align-self: stretch;" />
+                    <ui:VisualElement name="imgLogo" style="flex-grow: 1; background-color: rgba(0, 0, 0, 0); background-image: url(&quot;project://database/Packages/com.IvanMurzak.Unity.MCP/Editor/Gizmos/logo_512.png&quot;); -unity-background-scale-mode: stretch-to-fill; align-self: stretch;" />
                 </ui:VisualElement>
             </ui:Box>
             <ui:Label text="Connect to MCP server" class="Header" />
@@ -54,6 +54,58 @@
                 <ui:Label text="Copy paste the json into your MCP Client to configure it." name="Label" class="section-desc" />
                 <ui:TextField name="rawJsonConfiguration" multiline="true" readonly="true" selectOnFocus="true" value="This is a multi-line, read-only, selectable text box.&#10;You can copy from here." style="margin-top: 4px; margin-right: 0; margin-left: 0; margin-bottom: 4px;" />
             </ui:VisualElement>
+            <ui:VisualElement name="divider" class="Divider" style="flex-grow: 1;" />
+            <ui:Label text="AI Configuration" class="Header" />
+            <ui:Foldout text="AI Provider Settings" name="configFoldout" value="true" class="ai-config-section">
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="OpenAI Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API Key" name="openaiApiKey" password="true" class="config-item" />
+                        <ui:TextField label="Model" name="openaiModel" class="config-item" />
+                        <ui:TextField label="Base URL" name="openaiBaseUrl" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Gemini Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API Key" name="geminiApiKey" password="true" class="config-item" />
+                        <ui:TextField label="Model" name="geminiModel" class="config-item" />
+                        <ui:TextField label="Base URL" name="geminiBaseUrl" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Claude Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API Key" name="claudeApiKey" password="true" class="config-item" />
+                        <ui:TextField label="Model" name="claudeModel" class="config-item" />
+                        <ui:TextField label="Base URL" name="claudeBaseUrl" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Local Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API URL" name="localApiUrl" class="config-item" />
+                        <ui:TextField label="Model" name="localModel" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Model Provider Selection" value="true" class="config-group-foldout">
+                        <ui:TextField label="Vision Provider" name="visionModelProvider" class="config-item" />
+                        <ui:TextField label="Text Provider" name="textModelProvider" class="config-item" />
+                        <ui:TextField label="Code Provider" name="codeModelProvider" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="General Settings" value="true" class="config-group-foldout">
+                        <ui:IntegerField label="Timeout (seconds)" name="timeoutSeconds" class="config-item" />
+                        <ui:IntegerField label="Max Tokens" name="maxTokens" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:Button name="btnSaveConfig" text="Save Configuration" class="Button-Primary save-config-btn" />
+            </ui:Foldout>
+            
             <ui:VisualElement name="divider" class="Divider" style="flex-grow: 1;" />
             <ui:Button name="btnRebuildServer" text="Rebuild MCP Server" class="Button-Primary" />
             <ui:Label text="Please check the logs to see the operation result." class="section-desc" />

@@ -1,14 +1,18 @@
 {
     "name": "com.IvanMurzak.Unity.MCP.Runtime",
-    "rootNamespace": "com.IvanMurzak.Unity.MCP.Runtime",
+    "rootNamespace": "",
     "references": [
         "com.IvanMurzak.Unity.MCP.Common"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
-    "precompiledReferences": [],
+    "precompiledReferences": [
+        "ReflectorNet.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],

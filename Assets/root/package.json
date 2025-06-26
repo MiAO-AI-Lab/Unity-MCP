@@ -1,41 +1,19 @@
 {
     "name": "com.ivanmurzak.unity.mcp",
+    "version": "1.0.0",
     "displayName": "Unity MCP (Model Context Protocol)",
-    "author": {
-        "name": "IvanMurzak",
-        "url": "https://github.com/IvanMurzak"
-    },
+    "description": "Unity MCP (Model Context Protocol) integration package for Unity Editor automation and scripting.",
+    "unity": "2021.3",
     "keywords": [
-        "AI",
-        "AI Integration",
-        "MCP",
-        "Unity MCP"
+        "mcp",
+        "model context protocol", 
+        "editor",
+        "automation",
+        "ai"
     ],
-    "version": "0.8.3",
-    "unity": "2022.3",
-    "description": "Bridge between LLM and Unity. It expose Unity API to LLM and allows LLM to control Unity. It is based on Model Context Protocol (MCP) and uses SignalR for communication.",
-    "dependencies": {
-        "com.unity.test-framework": "1.1.33",
-        "com.unity.modules.uielements": "1.0.0",
-        "org.nuget.microsoft.bcl.memory": "9.0.4",
-        "org.nuget.microsoft.aspnetcore.signalr.client": "9.0.4",
-        "org.nuget.microsoft.aspnetcore.signalr.protocols.json": "9.0.4",
-        "org.nuget.microsoft.codeanalysis.csharp": "4.13.0",
-        "org.nuget.microsoft.extensions.caching.abstractions": "9.0.4",
-        "org.nuget.microsoft.extensions.dependencyinjection.abstractions": "9.0.4",
-        "org.nuget.microsoft.extensions.hosting": "9.0.4",
-        "org.nuget.microsoft.extensions.hosting.abstractions": "9.0.4",
-        "org.nuget.microsoft.extensions.logging.abstractions": "9.0.4",
-        "org.nuget.r3": "1.3.0",
-        "org.nuget.system.text.json": "9.0.4"
+    "author": {
+        "name": "Ivan Murzak",
+        "email": "ivan.murzak@example.com"
     },
-    "scopedRegistries": [
-        {
-            "name": "package.openupm.com",
-            "url": "https://package.openupm.com",
-            "scopes": [
-                "org.nuget"
-            ]
-        }
-    ]
+    "dependencies": {}
 }

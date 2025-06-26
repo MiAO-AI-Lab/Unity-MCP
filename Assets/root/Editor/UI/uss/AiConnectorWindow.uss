@@ -204,3 +204,98 @@
     transition-timing-function: ease-out-cubic;
     scale: 2 2;
 }
+
+/* AI Configuration Styles */
+.ai-config-section {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.config-group {
+    background-color: rgba(50, 50, 50, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-left: 3px solid rgb(175, 232, 230);
+}
+
+.config-group-title {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: rgb(175, 232, 230);
+    margin-bottom: 8px;
+    margin-top: 0px;
+}
+
+.config-group-foldout {
+    margin: 0px;
+    padding: 0px;
+}
+
+.config-group-foldout .unity-foldout__toggle {
+    margin: 0px;
+    padding: 4px 0px;
+    background-color: transparent;
+    border-width: 0px;
+}
+
+.config-group-foldout .unity-foldout__toggle .unity-label {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: rgb(175, 232, 230);
+    margin-left: 4px;
+}
+
+.config-group-foldout .unity-foldout__toggle:hover {
+    background-color: rgba(175, 232, 230, 0.1);
+}
+
+.config-group-foldout .unity-foldout__content {
+    margin-left: 0px;
+    margin-top: 8px;
+    padding-left: 8px;
+}
+
+.config-item {
+    margin-bottom: 6px;
+    margin-top: 2px;
+}
+
+.config-item .unity-label {
+    min-width: 120px;
+    max-width: 120px;
+    width: 120px;
+}
+
+.config-item .unity-text-field__input {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(175, 232, 230, 0.3);
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.config-item .unity-text-field__input:focus {
+    border-color: rgb(175, 232, 230);
+    border-width: 2px;
+}
+
+.config-item .unity-integer-field__input {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(175, 232, 230, 0.3);
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.config-item .unity-integer-field__input:focus {
+    border-color: rgb(175, 232, 230);
+    border-width: 2px;
+}
+
+.save-config-btn {
+    margin-top: 16px;
+    margin-bottom: 8px;
+    align-self: center;
+    min-width: 150px;
+}

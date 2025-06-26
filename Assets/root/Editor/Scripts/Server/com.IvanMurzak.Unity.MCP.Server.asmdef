@@ -1,0 +1,20 @@
+{
+    "name": "com.IvanMurzak.Unity.MCP.Server",
+    "rootNamespace": "com.IvanMurzak.Unity.MCP.Server",
+    "references": [
+        "com.IvanMurzak.Unity.MCP.Common"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "ReflectorNet.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
