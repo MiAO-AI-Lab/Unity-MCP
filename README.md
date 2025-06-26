@@ -40,13 +40,153 @@ Provides Unity with complete AI model usage API:
 
 ### 3. Tool System
 
-Added numerous tool features:
+Added numerous tool features
 
 ## AI Tools
 
 <table>
 <tr>
 <td valign="top">
+
+### GameObject
+
+- ✅ Create
+- ✅ Destroy
+- ✅ Find
+- ✅ Modify (tag, layer, name, static)
+- ✅ Set parent
+- ✅ Duplicate
+
+##### GameObject.Components
+
+- ✅ Add Component
+- ✅ Get Components
+- ✅ Modify Component
+- - ✅ `Field` set value
+- - ✅ `Property` set value
+- - ✅ `Reference` link set
+- ✅ Destroy Component
+- 🔲 Remove missing components
+
+### Editor
+
+- ✅ State (Playmode)
+  - ✅ Get
+  - ✅ Set
+- ✅ Get Windows
+- ✅ Layer
+  - ✅ Get All
+  - ✅ Add
+  - ✅ Remove
+- ✅ Tag
+  - ✅ Get All
+  - ✅ Add
+  - ✅ Remove
+- ✅ Execute `MenuItem`
+- 🔲 Run Tests
+
+#### Editor.Selection
+
+- ✅ Get selection
+- ✅ Set selection
+
+### Prefabs
+
+- ✅ Instantiate
+- ✅ Create
+- ✅ Open
+- ✅ Modify (GameObject.Modify)
+- ✅ Save
+- ✅ Close
+
+### Package
+
+- 🔲 Get installed
+- 🔲 Install
+- 🔲 Remove
+- 🔲 Update
+
+</td>
+<td valign="top">
+
+### Assets
+
+- ✅ Create
+- ✅ Find
+- ✅ Refresh
+- ✅ Read
+- ✅ Modify
+- ✅ Rename
+- ✅ Delete
+- ✅ Move
+- ✅ Create folder
+
+### Scene
+
+- ✅ Create
+- ✅ Save
+- ✅ Load
+- ✅ Unload
+- ✅ Get Loaded
+- ✅ Get hierarchy
+- ✅ Search (editor)
+- ✅ Raycast (understand volume)
+
+### Materials
+
+- ✅ Create
+- ✅ Modify (Assets.Modify)
+- ✅ Read (Assets.Read)
+- ✅ Assign to a Component on a GameObject
+
+### Shader
+
+- ✅ List All
+
+### Scripts
+
+- ✅ Read
+- ✅ Update or Create
+- ✅ Delete
+
+### Scriptable Object
+
+- ✅ Create
+- ✅ Read
+- ✅ Modify
+- ✅ Remove
+
+### Debug
+
+- ✅ Read logs (console)
+
+### Component
+
+- ✅ Get All
+
+### AI Model Tools
+
+- ✅ ModelUse Text
+- ✅ ModelUse Vision
+- ✅ ModelUse Code
+
+### EQS Tools
+
+- ✅ Environmental Query System 
+- ✅ Intelligent spatial queries
+- ✅ Location selection
+- ✅ Object placement
+
+### RayCast Tools
+
+- ✅ Ray casting
+- ✅ Sphere casting
+- ✅ Box casting
+- ✅ Capsule casting
+
+</td>
+</tr>
+</table>
 
 > **Legend:**
 > ✅ = Implemented & available, 🔲 = Planned / Not yet implemented
