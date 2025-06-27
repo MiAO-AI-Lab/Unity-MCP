@@ -1,0 +1,31 @@
+{
+    "name": "com.ivanmurzak.unity.mcp",
+    "version": "1.0.0",
+    "displayName": "Unity MCP (Model Context Protocol)",
+    "description": "Unity MCP (Model Context Protocol) integration package for Unity Editor automation and scripting.",
+    "unity": "2021.3",
+    "keywords": [
+        "mcp",
+        "model context protocol", 
+        "editor",
+        "automation",
+        "ai"
+    ],
+    "author": {
+        "name": "Ivan Murzak",
+        "email": "ivan.murzak@example.com"
+    },
+    "dependencies": {
+		"org.nuget.microsoft.bcl.memory": "9.0.4",
+        "org.nuget.microsoft.aspnetcore.signalr.client": "9.0.4",
+        "org.nuget.microsoft.aspnetcore.signalr.protocols.json": "9.0.4",
+        "org.nuget.microsoft.codeanalysis.csharp": "4.13.0",
+        "org.nuget.microsoft.extensions.caching.abstractions": "9.0.4",
+        "org.nuget.microsoft.extensions.dependencyinjection.abstractions": "9.0.4",
+        "org.nuget.microsoft.extensions.hosting": "9.0.4",
+        "org.nuget.microsoft.extensions.hosting.abstractions": "9.0.4",
+        "org.nuget.microsoft.extensions.logging.abstractions": "9.0.4",
+        "org.nuget.r3": "1.3.0",
+        "org.nuget.system.text.json": "9.0.4"
+	}
+}
