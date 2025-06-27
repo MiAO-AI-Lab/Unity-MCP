@@ -68,9 +68,6 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
             int maxLength = 1000
         ) 
         {
-            var language = "en-US";
-            var returnFormat = "analysis_only";
-            
             try
             {
                 // Validate input parameters
@@ -107,16 +104,10 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
                 Debug.Log($"[AI_ImageRecognition] Base64 length: {base64Image.Length}");
 
                 // Build complete analysis prompt
-                string fullPrompt = BuildAnalysisPrompt(prompt, focus, language, maxLength);
+                string fullPrompt = BuildAnalysisPrompt(prompt, focus, maxLength);
 
-                // Process based on return format
-                switch (returnFormat.ToLowerInvariant())
-                {
-                    case "analysis only":
-                        return await PerformAIAnalysisAsync(base64Image, fullPrompt, imagePath);
-                    default:
-                        return await PerformAIAnalysisAsync(base64Image, fullPrompt, imagePath);
-                }
+                // Perform AI analysis
+                return await PerformAIAnalysisAsync(base64Image, fullPrompt, imagePath);
             }
             catch (Exception ex)
             {
@@ -124,52 +115,33 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
             }
         }
 
-        private static string BuildAnalysisPrompt(string userPrompt, string focus, string language, int maxLength)
+        private static string BuildAnalysisPrompt(string userPrompt, string focus, int maxLength)
         {
             var promptBuilder = new StringBuilder();
             
             // Add language instruction
-            if (language == "zh-CN")
-            {
-                promptBuilder.AppendLine("请用中文回答。");
-            }
-            else
-            {
-                promptBuilder.AppendLine("Please respond in English.");
-            }
+            promptBuilder.AppendLine("Please respond in English.");
 
             // Add focus instruction
             switch (focus.ToLowerInvariant())
             {
                 case "objects":
-                    promptBuilder.AppendLine(language == "zh-CN" ? 
-                        "重点识别和描述图像中的物体。" : 
-                        "Focus on identifying and describing objects in the image.");
+                    promptBuilder.AppendLine("Focus on identifying and describing objects in the image.");
                     break;
                 case "text":
-                    promptBuilder.AppendLine(language == "zh-CN" ? 
-                        "重点读取和转录图像中可见的任何文字。" : 
-                        "Focus on reading and transcribing any text visible in the image.");
+                    promptBuilder.AppendLine("Focus on reading and transcribing any text visible in the image.");
                     break;
                 case "colors":
-                    promptBuilder.AppendLine(language == "zh-CN" ? 
-                        "重点描述颜色、配色方案和视觉美学。" : 
-                        "Focus on describing colors, color schemes, and visual aesthetics.");
+                    promptBuilder.AppendLine("Focus on describing colors, color schemes, and visual aesthetics.");
                     break;
                 case "scene":
-                    promptBuilder.AppendLine(language == "zh-CN" ? 
-                        "重点描述整体场景、设置和背景。" : 
-                        "Focus on describing the overall scene, setting, and context.");
+                    promptBuilder.AppendLine("Focus on describing the overall scene, setting, and context.");
                     break;
                 case "technical":
-                    promptBuilder.AppendLine(language == "zh-CN" ? 
-                        "重点分析技术方面，如构图、光线和图像质量。" : 
-                        "Focus on technical aspects like composition, lighting, and image quality.");
+                    promptBuilder.AppendLine("Focus on technical aspects like composition, lighting, and image quality.");
                     break;
                 default:
-                    promptBuilder.AppendLine(language == "zh-CN" ? 
-                        "提供图像的全面分析。" : 
-                        "Provide a comprehensive analysis of the image.");
+                    promptBuilder.AppendLine("Provide a comprehensive analysis of the image.");
                     break;
             }
 
@@ -180,19 +152,11 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
             // Add length limitation
             if (maxLength > 0)
             {
-                string lengthInstruction = language == "zh-CN" ? 
-                    $"\n请将回答限制在大约{maxLength}个字符内。请使用中文回答。" : 
-                    $"\nPlease limit your response to approximately {maxLength} characters.";
+                string lengthInstruction = $"\nPlease limit your response to approximately {maxLength} characters.";
                 promptBuilder.AppendLine(lengthInstruction);
             }
 
             return promptBuilder.ToString();
-        }
-
-        private static string FormatBase64Response(string base64Image, string imagePath)
-        {
-            var mimeType = "image/png";
-            return $"data:{mimeType};base64,{base64Image}";
         }
 
         private static async Task<string> PerformAIAnalysisAsync(string base64Image, string prompt, string imagePath)
