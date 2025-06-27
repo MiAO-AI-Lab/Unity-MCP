@@ -220,6 +220,66 @@ Added numerous tool features
 </tr>
 </table>
 
+## 🚀 TODO Roadmap
+
+<table>
+<tr>
+<td valign="top">
+
+### Architecture Layer
+
+#### McpServer Aggregator
+- 🔲 Multi-model compatibility
+- 🔲 Multi-upstream data flow
+  - 🔲 Unity integration
+  - 🔲 3dsMax integration
+  - 🔲 Maya integration
+  - 🔲 Houdini integration
+  - 🔲 Figma integration
+- 🔲 Custom middleware system
+- 🔲 Auto-register middleware as McpTool
+- 🔲 Shared context
+- 🔲 Pipeline parallel execution
+
+### AI Tool Layer
+
+#### Animation & Rigging
+- 🔲 Animator state machine editor
+- 🔲 Animator transition tools
+- 🔲 AnimationClip processing
+- 🔲 Bone detection tools
+- 🔲 Attachment point tools
+
+#### Advanced EQS
+- 🔲 Enhanced spatial intelligence EQS
+
+#### Visual Programming
+- 🔲 Unity VisualScripting generation
+- 🔲 Behavior Designer integration
+- 🔲 NodeCanvas integration
+- 🔲 Custom node creation
+- 🔲 Flow graph analysis / test
+
+#### UI & UX Tools
+- 🔲 UXML\USS generation
+- 🔲 USS generation
+- 🔲 UI Toolkit integration
+- 🔲 Data binding
+
+### Asset Layer
+
+#### Asset Intelligence
+- 🔲 Feature recognition
+- 🔲 Asset indexing
+- 🔲 Embedding / Metadata generation
+- 🔲 Similarity detection
+- 🔲 Auto-categorization
+- 🔲 Dependency mapping
+
+</td>
+</tr>
+</table>
+
 > **Legend:**
 > ✅ = Implemented & available, 🔲 = Planned / Not yet implemented
 
