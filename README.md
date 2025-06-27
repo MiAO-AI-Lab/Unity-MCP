@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/github/license/IvanMurzak/Unity-MCP) [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
 
-![image](https://raw.githubusercontent.com/MiAO-AI-LAB/Unity-MCP/main/.github/images/ai-connector-landing.jpg)
+![image](https://raw.githubusercontent.com/MiAO-AI-LAB/Unity-MCP/main/.github/images/ai-connector-landing.png)
 
 | Unity Version | Editmode                                                                                                                                     | Playmode                                                                                                                                     | Standalone                                                                                                                                       |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
