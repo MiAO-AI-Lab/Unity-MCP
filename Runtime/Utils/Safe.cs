@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Utils
+namespace com.MiAO.Unity.MCP.Utils
 {
     internal static class Safe
     {

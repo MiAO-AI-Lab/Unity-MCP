@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace com.IvanMurzak.Unity.MCP.Reflection.Convertor
+namespace com.MiAO.Unity.MCP.Reflection.Convertor
 {
     public partial class RS_UnityEngineMeshFilter : RS_UnityEngineObject<UnityEngine.MeshFilter>
     {

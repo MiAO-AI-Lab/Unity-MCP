@@ -3,14 +3,14 @@ using System.ComponentModel;
 using System.Linq;
 using com.IvanMurzak.ReflectorNet;
 using com.IvanMurzak.ReflectorNet.Utils;
-using com.IvanMurzak.Unity.MCP.Common;
-using com.IvanMurzak.Unity.MCP.Editor.Utils;
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Editor.Utils;
+using com.MiAO.Unity.MCP.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Editor.API
+namespace com.MiAO.Unity.MCP.Editor.API
 {
     public partial class Tool_Assets_Prefab
     {

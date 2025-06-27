@@ -1,8 +1,8 @@
 {
-    "name": "com.IvanMurzak.Unity.MCP.Runtime",
+    "name": "com.MiAO.Unity.MCP.Runtime",
     "rootNamespace": "",
     "references": [
-        "com.IvanMurzak.Unity.MCP.Common"
+        "com.MiAO.Unity.MCP.Common"
     ],
     "includePlatforms": [
         "Editor"

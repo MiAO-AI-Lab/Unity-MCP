@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Utils
+namespace com.MiAO.Unity.MCP.Utils
 {
     public static partial class ShaderUtils
     {

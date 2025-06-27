@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using NLog.Extensions.Logging;
 using NLog;
 using System;
@@ -13,7 +13,7 @@ using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using com.IvanMurzak.ReflectorNet.Utils;
 using com.IvanMurzak.ReflectorNet;
 
-namespace com.IvanMurzak.Unity.MCP.Server
+namespace com.MiAO.Unity.MCP.Server
 {
     using Consts = Common.Consts;
 

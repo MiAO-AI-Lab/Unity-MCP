@@ -1,13 +1,13 @@
 using System;
-using com.IvanMurzak.Unity.MCP.Common;
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Utils;
 using Microsoft.AspNetCore.SignalR.Client;
 using R3;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace com.IvanMurzak.Unity.MCP.Editor
+namespace com.MiAO.Unity.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {
@@ -24,22 +24,22 @@ namespace com.IvanMurzak.Unity.MCP.Editor
             _disposables.Clear();
             rootVisualElement.Clear();
             
-            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.IvanMurzak.Unity.MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
+            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.MiAO.Unity.MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
             if (templateControlPanel == null)
             {
-                Debug.LogError("'templateControlPanel' could not be loaded from path: Packages/com.IvanMurzak.Unity.MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
+                Debug.LogError("'templateControlPanel' could not be loaded from path: Packages/com.MiAO.Unity.MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
                 return;
             }
 
             // Load and apply the stylesheet
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.IvanMurzak.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.MiAO.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss");
             if (styleSheet != null)
             {
                 rootVisualElement.styleSheets.Add(styleSheet);
             }
             else
             {
-                Debug.LogWarning("Could not load stylesheet from: Packages/com.IvanMurzak.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss");
+                Debug.LogWarning("Could not load stylesheet from: Packages/com.MiAO.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss");
             }
 
             var root = templateControlPanel.Instantiate();
@@ -256,7 +256,16 @@ namespace com.IvanMurzak.Unity.MCP.Editor
         {
             try
             {
-                var configPath = "Packages/com.IvanMurzak.Unity.MCP/Config/AI_Config.json";
+                var configPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json";
+                var exampleConfigPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json.example";
+                
+                // If AI_Config.json doesn't exist, copy from AI_Config.json.example
+                if (!System.IO.File.Exists(configPath) && System.IO.File.Exists(exampleConfigPath))
+                {
+                    System.IO.File.Copy(exampleConfigPath, configPath);
+                    Debug.Log($"Created AI_Config.json from example file: {configPath}");
+                }
+                
                 var configText = System.IO.File.ReadAllText(configPath);
                 var config = JsonUtility.FromJson<AIConfigData>(configText);
 
@@ -324,7 +333,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor
                 };
 
                 // 1. Save configuration file in Unity package
-                var unityConfigPath = "Packages/com.IvanMurzak.Unity.MCP/Config/AI_Config.json";
+                var unityConfigPath = "Packages/com.MiAO.Unity.MCP/Config/AI_Config.json";
                 var jsonText = JsonUtility.ToJson(config, true);
                 System.IO.File.WriteAllText(unityConfigPath, jsonText);
                 
@@ -354,7 +363,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor
                 var projectRoot = System.IO.Path.Combine(UnityEngine.Application.dataPath, "..");
                 var serverConfigPath = System.IO.Path.Combine(
                     projectRoot,
-                    "Library", "com.ivanmurzak.unity.mcp.server", "bin~", "Release", "net9.0", 
+                    "Library", "com.MiAO.unity.mcp.server", "bin~", "Release", "net9.0", 
                     "Config", "AI_Config.json"
                 );
                 
@@ -384,7 +393,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor
             try
             {
                 // Use reflection to call AgentModelProxy.ReloadConfig()
-                var agentModelProxyType = System.Type.GetType("com.IvanMurzak.Unity.MCP.Editor.Server.AgentModelProxy, com.IvanMurzak.Unity.MCP.Editor");
+                var agentModelProxyType = System.Type.GetType("com.MiAO.Unity.MCP.Editor.Server.AgentModelProxy, com.MiAO.Unity.MCP.Editor");
                 if (agentModelProxyType != null)
                 {
                     var reloadConfigMethod = agentModelProxyType.GetMethod("ReloadConfig", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);

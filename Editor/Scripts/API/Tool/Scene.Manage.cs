@@ -3,10 +3,10 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using com.IvanMurzak.ReflectorNet.Utils;
-using com.IvanMurzak.Unity.MCP.Common;
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Utils;
 
-namespace com.IvanMurzak.Unity.MCP.Editor.API
+namespace com.MiAO.Unity.MCP.Editor.API
 {
     public partial class Tool_Scene
     {

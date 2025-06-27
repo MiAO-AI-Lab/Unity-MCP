@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace com.IvanMurzak.Unity.MCP.Server.ScriptableServices
+namespace com.MiAO.Unity.MCP.Server.ScriptableServices
 {
     /// <summary>
     /// Scriptable service registry - Manages registration and discovery of all ScriptableServices

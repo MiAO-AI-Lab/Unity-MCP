@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.IvanMurzak.Unity.MCP.Editor.API
+namespace com.MiAO.Unity.MCP.Editor.API
 {
     [McpPluginToolType]
     public partial class Tool_EQS

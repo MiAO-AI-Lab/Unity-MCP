@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace com.IvanMurzak.Unity.MCP.ComplexServices
+namespace com.MiAO.Unity.MCP.ComplexServices
 {
     /// <summary>
     /// Service context implementation

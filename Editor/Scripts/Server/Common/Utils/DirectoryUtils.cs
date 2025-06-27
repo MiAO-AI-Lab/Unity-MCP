@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace com.IvanMurzak.Unity.MCP
+namespace com.MiAO.Unity.MCP
 {
     public static class DirectoryUtils
     {

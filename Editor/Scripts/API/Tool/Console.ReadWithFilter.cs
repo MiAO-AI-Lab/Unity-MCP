@@ -5,11 +5,11 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using com.IvanMurzak.ReflectorNet.Utils;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using UnityEditor;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Editor.API
+namespace com.MiAO.Unity.MCP.Editor.API
 {
     public partial class Tool_Console
     {

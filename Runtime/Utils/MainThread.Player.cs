@@ -3,7 +3,7 @@ using System;
 using System.Threading.Tasks;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.IvanMurzak.Unity.MCP.Utils
+namespace com.MiAO.Unity.MCP.Utils
 {
     public static class MainThreadInstaller
     {

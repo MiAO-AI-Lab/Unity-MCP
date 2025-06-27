@@ -5,7 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>com.IvanMurzak.Unity.MCP.Server</RootNamespace>
+    <RootNamespace>com.MiAO.Unity.MCP.Server</RootNamespace>
     <OutputPath>bin~\$(Configuration)</OutputPath>
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>

@@ -2,15 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
-using com.IvanMurzak.Unity.MCP.Common;
-using com.IvanMurzak.Unity.MCP.Server.Protocol;
-using com.IvanMurzak.Unity.MCP.Server.Proxy;
+using com.MiAO.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Server.Protocol;
+using com.MiAO.Unity.MCP.Server.Proxy;
 #if !UNITY_5_3_OR_NEWER
-using com.IvanMurzak.Unity.MCP.Server.ScriptableServices;
+using com.MiAO.Unity.MCP.Server.ScriptableServices;
 #endif
 using Microsoft.Extensions.Logging;
 
-namespace com.IvanMurzak.Unity.MCP.Server.Handlers
+#nullable enable
+
+namespace com.MiAO.Unity.MCP.Server.Handlers
 {
     /// <summary>
     /// Complex service handler - Refactored to ScriptableService framework
@@ -34,8 +36,8 @@ namespace com.IvanMurzak.Unity.MCP.Server.Handlers
 
 #if !UNITY_5_3_OR_NEWER
             // Create appropriate Logger instances
-            var serviceRegistryLogger = new com.IvanMurzak.Unity.MCP.Server.ScriptableServices.ConsoleLogger<ScriptableServiceRegistry>();
-            var unityRuntimeLogger = new com.IvanMurzak.Unity.MCP.Server.ScriptableServices.ConsoleLogger<UnityRuntimeConnector>();
+            var serviceRegistryLogger = new com.MiAO.Unity.MCP.Server.ScriptableServices.ConsoleLogger<ScriptableServiceRegistry>();
+            var unityRuntimeLogger = new com.MiAO.Unity.MCP.Server.ScriptableServices.ConsoleLogger<UnityRuntimeConnector>();
 
             _serviceRegistry = new ScriptableServiceRegistry(serviceRegistryLogger);
             _unityRuntimeConnector = new UnityRuntimeConnector(unityRuntimeLogger);
@@ -46,7 +48,7 @@ namespace com.IvanMurzak.Unity.MCP.Server.Handlers
         /// <summary>
         /// Handle ScriptableService calls (replacing original ComplexService)
         /// </summary>
-        public async Task<string> HandleScriptableServiceCallAsync(string serviceName, Dictionary<string, object> parameters, string sessionId = null, string agentId = null)
+        public async Task<string> HandleScriptableServiceCallAsync(string serviceName, Dictionary<string, object> parameters, string? sessionId = null, string? agentId = null)
         {
             try
             {
@@ -97,10 +99,10 @@ namespace com.IvanMurzak.Unity.MCP.Server.Handlers
         /// <summary>
         /// ScriptableService call handling in Unity environment (simplified version)
         /// </summary>
-        public async Task<string> HandleScriptableServiceCallAsync(string serviceName, Dictionary<string, object> parameters, string sessionId = null, string agentId = null)
+        public async Task<string> HandleScriptableServiceCallAsync(string serviceName, Dictionary<string, object> parameters, string? sessionId = null, string? agentId = null)
         {
             _logger.LogWarning($"[ComplexServiceHandler] ScriptableService calls not supported in Unity environment: {serviceName}");
-            return CreateErrorResponse("ScriptableService calls are not supported in Unity environment. Use Unity Runtime tools instead.");
+            return await Task.FromResult(CreateErrorResponse("ScriptableService calls are not supported in Unity environment. Use Unity Runtime tools instead."));
         }
 #endif
 
@@ -229,13 +231,13 @@ namespace com.IvanMurzak.Unity.MCP.Server.Handlers
         /// </summary>
         public async Task<string> GetAvailableServicesAsync()
         {
-            return CreateSuccessResponse(new
+            return await Task.FromResult(CreateSuccessResponse(new
             {
                 services = new List<object>(),
                 count = 0,
                 framework = "Unity Runtime Tools",
                 message = "Use Unity Runtime tools instead of ScriptableServices in Unity environment"
-            });
+            }));
         }
 
         /// <summary>
@@ -243,7 +245,7 @@ namespace com.IvanMurzak.Unity.MCP.Server.Handlers
         /// </summary>
         public async Task<string> GetServiceDescriptorAsync(string serviceName)
         {
-            return CreateErrorResponse("Service descriptors are not supported in Unity environment. Use Unity Runtime tools instead.");
+            return await Task.FromResult(CreateErrorResponse("Service descriptors are not supported in Unity environment. Use Unity Runtime tools instead."));
         }
 
         /// <summary>
@@ -536,11 +538,11 @@ namespace com.IvanMurzak.Unity.MCP.Server.Handlers
                 }
                 catch
                 {
-                    return default(T);
+                    return await Task.FromResult(default(T));
                 }
             }
 
-            return default(T);
+            return await Task.FromResult(default(T));
         }
 
         public async Task SetPropertyAsync<T>(string key, T value)

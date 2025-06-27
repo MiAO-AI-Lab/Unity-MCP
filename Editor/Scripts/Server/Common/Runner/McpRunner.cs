@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using com.IvanMurzak.ReflectorNet.Model;
 using Microsoft.Extensions.Logging;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public class McpRunner : IMcpRunner
     {

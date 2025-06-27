@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Utils;
 using com.IvanMurzak.ReflectorNet.Model;
 using com.IvanMurzak.ReflectorNet.Utils;
 using com.IvanMurzak.ReflectorNet;
 
-namespace com.IvanMurzak.Unity.MCP.Editor.API
+namespace com.MiAO.Unity.MCP.Editor.API
 {
     [McpPluginToolType]
     public partial class Tool_GameObject

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.ComplexServices
+namespace com.MiAO.Unity.MCP.ComplexServices
 {
     /// <summary>
     /// Complex service interface - Implemented in Unity Runtime

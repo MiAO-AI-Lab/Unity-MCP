@@ -1,13 +1,13 @@
 <linker>
-  <assembly fullname="com.IvanMurzak.Unity.MCP.Common">
+  <assembly fullname="com.MiAO.Unity.MCP.Common">
     <type fullname="*" preserve="all" />
   </assembly>
 
-  <assembly fullname="com.IvanMurzak.Unity.MCP.Runtime">
+  <assembly fullname="com.MiAO.Unity.MCP.Runtime">
     <type fullname="*" preserve="all" />
   </assembly>
 
-  <assembly fullname="com.IvanMurzak.Unity.MCP.Tests">
+  <assembly fullname="com.MiAO.Unity.MCP.Tests">
     <type fullname="*" preserve="all" />
   </assembly>
 </linker>

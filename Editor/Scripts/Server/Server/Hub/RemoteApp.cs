@@ -2,12 +2,12 @@
 #if !UNITY_5_3_OR_NEWER
 using System;
 using System.Threading.Tasks;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
-namespace com.IvanMurzak.Unity.MCP.Server
+namespace com.MiAO.Unity.MCP.Server
 {
     public class RemoteApp : BaseHub<RemoteApp>, IRemoteApp
     {

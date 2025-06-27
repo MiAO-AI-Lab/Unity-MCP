@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using com.IvanMurzak.ReflectorNet.Json;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Common.Json.Converters
+namespace com.MiAO.Unity.MCP.Common.Json.Converters
 {
     public class QuaternionConverter : JsonConverter<Quaternion>, IJsonSchemaConverter
     {

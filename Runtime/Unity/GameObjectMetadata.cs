@@ -1,11 +1,11 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 using System.Collections.Generic;
 using System.Text;
-using com.IvanMurzak.Unity.MCP.Common;
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Utils;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP
+namespace com.MiAO.Unity.MCP
 {
     public class GameObjectMetadata
     {

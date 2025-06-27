@@ -8,7 +8,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace com.IvanMurzak.Unity.MCP.Editor
+namespace com.MiAO.Unity.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {

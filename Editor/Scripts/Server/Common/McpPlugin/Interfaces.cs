@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using R3;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public interface IMcpPlugin : IConnection, IDisposableAsync
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using com.IvanMurzak.ReflectorNet.Model;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public static class ExtensionsNotificationData
     {

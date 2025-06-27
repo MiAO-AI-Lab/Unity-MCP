@@ -1,5 +1,5 @@
 #if !UNITY_5_3_OR_NEWER
-namespace com.IvanMurzak.Unity.MCP.Server.API.Data
+namespace com.MiAO.Unity.MCP.Server.API.Data
 {
     [System.Serializable]
     public class Vector3

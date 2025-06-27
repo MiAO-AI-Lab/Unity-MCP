@@ -3,7 +3,7 @@
 using System;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public class FixedRetryPolicy : IRetryPolicy
     {

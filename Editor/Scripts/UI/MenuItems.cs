@@ -2,10 +2,10 @@
 #if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using System.Threading.Tasks;
 
-namespace com.IvanMurzak.Unity.MCP.Editor
+namespace com.MiAO.Unity.MCP.Editor
 {
     public static class MenuItems
     {

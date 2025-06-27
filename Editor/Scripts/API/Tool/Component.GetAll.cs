@@ -2,10 +2,10 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using UnityEditor;
 
-namespace com.IvanMurzak.Unity.MCP.Editor.API
+namespace com.MiAO.Unity.MCP.Editor.API
 {
     public partial class Tool_Component
     {

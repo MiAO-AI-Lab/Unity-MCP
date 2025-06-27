@@ -10,7 +10,7 @@ using com.IvanMurzak.ReflectorNet.Model;
 using com.IvanMurzak.ReflectorNet.Utils;
 using Microsoft.Extensions.Logging;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     /// <summary>
     /// Provides functionality to execute methods dynamically, supporting both static and instance methods.

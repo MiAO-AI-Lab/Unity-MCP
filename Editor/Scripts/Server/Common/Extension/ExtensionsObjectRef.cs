@@ -2,7 +2,7 @@
 using System.Text.Json;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
 
-namespace com.IvanMurzak.Unity.MCP.Utils
+namespace com.MiAO.Unity.MCP.Utils
 {
     public static class ExtensionsObjectRef
     {

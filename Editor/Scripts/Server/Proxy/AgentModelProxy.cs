@@ -6,9 +6,9 @@ using System.Text.Json;
 using System.Net.Http;
 using System.Text;
 using System.IO;
-using com.IvanMurzak.Unity.MCP.Server.Protocol;
+using com.MiAO.Unity.MCP.Server.Protocol;
 
-namespace com.IvanMurzak.Unity.MCP.Server.Proxy
+namespace com.MiAO.Unity.MCP.Server.Proxy
 {
     /// <summary>
     /// Agent model proxy implementation - Direct model API calls (referencing AI.ImageRecognition.cs approach)
@@ -602,7 +602,7 @@ namespace com.IvanMurzak.Unity.MCP.Server.Proxy
         {
 #if UNITY_5_3_OR_NEWER
             // Use Unity path in Unity environment
-            var configPath = Path.Combine(UnityEngine.Application.dataPath, "..", "Packages", "com.IvanMurzak.Unity.MCP", "Config", "AI_Config.json");
+            var configPath = Path.Combine(UnityEngine.Application.dataPath, "..", "Packages", "com.MiAO.Unity.MCP", "Config", "AI_Config.json");
 #else
             // Use relative path in Server environment
             var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "AI_Config.json");
@@ -700,11 +700,11 @@ namespace com.IvanMurzak.Unity.MCP.Server.Proxy
             
             if (!string.IsNullOrEmpty(projectRoot))
             {
-                return Path.Combine(projectRoot, "Packages", "com.IvanMurzak.Unity.MCP", "Config", "AI_Config.json");
+                return Path.Combine(projectRoot, "Packages", "com.MiAO.Unity.MCP", "Config", "AI_Config.json");
             }
             
             // If project root not found, try using relative path
-            return Path.Combine(currentDir, "..", "..", "..", "..", "..", "Packages", "com.IvanMurzak.Unity.MCP", "Config", "AI_Config.json");
+            return Path.Combine(currentDir, "..", "..", "..", "..", "..", "Packages", "com.MiAO.Unity.MCP", "Config", "AI_Config.json");
         }
 
         /// <summary>

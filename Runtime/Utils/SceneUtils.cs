@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
-namespace com.IvanMurzak.Unity.MCP.Utils
+namespace com.MiAO.Unity.MCP.Utils
 {
     public static partial class SceneUtils
     {

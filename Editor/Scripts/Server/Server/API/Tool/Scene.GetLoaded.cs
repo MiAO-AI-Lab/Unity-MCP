@@ -4,7 +4,7 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
-namespace com.IvanMurzak.Unity.MCP.Server.API
+namespace com.MiAO.Unity.MCP.Server.API
 {
     public partial class Tool_Scene
     {

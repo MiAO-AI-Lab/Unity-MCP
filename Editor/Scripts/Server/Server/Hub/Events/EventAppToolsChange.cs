@@ -1,7 +1,7 @@
 #if !UNITY_5_3_OR_NEWER
 using R3;
 
-namespace com.IvanMurzak.Unity.MCP.Server
+namespace com.MiAO.Unity.MCP.Server
 {
     public class EventAppToolsChange : Subject<EventAppToolsChange.EventData>
     {

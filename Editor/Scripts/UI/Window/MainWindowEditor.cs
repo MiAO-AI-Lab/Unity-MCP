@@ -1,9 +1,9 @@
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Utils;
 using R3;
 using UnityEditor;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Editor
+namespace com.MiAO.Unity.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {

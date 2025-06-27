@@ -7,7 +7,7 @@ using com.IvanMurzak.ReflectorNet.Model;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace com.IvanMurzak.Unity.MCP.Reflection.Convertor
+namespace com.MiAO.Unity.MCP.Reflection.Convertor
 {
     public partial class RS_UnityEngineSprite : RS_UnityEngineObject<UnityEngine.Sprite>
     {

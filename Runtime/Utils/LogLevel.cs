@@ -1,4 +1,4 @@
-namespace com.IvanMurzak.Unity.MCP.Utils
+namespace com.MiAO.Unity.MCP.Utils
 {
     public enum LogLevel
     {

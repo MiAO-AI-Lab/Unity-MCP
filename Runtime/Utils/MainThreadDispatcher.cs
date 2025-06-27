@@ -4,7 +4,7 @@ using System.Threading;
 using UnityEditor;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Utils
+namespace com.MiAO.Unity.MCP.Utils
 {
 #if UNITY_EDITOR
     [InitializeOnLoad]

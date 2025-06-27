@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Text.Json;
-using com.IvanMurzak.Unity.MCP.Server.ScriptableServices;
+using com.MiAO.Unity.MCP.Server.ScriptableServices;
 using Microsoft.Extensions.Logging;
 
-namespace com.IvanMurzak.Unity.MCP.Server.ScriptableServices.Services
+namespace com.MiAO.Unity.MCP.Server.ScriptableServices.Services
 {
     /// <summary>
     /// AI Vision Analysis Scriptable Service - Advanced service that integrates Unity Runtime and Agent model capabilities

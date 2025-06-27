@@ -1,7 +1,9 @@
 {
-    "name": "com.IvanMurzak.Unity.MCP.Common",
-    "rootNamespace": "com.IvanMurzak.Unity.MCP.Common",
-    "references": [],
+    "name": "com.MiAO.Unity.MCP.Server",
+    "rootNamespace": "com.MiAO.Unity.MCP.Server",
+    "references": [
+        "com.MiAO.Unity.MCP.Common"
+    ],
     "includePlatforms": [
         "Editor"
     ],

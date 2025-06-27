@@ -4,7 +4,7 @@ using System.Text.Json;
 using com.IvanMurzak.ReflectorNet.Model;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public static class ExtensionsRequestCallTool
     {

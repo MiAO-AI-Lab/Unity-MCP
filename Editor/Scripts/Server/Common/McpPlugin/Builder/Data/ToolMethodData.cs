@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public class ToolMethodData
     {

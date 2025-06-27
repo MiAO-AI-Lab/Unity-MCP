@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP.Editor
+namespace com.MiAO.Unity.MCP.Editor
 {
     [InitializeOnLoad]
     static class MainWindowInitializer

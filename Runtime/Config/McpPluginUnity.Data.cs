@@ -1,9 +1,9 @@
 using System;
-using com.IvanMurzak.Unity.MCP.Common;
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Utils;
 using UnityEngine;
 
-namespace com.IvanMurzak.Unity.MCP
+namespace com.MiAO.Unity.MCP
 {
     public partial class McpPluginUnity
     {

@@ -1,8 +1,8 @@
 # Unity MCP (Server + Plugin)
 
-[![openupm](https://img.shields.io/npm/v/com.ivanmurzak.unity.mcp?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.ivanmurzak.unity.mcp/) ![License](https://img.shields.io/github/license/IvanMurzak/Unity-MCP) [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
+![License](https://img.shields.io/github/license/IvanMurzak/Unity-MCP) [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
 
-![image](https://github.com/user-attachments/assets/8f595879-a578-421a-a06d-8c194af874f7)
+![image](https://raw.githubusercontent.com/MiAO-AI-LAB/Unity-MCP/main/.github/images/ai-connector-landing.jpg)
 
 | Unity Version | Editmode                                                                                                                                     | Playmode                                                                                                                                     | Standalone                                                                                                                                       |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -10,9 +10,9 @@
 | 2023.2.20f1   | ![2023.2.20f1](https://img.shields.io/github/actions/workflow/status/IvanMurzak/Unity-MCP/2023.2.20f1_editmode.yml?label=2023.2.20f1-editmode) | ![2023.2.20f1](https://img.shields.io/github/actions/workflow/status/IvanMurzak/Unity-MCP/2023.2.20f1_playmode.yml?label=2023.2.20f1-playmode) | ![2023.2.20f1](https://img.shields.io/github/actions/workflow/status/IvanMurzak/Unity-MCP/2023.2.20f1_standalone.yml?label=2023.2.20f1-standalone) |
 | 6000.0.46f1   | ![6000.0.46f1](https://img.shields.io/github/actions/workflow/status/IvanMurzak/Unity-MCP/6000.0.46f1_editmode.yml?label=6000.0.46f1-editmode) | ![6000.0.46f1](https://img.shields.io/github/actions/workflow/status/IvanMurzak/Unity-MCP/6000.0.46f1_playmode.yml?label=6000.0.46f1-playmode) | ![6000.0.46f1](https://img.shields.io/github/actions/workflow/status/IvanMurzak/Unity-MCP/6000.0.46f1_standalone.yml?label=6000.0.46f1-standalone) |
 
-**[Unity-MCP](https://github.com/IvanMurzak/Unity-MCP)** is a bridge between LLM and Unity. It exposes and explains to LLM Unity's tools. LLM understands the interface and utilizes the tools in the way a user asks.
+**[Unity-MCP](https://github.com/MiAO-AI-Lab/Unity-MCP)** is a bridge between LLM and Unity. It exposes and explains to LLM Unity's tools. LLM understands the interface and utilizes the tools in the way a user asks.
 
-Connect **[Unity-MCP](https://github.com/IvanMurzak/Unity-MCP)** to LLM client such as [Claude](https://claude.ai/download) or [Cursor](https://www.cursor.com/) using integrated `AI Connector` window. Custom clients are supported as well.
+Connect **[Unity-MCP](https://github.com/MiAO-AI-Lab/Unity-MCP)** to LLM client such as [Claude](https://claude.ai/download) or [Cursor](https://www.cursor.com/) using integrated `AI Connector` window. Custom clients are supported as well.
 
 The project is designed to let developers to add custom tools soon. After that the next goal is to enable the same features in player's build. For not it works only in Unity Editor.
 
@@ -239,33 +239,11 @@ Added numerous tool features
 
 # Installation
 
-1. [Install .NET 9.0](https://dotnet.microsoft.com/en-us/download)
-2. [Install OpenUPM-CLI](https://github.com/openupm/openupm-cli#installation)
-
-- Open command line in Unity project folder
-- Run the command
-
-```bash
-openupm add com.ivanmurzak.unity.mcp
-```
-
-Or manually add to manifest.json:
+1. Git Clone this repository locally and place it in Unity's Packages directory with the path Packages/com.miao.unity.mcp/{repository content}
+2. Manually add to manifest.json:
 
 ```json
 {
-    "dependencies": {
-        "org.nuget.microsoft.bcl.memory": "9.0.4",
-        "org.nuget.microsoft.aspnetcore.signalr.client": "9.0.4",
-        "org.nuget.microsoft.aspnetcore.signalr.protocols.json": "9.0.4",
-        "org.nuget.microsoft.codeanalysis.csharp": "4.13.0",
-        "org.nuget.microsoft.extensions.caching.abstractions": "9.0.4",
-        "org.nuget.microsoft.extensions.dependencyinjection.abstractions": "9.0.4",
-        "org.nuget.microsoft.extensions.hosting": "9.0.4",
-        "org.nuget.microsoft.extensions.hosting.abstractions": "9.0.4",
-        "org.nuget.microsoft.extensions.logging.abstractions": "9.0.4",
-        "org.nuget.r3": "1.3.0",
-        "org.nuget.system.text.json": "9.0.4"
-    },
     "scopedRegistries": [
         {
         "name": "package.openupm.com",
@@ -307,19 +285,10 @@ Or manually add to manifest.json:
   Explain my scene hierarchy
 ```
 
-# AI Configuration
+# AI Configuration (Optional)
 
-Create an `ai_config.json` file in the project root to configure AI models:
+![image](https://raw.githubusercontent.com/MiAO-AI-LAB/Unity-MCP/main/.github/images/ai-configurations.jpg)
 
-```json
-{
-  "openaiApiKey": "your-api-key",
-  "openaiModel": "gpt-4o",
-  "openaiBaseUrl": "https://api.openai.com/v1",
-  "timeoutSeconds": 60,
-  "maxTokens": 2000
-}
-```
 
 # Add custom `tool`
 
@@ -374,4 +343,26 @@ Feel free to add new `tool` into the project.
 
 1. Fork the project.
 2. Implement new `tool` in your forked repository.
-3. Create Pull Request into original [Unity-MCP](https://github.com/IvanMurzak/Unity-MCP) repository.
+3. Create Pull Request into original [Unity-MCP](https://github.com/MiAO-AI-Lab/Unity-MCP) repository.
+
+## Attribution
+
+This project is based on the original open-source project by **Ivan Murzak** and has been extensively modified and extended by **MiAO**.
+
+### Original Project
+- **Author**: Ivan Murzak
+- **Original Repository**: https://github.com/MiAO-AI-Lab/Unity-MCP
+- **License**: Apache License 2.0
+
+### Modifications and Extensions
+- **Modified by**: MiAO (ai@miao.company)
+- **Year**: 2025
+- **Major Changes**: [List major modifications here]
+
+We thank the original author Ivan Murzak for his contributions to the open-source community!
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+The project includes components from the original work by Ivan Murzak, also licensed under Apache License 2.0.

@@ -8,7 +8,7 @@ using com.IvanMurzak.ReflectorNet.Convertor;
 using UnityEngine;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace com.IvanMurzak.Unity.MCP.Common.Reflection.Convertor
+namespace com.MiAO.Unity.MCP.Common.Reflection.Convertor
 {
     public partial class RS_GenericUnity<T> : GenericReflectionConvertor<T>
     {

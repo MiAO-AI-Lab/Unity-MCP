@@ -1,11 +1,11 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
   public static partial class Consts
   {
     public const string All = "*";
     public const string AllRecursive = "**";
-    public const string PackageName = "com.ivanmurzak.unity.mcp";
+    public const string PackageName = "com.MiAO.unity.mcp";
 
     public static class Guid
     {

@@ -7,7 +7,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace com.IvanMurzak.Unity.MCP.ComplexServices
+namespace com.MiAO.Unity.MCP.ComplexServices
 {
     /// <summary>
     /// AI Vision Analysis Service - Implemented in Unity Runtime, can directly access Unity API

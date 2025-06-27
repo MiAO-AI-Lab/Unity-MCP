@@ -3,9 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 
-namespace com.IvanMurzak.Unity.MCP.Server.ScriptableServices
+namespace com.MiAO.Unity.MCP.Server.ScriptableServices
 {
     /// <summary>
     /// Scriptable service interface - Replaces ComplexService, providing more powerful scripting service capabilities

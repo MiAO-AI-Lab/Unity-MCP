@@ -2,7 +2,7 @@
 using System.Threading;
 using R3;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public static class ExtensionsCompositeDisposable
     {

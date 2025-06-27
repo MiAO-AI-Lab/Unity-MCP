@@ -1,0 +1,22 @@
+Unity MCP (Model Context Protocol) - MiAO Edition
+==================================================
+
+This project is based on Ivan Murzak's original open-source project and has been extensively modified and extended.
+
+Original Project Information:
+- Author: Ivan Murzak
+- License: Apache License 2.0
+- Original Repository: https://github.com/IvanMurzak/Unity-MCP
+
+Modifications and Extensions:
+- Modified by: MiAO (ai@miao.company)
+- Modification Date: 2025
+- Major Changes: [List major modifications here]
+
+We thank the original author Ivan Murzak for his contributions!
+
+Third-Party Components:
+- ReflectorNet.dll - Developed by Ivan Murzak
+- Other dependency components - See their respective license files
+
+This project is licensed under the Apache License 2.0. 

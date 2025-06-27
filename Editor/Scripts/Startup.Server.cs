@@ -1,23 +1,23 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-using com.IvanMurzak.Unity.MCP.Common;
+using com.MiAO.Unity.MCP.Common;
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
 using Debug = UnityEngine.Debug;
-using com.IvanMurzak.Unity.MCP.Editor.Utils;
-using com.IvanMurzak.Unity.MCP.Utils;
+using com.MiAO.Unity.MCP.Editor.Utils;
+using com.MiAO.Unity.MCP.Utils;
 using System.Linq;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.IvanMurzak.Unity.MCP.Editor
+namespace com.MiAO.Unity.MCP.Editor
 {
     using Consts = Common.Consts;
     public static partial class Startup
     {
-        public const string PackageName = "com.IvanMurzak.Unity.MCP";
-        public const string ServerProjectName = "com.IvanMurzak.Unity.MCP.Server";
+        public const string PackageName = "com.miao.Unity.MCP";
+        public const string ServerProjectName = "com.miao.Unity.MCP.Server";
 
         // Server source path
         public static string PackageCache => Path.GetFullPath(Path.Combine(Application.dataPath, "../Library", "PackageCache"));
@@ -32,7 +32,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor
 
                 if (string.IsNullOrEmpty(sourceDir))
                 {
-                    var path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Packages/com.IvanMurzak.Unity.MCP/Editor/Scripts/Server"));
+                    var path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Packages/com.miao.unity.mcp/Editor/Scripts/Server"));
                     Debug.Log($"{Consts.Log.Tag} Set server path: <color=#8CFFD1>{path}</color>");
                     return path;
                 }
@@ -167,7 +167,6 @@ namespace com.IvanMurzak.Unity.MCP.Editor
             catch (DirectoryNotFoundException ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Server source directory not found. Please check the path: <color=#8CFFD1>{PackageCache}</color>");
-                Debug.LogError($"{Consts.Log.Tag} It may happen if the package was added into a project using local path reference. Please consider to use a package from the registry instead. Follow official installation instructions at https://github.com/IvanMurzak/Unity-MCP");
                 Debug.LogException(ex);
             }
         }

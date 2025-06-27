@@ -6,7 +6,7 @@ using com.IvanMurzak.ReflectorNet.Model;
 using Microsoft.AspNetCore.SignalR.Client;
 using R3;
 
-namespace com.IvanMurzak.Unity.MCP.Common
+namespace com.MiAO.Unity.MCP.Common
 {
     public interface IRpcRouter : IDisposableAsync
     {

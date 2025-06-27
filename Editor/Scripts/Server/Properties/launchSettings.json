@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "com.IvanMurzak.Unity.MCP.Server": {
+    "com.MiAO.Unity.MCP.Server": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

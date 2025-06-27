@@ -1,10 +1,10 @@
 // #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 // using System.ComponentModel;
-// using com.IvanMurzak.Unity.MCP.Common;
-// using com.IvanMurzak.Unity.MCP.Utils;
+// using com.MiAO.Unity.MCP.Common;
+// using com.MiAO.Unity.MCP.Utils;
 // using UnityEditor;
 
-// namespace com.IvanMurzak.Unity.MCP.Editor.API
+// namespace com.MiAO.Unity.MCP.Editor.API
 // {
 //     public partial class Tool_Assets
 //     {
