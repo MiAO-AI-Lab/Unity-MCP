@@ -37,18 +37,18 @@ namespace com.IvanMurzak.Unity.MCP.Server
             return ResponseData<string>.Success(data, string.Empty).TaskFromResult<IResponseData<string>>();
         }
 
-        // 新增：处理来自Unity Runtime的ModelUse请求
+        // Added: Handle ModelUse requests from Unity Runtime
         public async Task<IResponseData<ModelUseResponse>> RequestModelUse(RequestModelUse request)
         {
             _logger.LogTrace($"RemoteApp RequestModelUse. {_guid}. Request: {request.ModelType}");
 
             try
             {
-                // 创建ComplexServiceHandler来处理ModelUse请求
+                // Create ComplexServiceHandler to handle ModelUse requests
                 var handlerLogger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<Handlers.ComplexServiceHandler>();
                 var handler = new Handlers.ComplexServiceHandler(handlerLogger);
 
-                // 构建ModelUse请求JSON
+                // Build ModelUse request JSON
                 var modelRequest = new ModelUseRequest
                 {
                     ModelType = request.ModelType,

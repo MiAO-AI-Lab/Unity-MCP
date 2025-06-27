@@ -42,7 +42,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             string referencePointsJson = "[]",
             [Description("Area of interest definition. Sphere: {\"type\":\"sphere\",\"center\":[15,1,25],\"radius\":30}. Box: {\"type\":\"box\",\"center\":[15,1,25],\"size\":[20,10,20]}")]
             string? areaOfInterestJson = null,
-            [Description("Query conditions array. DistanceTo: {\"conditionType\":\"DistanceTo\",\"parameters\":{\"targetPoint\":[10,0,20],\"minDistance\":5,\"maxDistance\":25,\"distanceMode\":\"euclidean\"}}. distanceMode options: euclidean|manhattan|chebyshev|horizontal|vertical|squared. Clearance: {\"conditionType\":\"Clearance\",\"parameters\":{\"requiredHeight\":2.0,\"requiredRadius\":0.5,\"checkDirections\":8}}. VisibilityOf: {\"conditionType\":\"VisibilityOf\",\"parameters\":{\"targetPoint\":[15,1,25],\"eyeHeight\":1.7,\"maxViewAngle\":90,\"successThreshold\":0.8}}. CustomProperty: {\"conditionType\":\"CustomProperty\",\"parameters\":{\"propertyName\":\"terrainType\",\"expectedValue\":\"ground\",\"comparisonType\":\"equals\"}}. ObjectProximity: {\"conditionType\":\"ObjectProximity\",\"parameters\":{\"objectId\":\"12345\",\"proximityMode\":\"surface\",\"maxDistance\":5.0,\"minDistance\":1.0,\"colliderType\":\"any\"}}. proximityMode options: inside|outside|surface. colliderType options: any|trigger|solid")]
+            [Description("Query conditions array. DistanceTo: {\"conditionType\":\"DistanceTo\",\"parameters\":{\"targetPoint\":[10,0,20],\"minDistance\":5,\"maxDistance\":25,\"distanceMode\":\"euclidean\"}}. distanceMode options: euclidean|manhattan|chebyshev|horizontal|vertical|squared. Clearance: {\"conditionType\":\"Clearance\",\"parameters\":{\"requiredHeight\":2.0,\"requiredRadius\":0.5,\"obstacleLayers\":[\"Default\",\"Obstacle\",\"Terrain\"],\"obstacleLayerMask\":123}}. Optional: obstacleLayers (layer names array) or obstacleLayerMask (int mask value), defaults to common obstacle layers. VisibilityOf: {\"conditionType\":\"VisibilityOf\",\"parameters\":{\"targetPoint\":[15,1,25],\"eyeHeight\":1.7,\"maxViewAngle\":90,\"successThreshold\":0.8}}. CustomProperty: {\"conditionType\":\"CustomProperty\",\"parameters\":{\"propertyName\":\"terrainType\",\"expectedValue\":\"ground\",\"comparisonType\":\"equals\"}}. ObjectProximity: {\"conditionType\":\"ObjectProximity\",\"parameters\":{\"objectId\":\"12345\",\"proximityMode\":\"surface\",\"maxDistance\":5.0,\"minDistance\":1.0,\"colliderType\":\"any\"}}. proximityMode options: inside|outside|surface. colliderType options: any|trigger|solid")]
             string conditionsJson = "[]",
             [Description("Scoring criteria array. ProximityTo: {\"criterionType\":\"ProximityTo\",\"parameters\":{\"targetPoint\":[50,0,50],\"maxDistance\":100,\"scoringCurve\":\"linear\",\"distanceMode\":\"euclidean\"},\"weight\":0.7}. scoringCurve options: linear|exponential|logarithmic|smoothstep|inverse. distanceMode options: euclidean|manhattan|chebyshev|horizontal|vertical|squared. FarthestFrom: {\"criterionType\":\"FarthestFrom\",\"parameters\":{\"targetPoint\":[30,0,30],\"minDistance\":10,\"scoringCurve\":\"exponential\"},\"weight\":0.5}. scoringCurve options: linear|exponential|logarithmic|smoothstep|threshold. DensityOfObjects: {\"criterionType\":\"DensityOfObjects\",\"parameters\":{\"radius\":5,\"objectType\":\"Enemy\",\"densityMode\":\"inverse\",\"useDistanceWeighting\":true},\"weight\":0.6}. densityMode options: count|weighted|inverse. HeightPreference: {\"criterionType\":\"HeightPreference\",\"parameters\":{\"preferenceMode\":\"higher\",\"referenceHeight\":0,\"heightRange\":50},\"weight\":0.4}. preferenceMode options: higher|lower|specific|avoid. SlopeAnalysis: {\"criterionType\":\"SlopeAnalysis\",\"parameters\":{\"slopeMode\":\"flat\",\"tolerance\":10,\"sampleRadius\":2},\"weight\":0.3}. slopeMode options: flat|steep|specific. CoverQuality: {\"criterionType\":\"CoverQuality\",\"parameters\":{\"coverRadius\":3,\"coverMode\":\"omnidirectional\",\"minCoverHeight\":1.5},\"weight\":0.8}. coverMode options: omnidirectional|partial|majority. PathComplexity: {\"criterionType\":\"PathComplexity\",\"parameters\":{\"startPoint\":[25,0,25],\"complexityMode\":\"simple\",\"pathLength\":20},\"weight\":0.3}. complexityMode options: simple|complex. MultiPoint: {\"criterionType\":\"MultiPoint\",\"parameters\":{\"targetPoints\":[[10,0,10],[20,0,20]],\"multiMode\":\"average\",\"weights\":[0.6,0.4]},\"weight\":0.5}. multiMode options: average|weighted|minimum|maximum")]
             string scoringCriteriaJson = "[]",
@@ -53,7 +53,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         {
             try
             {
-                // 检查环境是否已初始化
+                // Check if environment is initialized
                 if (_currentEnvironment == null)
                 {
                     return Error.EnvironmentNotInitialized();
@@ -61,7 +61,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
 
                 var startTime = DateTime.Now;
 
-                // 解析输入参数
+                // Parse input parameters
                 var query = new EQSQuery
                 {
                     QueryID = queryID,
@@ -69,7 +69,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     DesiredResultCount = desiredResultCount
                 };
 
-                // 解析参考点
+                // Parse reference point
                 try
                 {
                     var referencePoints = JsonUtils.Deserialize<List<Dictionary<string, object>>>(referencePointsJson);
@@ -86,10 +86,10 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 }
                 catch (Exception ex)
                 {
-                    return $"[Error] 解析参考点失败: {ex.Message}";
+                    return $"[Error] Failed to parse reference point: {ex.Message}";
                 }
 
-                // 解析兴趣区域
+                // Parse area of interest
                 if (!string.IsNullOrEmpty(areaOfInterestJson))
                 {
                     try
@@ -100,11 +100,11 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     }
                     catch (Exception ex)
                     {
-                        return $"[Error] 解析兴趣区域失败: {ex.Message}";
+                        return $"[Error] Failed to parse area of interest: {ex.Message}";
                     }
                 }
 
-                // 解析查询条件
+                // Parse query conditions
                 try
                 {
                     var conditions = JsonUtils.Deserialize<List<Dictionary<string, object>>>(conditionsJson);
@@ -128,10 +128,10 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 }
                 catch (Exception ex)
                 {
-                    return $"[Error] 解析查询条件失败: {ex.Message}";
+                    return $"[Error] Failed to parse query conditions: {ex.Message}";
                 }
 
-                // 解析评分标准
+                // Parse scoring criteria
                 try
                 {
                     var scoringCriteria = JsonUtils.Deserialize<List<Dictionary<string, object>>>(scoringCriteriaJson);
@@ -155,28 +155,28 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 }
                 catch (Exception ex)
                 {
-                    return $"[Error] 解析评分标准失败: {ex.Message}";
+                    return $"[Error] Failed to parse scoring criteria: {ex.Message}";
                 }
 
-                // 执行查询
+                // Execute query
                 var result = ExecuteQuery(query);
                 
-                // 缓存结果
+                // Cache results
                 _queryCache[queryID] = result;
 
                 var executionTime = (DateTime.Now - startTime).TotalMilliseconds;
                 result.ExecutionTimeMs = (float)executionTime;
 
-                // 自动创建可视化（根据评分显示绿到红的渐变色）
-                // 显示所有满足条件的点，而不只是前几名
+                // Automatically create visualization (display green to red gradient based on scores)
+                // Show all points that meet criteria, not just the top few
                 if (result.Status == "Success" && result.Results.Count > 0)
                 {
-                    // 为了显示所有候选点，重新执行查询获取所有结果
+                    // Re-execute query to get all results for displaying all candidates
                     var allCandidatesResult = ExecuteQueryForVisualization(query);
                     AutoVisualizeQueryResults(allCandidatesResult);
                 }
 
-                // 创建安全的序列化版本，避免Vector3循环引用
+                // Create safe serialized version, avoiding Vector3 circular references
                 var safeResult = new
                 {
                     QueryID = result.QueryID,
@@ -195,42 +195,42 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     }).ToArray()
                 };
 
-                return @$"[Success] EQS查询执行成功。
-# 查询结果:
+                return @$"[Success] EQS query executed successfully.
+# Query Results:
 ```json
 {JsonUtils.Serialize(safeResult)}
 ```
 
-# 结果摘要:
-- 查询ID: {result.QueryID}
-- 状态: {result.Status}  
-- 找到的候选位置数: {result.Results.Count}
-- 执行时间: {result.ExecutionTimeMs:F2}毫秒
-- 自动可视化: {(result.Results.Count > 0 ? "已创建" : "无结果，未创建")}
+# Result Summary:
+- Query ID: {result.QueryID}
+- Status: {result.Status}  
+- Number of candidate locations found: {result.Results.Count}
+- Execution time: {result.ExecutionTimeMs:F2}ms
+- Auto visualization: {(result.Results.Count > 0 ? "Created" : "No results, not created")}
 
-# 前3个最佳位置:
+# Top 3 Best Locations:
 {string.Join("\n", result.Results.Take(3).Select((candidate, index) => 
-    $"#{index + 1}: 位置({candidate.WorldPosition.x:F2}, {candidate.WorldPosition.y:F2}, {candidate.WorldPosition.z:F2}) 分数:{candidate.Score:F3}"))}
+    $"#{index + 1}: Position({candidate.WorldPosition.x:F2}, {candidate.WorldPosition.y:F2}, {candidate.WorldPosition.z:F2}) Score:{candidate.Score:F3}"))}
 
-# 可视化说明:
-- 🟢 绿色 = 高评分 (0.7-1.0)
-- 🟡 黄绿色 = 中高评分 (0.5-0.7)  
-- 🟡 黄色 = 中等评分 (0.3-0.5)
-- 🟠 橙色 = 中低评分 (0.1-0.3)
-- 🔴 红色 = 低评分 (0.0-0.1)
-- 灰色 = 不可用
-- 所有满足条件的点都会显示对应颜色
-- 统一大小，不显示分数文本
-- 可视化永久保留，直到手动清除或重新查询";
+# Visualization Legend:
+- 🟢 Green = High score (0.7-1.0)
+- 🟡 Yellow-green = Medium-high score (0.5-0.7)  
+- 🟡 Yellow = Medium score (0.3-0.5)
+- 🟠 Orange = Medium-low score (0.1-0.3)
+- 🔴 Red = Low score (0.0-0.1)
+- Gray = Unavailable
+- All points meeting criteria will display corresponding colors
+- Uniform size, no score text displayed
+- Visualization persists permanently until manual cleanup or re-query";
             }
             catch (Exception ex)
             {
-                return $"[Error] EQS查询执行失败: {ex.Message}";
+                return $"[Error] EQS query execution failed: {ex.Message}";
             }
         });
 
         /// <summary>
-        /// 执行查询用于可视化（返回所有候选点，不限制数量）
+        /// Execute query for visualization (return all candidate points without limiting quantity)
         /// </summary>
         private static EQSQueryResult ExecuteQueryForVisualization(EQSQuery query)
         {
@@ -247,10 +247,10 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var candidates = new List<EQSLocationCandidate>();
             var grid = _currentEnvironment.Grid;
 
-            // 筛选符合条件的点位
+            // Filter points that meet criteria
             var validCells = FilterCells(grid.Cells, query);
 
-            // 对每个符合条件的点位进行评分
+            // Score each point that meets criteria
             foreach (var cell in validCells)
             {
                 var candidate = new EQSLocationCandidate
@@ -275,7 +275,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 candidates.Add(candidate);
             }
 
-            // 按分数排序，但返回所有候选点（不限制数量）
+            // Sort by score, but return all candidate points (no quantity limit)
             var sortedCandidates = candidates
                 .OrderByDescending(c => c.Score)
                 .ToList();
@@ -290,21 +290,21 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// EQS查询执行的核心方法
+        /// Core method for EQS query execution
         /// 
-        /// 点位选择逻辑说明：
-        /// 1. 从环境网格中筛选候选点位（FilterCells）
-        /// 2. 对每个候选点位进行多维度评分（CalculateScore）
-        /// 3. 根据权重计算综合得分
-        /// 4. 按得分排序并返回最佳点位
+        /// Point selection logic explanation:
+        /// 1. Filter candidate points from environment grid (FilterCells)
+        /// 2. Perform multi-dimensional scoring for each candidate point (CalculateScore)
+        /// 3. Calculate comprehensive score based on weights
+        /// 4. Sort by score and return best points
         /// 
-        /// 这种设计允许复杂的空间推理，如：
-        /// - 找到离玩家近但远离敌人的掩体位置
-        /// - 选择视野好且安全的狙击点
-        /// - 寻找适合放置医疗包的位置
+        /// This design allows complex spatial reasoning, such as:
+        /// - Finding cover positions close to player but far from enemies
+        /// - Selecting sniper points with good visibility and safety
+        /// - Finding suitable locations for placing medical kits
         /// </summary>
-        /// <param name="query">包含所有查询参数的EQS查询对象</param>
-        /// <returns>包含排序后候选点位的查询结果</returns>
+        /// <param name="query">EQS query object containing all query parameters</param>
+        /// <returns>Query result containing sorted candidate points</returns>
         private static EQSQueryResult ExecuteQuery(EQSQuery query)
         {
             if (_currentEnvironment == null)
@@ -320,13 +320,13 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var candidates = new List<EQSLocationCandidate>();
             var grid = _currentEnvironment.Grid;
 
-            // 第一阶段：候选点过滤
-            // 从所有网格单元中筛选出符合基本条件的点位
-            // 这一步大幅减少需要评分的点位数量，提高性能
+            // Phase 1: Candidate point filtering
+            // Filter points that meet basic conditions from all grid cells
+            // This step significantly reduces the number of points that need scoring, improving performance
             var validCells = FilterCells(grid.Cells, query);
 
-            // 第二阶段：候选点评分
-            // 对每个通过过滤的点位进行多维度评分
+            // Phase 2: Candidate point scoring
+            // Perform multi-dimensional scoring for each point that passed filtering
             foreach (var cell in validCells)
             {
                 var candidate = new EQSLocationCandidate
@@ -336,27 +336,27 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     AssociatedObjectIDs = new List<string>(cell.DynamicOccupants)
                 };
 
-                // 多维度评分系统：
-                // 每个评分标准独立计算分数，然后按权重加权平均
-                // 这允许复杂的决策，如"70%考虑距离，30%考虑安全性"
+                // Multi-dimensional scoring system:
+                // Each scoring criterion calculates scores independently, then weighted average by weights
+                // This allows complex decisions like "70% consider distance, 30% consider safety"
                 var totalScore = 0f;
                 var totalWeight = 0f;
 
                 foreach (var criterion in query.ScoringCriteria)
                 {
                     var score = CalculateScore(cell, criterion, query);
-                    candidate.BreakdownScores[criterion.CriterionType] = score; // 保存各项得分用于调试
-                    totalScore += score * criterion.Weight; // 加权累加
+                    candidate.BreakdownScores[criterion.CriterionType] = score; // Save individual scores for debugging
+                    totalScore += score * criterion.Weight; // Weighted accumulation
                     totalWeight += criterion.Weight;
                 }
 
-                // 计算最终得分（加权平均）
+                // Calculate final score (weighted average)
                 candidate.Score = totalWeight > 0 ? totalScore / totalWeight : 0f;
                 candidates.Add(candidate);
             }
 
-            // 第三阶段：结果排序和截取
-            // 按分数从高到低排序，取前N个最佳点位
+            // Phase 3: Result sorting and truncation
+            // Sort by score from high to low, take top N best points
             var sortedCandidates = candidates
                 .OrderByDescending(c => c.Score)
                 .Take(query.DesiredResultCount)
@@ -372,43 +372,43 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// 候选点过滤器 - EQS的第一道筛选机制
+        /// Candidate point filter - EQS's first screening mechanism
         /// 
-        /// 过滤逻辑：
-        /// 1. 兴趣区域过滤：只考虑指定区域内的点位
-        /// 2. 条件过滤：每个点位必须满足所有指定条件
+        /// Filtering logic:
+        /// 1. Area of interest filtering: Only consider points within specified area
+        /// 2. Condition filtering: Each point must satisfy all specified conditions
         /// 
-        /// 过滤条件类型：
-        /// - DistanceTo: 距离约束（如：距离玩家5-20米）
-        /// - Clearance: 空间间隙（如：需要2米高度空间）
-        /// - CustomProperty: 自定义属性（如：地形类型为"草地"）
-        /// - VisibilityOf: 视线可见性（如：能看到目标点）
+        /// Filter condition types:
+        /// - DistanceTo: Distance constraints (e.g., 5-20 meters from player)
+        /// - Clearance: Spatial clearance (e.g., requires 2 meters height space)
+        /// - CustomProperty: Custom properties (e.g., terrain type is "grassland")
+        /// - VisibilityOf: Line of sight visibility (e.g., can see target point)
         /// 
-        /// 这种设计确保只有真正可行的点位进入评分阶段
+        /// This design ensures only truly feasible points enter the scoring phase
         /// </summary>
-        /// <param name="cells">所有网格单元</param>
-        /// <param name="query">查询参数</param>
-        /// <returns>通过过滤的有效单元数组</returns>
+        /// <param name="cells">All grid cells</param>
+        /// <param name="query">Query parameters</param>
+        /// <returns>Array of valid cells that passed filtering</returns>
         private static EQSCell[] FilterCells(EQSCell[] cells, EQSQuery query)
         {
             var validCells = new List<EQSCell>();
 
             foreach (var cell in cells)
             {
-                // 兴趣区域检查：如果指定了兴趣区域，只考虑区域内的点位
-                // 这可以显著减少计算量，例如只在玩家周围50米内寻找点位
+                // Area of interest check: If area of interest is specified, only consider points within the area
+                // This can significantly reduce computation, e.g., only search for points within 50 meters of player
                 if (query.QueryContext.AreaOfInterest != null && !IsInAreaOfInterest(cell, query.QueryContext.AreaOfInterest))
                     continue;
 
-                // 条件检查：点位必须满足所有指定条件
-                // 采用"与"逻辑：任何一个条件不满足，该点位就被排除
+                // Condition check: Points must satisfy all specified conditions
+                // Uses "AND" logic: If any condition is not met, the point is excluded
                 var passesAllConditions = true;
                 foreach (var condition in query.Conditions)
                 {
                     if (!EvaluateCondition(cell, condition, query))
                     {
                         passesAllConditions = false;
-                        break; // 早期退出优化
+                        break; // Early exit optimization
                     }
                 }
 
@@ -420,16 +420,16 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// 检查点位是否在兴趣区域内
+        /// Check if point is within area of interest
         /// 
-        /// 支持的区域类型：
-        /// - Sphere: 球形区域（中心点+半径）
-        /// - Box: 矩形区域（中心点+尺寸）
+        /// Supported area types:
+        /// - Sphere: Spherical area (center point + radius)
+        /// - Box: Rectangular area (center point + size)
         /// 
-        /// 兴趣区域的作用：
-        /// 1. 性能优化：减少需要处理的点位数量
-        /// 2. 逻辑约束：确保结果在合理范围内
-        /// 例如：在玩家周围30米内寻找掩体，而不是整个地图
+        /// Purpose of area of interest:
+        /// 1. Performance optimization: Reduce number of points to process
+        /// 2. Logical constraints: Ensure results are within reasonable range
+        /// Example: Find cover within 30 meters of player, not the entire map
         /// </summary>
         private static bool IsInAreaOfInterest(EQSCell cell, EQSAreaOfInterest areaOfInterest)
         {
@@ -441,35 +441,35 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     var bounds = new Bounds(areaOfInterest.Center, areaOfInterest.Size);
                     return bounds.Contains(cell.WorldPosition);
                 default:
-                    return true; // 未知类型默认通过
+                    return true; // Unknown type defaults to pass
             }
         }
 
         /// <summary>
-        /// 评估单个条件是否满足
+        /// Evaluate whether a single condition is satisfied
         /// 
-        /// 条件评估是EQS的核心过滤机制，每种条件类型有不同的评估逻辑：
+        /// Condition evaluation is EQS's core filtering mechanism, each condition type has different evaluation logic:
         /// 
-        /// 1. DistanceTo: 距离约束
-        ///    - 用途：确保点位在合适的距离范围内
-        ///    - 示例：医疗包应该距离玩家5-15米（太近浪费，太远不便）
+        /// 1. DistanceTo: Distance constraints
+        ///    - Purpose: Ensure points are within appropriate distance range
+        ///    - Example: Medical kits should be 5-15 meters from player (too close is wasteful, too far is inconvenient)
         /// 
-        /// 2. Clearance: 空间间隙
-        ///    - 用途：确保点位有足够的活动空间
-        ///    - 示例：狙击位置需要2米高度空间，避免撞头
+        /// 2. Clearance: Spatial clearance
+        ///    - Purpose: Ensure points have sufficient activity space
+        ///    - Example: Sniper positions need 2 meters height space to avoid hitting head
         /// 
-        /// 3. CustomProperty: 自定义属性
-        ///    - 用途：基于地形或环境特征过滤
-        ///    - 示例：只在"草地"地形上放置野餐桌
+        /// 3. CustomProperty: Custom properties
+        ///    - Purpose: Filter based on terrain or environmental features
+        ///    - Example: Only place picnic tables on "grassland" terrain
         /// 
-        /// 4. VisibilityOf: 视线可见性
-        ///    - 用途：确保视线通畅
-        ///    - 示例：哨兵位置必须能看到入口
+        /// 4. VisibilityOf: Line of sight visibility
+        ///    - Purpose: Ensure clear line of sight
+        ///    - Example: Sentry positions must be able to see entrance
         /// </summary>
-        /// <param name="cell">要评估的网格单元</param>
-        /// <param name="condition">评估条件</param>
-        /// <param name="query">查询上下文</param>
-        /// <returns>是否满足条件</returns>
+        /// <param name="cell">Grid cell to evaluate</param>
+        /// <param name="condition">Evaluation condition</param>
+        /// <param name="query">Query context</param>
+        /// <returns>Whether condition is satisfied</returns>
         private static bool EvaluateCondition(EQSCell cell, EQSCondition condition, EQSQuery query)
         {
             bool result = false;
@@ -492,26 +492,26 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     result = EvaluateObjectProximityCondition(cell, condition);
                     break;
                 default:
-                    result = true; // 未知条件默认通过
+                    result = true; // Unknown conditions default to pass
                     break;
             }
 
-            // 支持条件反转：有时我们需要"不满足某条件"的点位
-            // 例如：寻找"不在敌人视线范围内"的隐蔽位置
+            // Support condition inversion: Sometimes we need points that "don't satisfy certain conditions"
+            // Example: Find concealed positions that are "not within enemy line of sight"
             return condition.Invert ? !result : result;
         }
 
         /// <summary>
-        /// 距离条件评估
+        /// Distance condition evaluation
         /// 
-        /// 距离约束是最常用的过滤条件，支持最小和最大距离限制：
-        /// - minDistance: 最小距离（避免太近的点位）
-        /// - maxDistance: 最大距离（避免太远的点位）
+        /// Distance constraints are the most commonly used filtering conditions, supporting minimum and maximum distance limits:
+        /// - minDistance: Minimum distance (avoid points too close)
+        /// - maxDistance: Maximum distance (avoid points too far)
         /// 
-        /// 应用场景：
-        /// - 掩体位置：距离玩家10-30米（既安全又不会太远）
-        /// - 补给点：距离战斗区域20-50米（安全补给）
-        /// - 巡逻点：距离基地50-100米（覆盖范围合适）
+        /// Application scenarios:
+        /// - Cover positions: 10-30 meters from player (both safe and not too far)
+        /// - Supply points: 20-50 meters from combat zone (safe resupply)
+        /// - Patrol points: 50-100 meters from base (appropriate coverage range)
         /// </summary>
         private static bool EvaluateDistanceCondition(EQSCell cell, EQSCondition condition)
         {
@@ -531,16 +531,17 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// 空间间隙条件评估 - 完整实现
+        /// Spatial clearance condition evaluation - Complete implementation
         /// 
-        /// 间隙检查确保点位有足够的活动空间：
-        /// - requiredHeight: 所需垂直空间（默认2米）
-        /// - requiredRadius: 所需水平空间（默认0.5米）
+        /// Clearance check ensures points have sufficient activity space:
+        /// - requiredHeight: Required vertical space (default 2 meters)
+        /// - requiredRadius: Required horizontal space (default 0.5 meters)
+        /// - obstacleLayerMask: Layer mask for obstacle detection (default: common obstacle layers)
         /// 
-        /// 完整实现包括：
-        /// 1. 垂直空间检查（向上射线投射）
-        /// 2. 水平空间检查（多方向射线投射）
-        /// 3. 基础可行走性检查
+        /// Complete implementation includes:
+        /// 1. Vertical space check (upward raycast)
+        /// 2. Horizontal space check (multi-directional raycast)
+        /// 3. Basic walkability check
         /// </summary>
         private static bool EvaluateClearanceCondition(EQSCell cell, EQSCondition condition)
         {
@@ -549,19 +550,22 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var requiredRadius = condition.Parameters.ContainsKey("requiredRadius") ? 
                 ParseUtils.ParseFloat(condition.Parameters["requiredRadius"]) : 0.5f;
 
-            // 基础检查：不能有静态占用且必须可行走
+            // Get obstacle layer mask - support custom configuration
+            var obstacleLayerMask = GetObstacleLayerMask(condition);
+
+            // Basic check: Cannot have static occupancy and must be walkable
             if (cell.StaticOccupancy || !(bool)cell.Properties.GetValueOrDefault("isWalkable", false))
                 return false;
 
             var position = cell.WorldPosition;
 
-            // 垂直空间检查：从当前位置向上发射射线
-            if (Physics.Raycast(position, Vector3.up, requiredHeight, LayerMask.GetMask("Default")))
+            // Vertical space check: Cast ray upward from current position
+            if (Physics.Raycast(position, Vector3.up, requiredHeight, obstacleLayerMask))
             {
-                return false; // 上方有障碍物
+                return false; // Obstacle above
             }
 
-            // 水平空间检查：8个方向检查水平间隙
+            // Horizontal space check: Check horizontal clearance in 8 directions
             var directions = new Vector3[]
             {
                 Vector3.forward, Vector3.back, Vector3.left, Vector3.right,
@@ -572,35 +576,89 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             foreach (var direction in directions)
             {
                 var normalizedDir = direction.normalized;
-                if (Physics.Raycast(position, normalizedDir, requiredRadius, LayerMask.GetMask("Default")))
+                if (Physics.Raycast(position, normalizedDir, requiredRadius, obstacleLayerMask))
                 {
-                    return false; // 水平方向有障碍物
+                    return false; // Horizontal obstacle
                 }
             }
 
-            // 地面检查：确保脚下有支撑
-            if (!Physics.Raycast(position + Vector3.up * 0.1f, Vector3.down, 0.5f, LayerMask.GetMask("Default")))
+            // Ground check: Ensure there's support underfoot
+            if (!Physics.Raycast(position + Vector3.up * 0.1f, Vector3.down, 0.5f, obstacleLayerMask))
             {
-                return false; // 脚下没有地面
+                return false; // No ground underfoot
             }
 
             return true;
         }
 
         /// <summary>
-        /// 自定义属性条件评估
+        /// Get obstacle layer mask for clearance detection
+        /// </summary>
+        private static LayerMask GetObstacleLayerMask(EQSCondition condition)
+        {
+            // Check if custom layer mask is specified
+            if (condition.Parameters.ContainsKey("obstacleLayerMask"))
+            {
+                var layerMaskValue = ParseUtils.ParseInt(condition.Parameters["obstacleLayerMask"]);
+                return layerMaskValue;
+            }
+            
+            // Check if layer names are specified
+            if (condition.Parameters.ContainsKey("obstacleLayers"))
+            {
+                var layerNames = JsonUtils.Deserialize<string[]>(condition.Parameters["obstacleLayers"].ToString());
+                if (layerNames != null && layerNames.Length > 0)
+                {
+                    return LayerMask.GetMask(layerNames);
+                }
+            }
+            
+            // Default: Use common obstacle layers
+            // Include typical layers that might contain obstacles
+            try
+            {
+                return LayerMask.GetMask("Default", "Obstacle", "Terrain", "Building", "Wall", "Ground");
+            }
+            catch
+            {
+                // If some layers don't exist, fall back to Default + try common ones individually
+                LayerMask mask = LayerMask.GetMask("Default");
+                
+                var commonLayers = new[] { "Obstacle", "Terrain", "Building", "Wall", "Ground", "Static" };
+                foreach (var layerName in commonLayers)
+                {
+                    try
+                    {
+                        var layerIndex = LayerMask.NameToLayer(layerName);
+                        if (layerIndex >= 0)
+                        {
+                            mask |= (1 << layerIndex);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore layers that don't exist
+                    }
+                }
+                
+                return mask;
+            }
+        }
+
+        /// <summary>
+        /// Custom property condition evaluation
         /// 
-        /// 允许基于网格单元的自定义属性进行过滤：
-        /// - propertyName: 属性名称
-        /// - value: 期望值
-        /// - operator: 比较操作符（equals, contains等）
+        /// Allows filtering based on custom properties of grid cells:
+        /// - propertyName: Property name
+        /// - value: Expected value
+        /// - operator: Comparison operator (equals, contains, etc.)
         /// 
-        /// 应用场景：
-        /// - 地形类型过滤：只在"草地"上放置帐篷
-        /// - 高度过滤：只在"高地"上设置瞭望台
-        /// - 安全级别：只在"安全区域"放置补给
+        /// Application scenarios:
+        /// - Terrain type filtering: Only place tents on "grassland"
+        /// - Height filtering: Only set watchtowers on "highland"
+        /// - Security level: Only place supplies in "safe zones"
         /// 
-        /// 这提供了高度的灵活性，可以根据游戏需求定制各种过滤逻辑
+        /// This provides high flexibility to customize various filtering logic based on game requirements
         /// </summary>
         private static bool EvaluateCustomPropertyCondition(EQSCell cell, EQSCondition condition)
         {
@@ -627,20 +685,20 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// 视线可见性条件评估 - 完整实现
+        /// Line of sight visibility condition evaluation - Complete implementation
         /// 
-        /// 检查从当前点位是否能看到目标位置，考虑视觉障碍物。
+        /// Checks if target position is visible from current location, considering visual obstacles.
         /// 
-        /// 完整实现包括：
-        /// 1. 射线投射检查视线障碍
-        /// 2. 视野角度限制（可选）
-        /// 3. 多点采样提高准确性
-        /// 4. 高度偏移（眼睛位置）
+        /// Complete implementation includes:
+        /// 1. Raycast line of sight obstacle detection
+        /// 2. View angle limitations (optional)
+        /// 3. Multi-point sampling for improved accuracy
+        /// 4. Height offset (eye position)
         /// 
-        /// 应用场景：
-        /// - 哨兵位置：必须能看到关键入口
-        /// - 狙击点：需要清晰视线到目标区域
-        /// - 观察哨：要求360度视野或特定方向视野
+        /// Application scenarios:
+        /// - Sentry positions: Must be able to see key entrances
+        /// - Sniper points: Need clear line of sight to target area
+        /// - Watchtowers: Require 360-degree view or specific directional view
         /// </summary>
         private static bool EvaluateVisibilityCondition(EQSCell cell, EQSCondition condition)
         {
@@ -650,21 +708,21 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var targetPointArray = JsonUtils.Deserialize<float[]>(condition.Parameters["targetPoint"].ToString());
             var targetPoint = new Vector3(targetPointArray[0], targetPointArray[1], targetPointArray[2]);
             
-            // 观察者高度偏移（模拟眼睛位置）
+            // Observer height offset (simulating eye position)
             var eyeHeight = condition.Parameters.ContainsKey("eyeHeight") ? 
                 ParseUtils.ParseFloat(condition.Parameters["eyeHeight"]) : 1.7f;
             var observerPosition = cell.WorldPosition + Vector3.up * eyeHeight;
             
-            // 目标高度偏移（可选）
+            // Target height offset (optional)
             var targetHeight = condition.Parameters.ContainsKey("targetHeight") ? 
                 ParseUtils.ParseFloat(condition.Parameters["targetHeight"]) : 0f;
             var adjustedTargetPoint = targetPoint + Vector3.up * targetHeight;
             
-            // 视野角度限制（可选）
+            // View angle limitation (optional)
             var maxViewAngle = condition.Parameters.ContainsKey("maxViewAngle") ? 
                 ParseUtils.ParseFloat(condition.Parameters["maxViewAngle"]) : 360f;
             
-            // 观察方向（可选，用于限制视野角度）
+            // View direction (optional, used to limit view angle)
             Vector3 viewDirection = Vector3.forward;
             if (condition.Parameters.ContainsKey("viewDirection"))
             {
@@ -675,15 +733,15 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var directionToTarget = (adjustedTargetPoint - observerPosition).normalized;
             var distance = Vector3.Distance(observerPosition, adjustedTargetPoint);
             
-            // 检查视野角度限制
+            // Check view angle limitation
             if (maxViewAngle < 360f)
             {
                 var angle = Vector3.Angle(viewDirection, directionToTarget);
                 if (angle > maxViewAngle / 2f)
-                    return false; // 超出视野角度
+                    return false; // Outside view angle
             }
             
-            // 多点采样检查视线（提高准确性）
+            // Multi-point sampling for line of sight check (improved accuracy)
             var sampleCount = condition.Parameters.ContainsKey("sampleCount") ? 
                 ParseUtils.ParseInt(condition.Parameters["sampleCount"]) : 3;
             
@@ -695,18 +753,18 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             {
                 Vector3 sampleTarget = adjustedTargetPoint;
                 
-                // 为多点采样添加小的随机偏移
+                // Add small random offset for multi-point sampling
                 if (sampleCount > 1)
                 {
                     var randomOffset = UnityEngine.Random.insideUnitSphere * 0.5f;
-                    randomOffset.y = 0; // 只在水平面偏移
+                    randomOffset.y = 0; // Only offset on horizontal plane
                     sampleTarget += randomOffset;
                 }
                 
                 var sampleDirection = (sampleTarget - observerPosition).normalized;
                 var sampleDistance = Vector3.Distance(observerPosition, sampleTarget);
                 
-                // 射线投射检查视线
+                // Raycast line of sight check
                 if (!Physics.Raycast(observerPosition, sampleDirection, sampleDistance, 
                     LayerMask.GetMask("Default")))
                 {
@@ -714,37 +772,37 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 }
             }
             
-            // 检查成功率是否满足要求
+            // Check if success rate meets requirements
             var successRate = (float)successfulSamples / sampleCount;
             return successRate >= requiredSuccessRate;
         }
 
         /// <summary>
-        /// 物体接近度条件评估 - 完整实现
+        /// Object proximity condition evaluation - Complete implementation
         /// 
-        /// 检查位置相对于指定物体的空间关系：
-        /// - inside: 点位是否在物体内部
-        /// - outside: 点位是否在物体外部
-        /// - surface: 点位是否在距离物体表面指定距离范围内
+        /// Checks spatial relationship between position and specified object:
+        /// - inside: Whether point is inside the object
+        /// - outside: Whether point is outside the object
+        /// - surface: Whether point is within specified distance range from object surface
         /// 
-        /// 支持多种碰撞器类型检测，适用于：
-        /// - 建筑物内部位置查询（inside模式）
-        /// - 安全区域外围查询（outside + maxDistance）
-        /// - 物体表面附近查询（surface模式）
-        /// - 避让区域设置（outside + minDistance）
+        /// Supports multiple collider type detection, suitable for:
+        /// - Building interior position queries (inside mode)
+        /// - Safe zone perimeter queries (outside + maxDistance)
+        /// - Object surface proximity queries (surface mode)
+        /// - Avoidance zone settings (outside + minDistance)
         /// 
-        /// 实现细节：
-        /// 1. 通过InstanceID或名称查找目标GameObject
-        /// 2. 根据colliderType过滤碰撞器
-        /// 3. 使用Physics查询检测空间关系
-        /// 4. 支持距离阈值控制
+        /// Implementation details:
+        /// 1. Find target GameObject by InstanceID or name
+        /// 2. Filter colliders by colliderType
+        /// 3. Use Physics queries to detect spatial relationships
+        /// 4. Support distance threshold control
         /// </summary>
         private static bool EvaluateObjectProximityCondition(EQSCell cell, EQSCondition condition)
         {
-            // 获取目标对象
+            // Get target object
             GameObject targetObject = null;
             
-            // 优先使用objectId（InstanceID）
+            // Prioritize using objectId (InstanceID)
             if (condition.Parameters.ContainsKey("objectId"))
             {
                 var objectIdStr = condition.Parameters["objectId"].ToString();
@@ -754,7 +812,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 }
             }
             
-            // 如果通过ID没找到，尝试使用名称查找
+            // If not found by ID, try finding by name
             if (targetObject == null && condition.Parameters.ContainsKey("objectName"))
             {
                 var objectName = condition.Parameters["objectName"].ToString();
@@ -763,11 +821,11 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             
             if (targetObject == null)
             {
-                Debug.LogWarning($"[EQS] ObjectProximity条件：找不到目标对象");
+                Debug.LogWarning($"[EQS] ObjectProximity condition: Cannot find target object");
                 return false;
             }
             
-            // 获取参数
+            // Get parameters
             var proximityMode = condition.Parameters.ContainsKey("proximityMode") ? 
                 condition.Parameters["proximityMode"].ToString().ToLower() : "surface";
             
@@ -780,11 +838,11 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var colliderType = condition.Parameters.ContainsKey("colliderType") ? 
                 condition.Parameters["colliderType"].ToString().ToLower() : "any";
             
-            // 获取目标对象的碰撞器
+            // Get target object colliders
             var colliders = GetObjectColliders(targetObject, colliderType);
             if (colliders.Length == 0)
             {
-                Debug.LogWarning($"[EQS] ObjectProximity条件：目标对象 '{targetObject.name}' 没有找到合适的碰撞器");
+                Debug.LogWarning($"[EQS] ObjectProximity condition: Target object '{targetObject.name}' has no suitable colliders");
                 return false;
             }
             
@@ -798,29 +856,29 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 case "outside":
                     var isInside = IsPositionInsideColliders(checkPosition, colliders);
                     if (isInside)
-                        return false; // 在内部，不满足outside条件
+                        return false; // Inside, doesn't meet outside condition
                     
-                    // 检查距离限制
+                    // Check distance limitation
                     if (maxDistance > 0)
                     {
                         var distanceToSurface = GetDistanceToCollidersSurface(checkPosition, colliders);
                         return distanceToSurface >= minDistance && distanceToSurface <= maxDistance;
                     }
                     
-                    return true; // 在外部且无距离限制
+                    return true; // Outside and no distance limitation
                 
                 case "surface":
                     var surfaceDistance = GetDistanceToCollidersSurface(checkPosition, colliders);
                     return surfaceDistance >= minDistance && surfaceDistance <= maxDistance;
                 
                 default:
-                    Debug.LogWarning($"[EQS] ObjectProximity条件：未知的proximityMode '{proximityMode}'");
+                    Debug.LogWarning($"[EQS] ObjectProximity condition: Unknown proximityMode '{proximityMode}'");
                     return false;
             }
         }
         
         /// <summary>
-        /// 根据类型获取对象的碰撞器
+        /// Get object colliders by type
         /// </summary>
         private static Collider[] GetObjectColliders(GameObject targetObject, string colliderType)
         {
@@ -841,7 +899,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
         
         /// <summary>
-        /// 检查位置是否在碰撞器内部
+        /// Check if position is inside colliders
         /// </summary>
         private static bool IsPositionInsideColliders(Vector3 position, Collider[] colliders)
         {
@@ -850,18 +908,18 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 if (collider == null || !collider.enabled)
                     continue;
                 
-                // 使用 Bounds.Contains 进行快速预检查
+                // Use Bounds.Contains for fast pre-check
                 if (!collider.bounds.Contains(position))
                     continue;
                 
-                // 使用 ClosestPoint 进行精确检查
+                // Use ClosestPoint for precise check
                 var closestPoint = collider.ClosestPoint(position);
                 var distance = Vector3.Distance(position, closestPoint);
                 
-                // 如果距离很小，认为在内部
+                // If distance is very small, consider it inside
                 if (distance < 0.01f)
                 {
-                    // 进一步检查：如果closestPoint与position相同，则position在collider内部
+                    // Further check: if closestPoint is same as position, then position is inside collider
                     if (Vector3.Distance(position, closestPoint) < 0.001f)
                     {
                         return true;
@@ -873,7 +931,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
         
         /// <summary>
-        /// 计算位置到碰撞器表面的最短距离
+        /// Calculate shortest distance from position to colliders surface
         /// </summary>
         private static float GetDistanceToCollidersSurface(Vector3 position, Collider[] colliders)
         {
@@ -894,28 +952,28 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// 计算点位在特定评分标准下的得分
+        /// Calculate score for a point under specific scoring criteria
         /// 
-        /// 评分系统是EQS的核心，不同于过滤（二元判断），评分提供连续值：
+        /// Scoring system is EQS core, different from filtering (binary judgment), scoring provides continuous values:
         /// 
-        /// 1. ProximityTo: 接近度评分
-        ///    - 越接近目标点，得分越高
-        ///    - 用于：寻找最近的掩体、补给点等
+        /// 1. ProximityTo: Proximity scoring
+        ///    - Closer to target point, higher score
+        ///    - Used for: Finding nearest cover, supply points, etc.
         /// 
-        /// 2. FarthestFrom: 远离度评分
-        ///    - 越远离目标点，得分越高
-        ///    - 用于：避开危险区域、寻找安全位置
+        /// 2. FarthestFrom: Distance scoring
+        ///    - Farther from target point, higher score
+        ///    - Used for: Avoiding danger zones, finding safe positions
         /// 
-        /// 3. DensityOfObjects: 对象密度评分
-        ///    - 根据周围对象数量评分
-        ///    - 用于：避开拥挤区域或寻找活跃区域
+        /// 3. DensityOfObjects: Object density scoring
+        ///    - Score based on surrounding object count
+        ///    - Used for: Avoiding crowded areas or finding active areas
         /// 
-        /// 评分范围通常是0-1，便于权重计算和比较
+        /// Score range is typically 0-1, convenient for weight calculation and comparison
         /// </summary>
-        /// <param name="cell">要评分的网格单元</param>
-        /// <param name="criterion">评分标准</param>
-        /// <param name="query">查询上下文</param>
-        /// <returns>0-1范围内的得分</returns>
+        /// <param name="cell">Grid cell to score</param>
+        /// <param name="criterion">Scoring criterion</param>
+        /// <param name="query">Query context</param>
+        /// <returns>Score in 0-1 range</returns>
         private static float CalculateScore(EQSCell cell, EQSScoringCriterion criterion, EQSQuery query)
         {
             switch (criterion.CriterionType.ToLower())
@@ -937,26 +995,26 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 case "multipoint":
                     return CalculateMultiPointScore(cell, criterion);
                 default:
-                    return 0.5f; // 未知类型返回中等分数
+                    return 0.5f; // Unknown type returns medium score
             }
         }
 
         /// <summary>
-        /// 接近度评分计算 - 完整实现
+        /// Proximity score calculation - Complete implementation
         /// 
-        /// 评分逻辑：距离目标点越近，得分越高
-        /// 支持多种距离计算模式和评分曲线
+        /// Scoring logic: Closer to target point, higher score
+        /// Supports multiple distance calculation modes and scoring curves
         /// 
-        /// 这种评分适用于：
-        /// - 医疗包放置：优先选择离受伤玩家近的位置
-        /// - 掩体选择：选择离当前位置最近的安全点
-        /// - 资源收集：优先选择离资源点近的建筑位置
+        /// This scoring is suitable for:
+        /// - Medical kit placement: Prioritize positions near injured players
+        /// - Cover selection: Choose safe points closest to current position
+        /// - Resource collection: Prioritize building positions near resource points
         /// 
-        /// 完整实现包括：
-        /// 1. 多种距离计算模式（欧几里得、曼哈顿、切比雪夫）
-        /// 2. 可配置的评分曲线（线性、指数、对数）
-        /// 3. 最优距离范围设置
-        /// 4. 多目标点支持
+        /// Complete implementation includes:
+        /// 1. Multiple distance calculation modes (Euclidean, Manhattan, Chebyshev)
+        /// 2. Configurable scoring curves (linear, exponential, logarithmic)
+        /// 3. Optimal distance range settings
+        /// 4. Multi-target point support
         /// </summary>
         private static float CalculateProximityScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -966,38 +1024,38 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var targetPointArray = JsonUtils.Deserialize<float[]>(criterion.Parameters["targetPoint"].ToString());
             var targetPoint = new Vector3(targetPointArray[0], targetPointArray[1], targetPointArray[2]);
             
-            // 距离计算模式
+            // Distance calculation mode
             var distanceMode = criterion.Parameters.ContainsKey("distanceMode") ? 
                 criterion.Parameters["distanceMode"].ToString().ToLower() : "euclidean";
             
-            // 评分曲线类型
+            // Scoring curve type
             var scoringCurve = criterion.Parameters.ContainsKey("scoringCurve") ? 
                 criterion.Parameters["scoringCurve"].ToString().ToLower() : "linear";
             
-            // 最大距离（用于归一化）
+            // Maximum distance (for normalization)
             var maxDistance = criterion.Parameters.ContainsKey("maxDistance") ? 
                 ParseUtils.ParseFloat(criterion.Parameters["maxDistance"]) : 100f;
             
-            // 最优距离（在此距离获得最高分）
+            // Optimal distance (gets highest score at this distance)
             var optimalDistance = criterion.Parameters.ContainsKey("optimalDistance") ? 
                 ParseUtils.ParseFloat(criterion.Parameters["optimalDistance"]) : 0f;
             
-            // 计算距离
+            // Calculate distance
             var distance = MathUtils.CalculateDistance(cell.WorldPosition, targetPoint, distanceMode);
             
-            // 处理最优距离情况
+            // Handle optimal distance case
             if (optimalDistance > 0)
             {
-                // 如果设置了最优距离，距离最优距离越近分数越高
+                // If optimal distance is set, closer to optimal distance gets higher score
                 var distanceFromOptimal = Mathf.Abs(distance - optimalDistance);
                 distance = distanceFromOptimal;
                 maxDistance = Mathf.Max(maxDistance - optimalDistance, optimalDistance);
             }
             
-            // 归一化距离
+            // Normalize distance
             var normalizedDistance = Mathf.Clamp01(distance / maxDistance);
             
-            // 根据评分曲线计算最终分数
+            // Calculate final score based on scoring curve
             float score = 0f;
             
             switch (scoringCurve)
@@ -1006,21 +1064,21 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     score = 1f - normalizedDistance;
                     break;
                 case "exponential":
-                    // 指数衰减：距离增加时分数快速下降
+                    // Exponential decay: Score drops rapidly as distance increases
                     var exponentialFactor = criterion.Parameters.ContainsKey("exponentialFactor") ? 
                         ParseUtils.ParseFloat(criterion.Parameters["exponentialFactor"]) : 2f;
                     score = Mathf.Pow(1f - normalizedDistance, exponentialFactor);
                     break;
                 case "logarithmic":
-                    // 对数衰减：距离增加时分数缓慢下降
+                    // Logarithmic decay: Score drops slowly as distance increases
                     score = 1f - Mathf.Log(1f + normalizedDistance * 9f) / Mathf.Log(10f);
                     break;
                 case "smoothstep":
-                    // 平滑步进：在中间范围变化最快
+                    // Smooth step: Changes fastest in middle range
                     score = 1f - Mathf.SmoothStep(0f, 1f, normalizedDistance);
                     break;
                 case "inverse":
-                    // 反比衰减
+                    // Inverse decay
                     score = 1f / (1f + normalizedDistance * normalizedDistance);
                     break;
                 default:
@@ -1032,17 +1090,17 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// 远离度评分计算 - 完整实现
+        /// Distance score calculation - Complete implementation
         /// 
-        /// 评分逻辑：距离目标点越远，得分越高
-        /// 支持多种距离计算模式和评分曲线
+        /// Scoring logic: Farther from target point, higher score
+        /// Supports multiple distance calculation modes and scoring curves
         /// 
-        /// 这种评分适用于：
-        /// - 安全位置选择：远离敌人或危险区域
-        /// - 分散部署：避免资源过于集中
-        /// - 撤退路线：选择远离战斗区域的路径
+        /// This scoring is suitable for:
+        /// - Safe position selection: Stay away from enemies or danger zones
+        /// - Distributed deployment: Avoid resource over-concentration
+        /// - Retreat routes: Choose paths away from combat zones
         /// 
-        /// 与接近度评分相反，体现了EQS系统的灵活性
+        /// Opposite to proximity scoring, demonstrating EQS system flexibility
         /// </summary>
         private static float CalculateFarthestScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -1052,35 +1110,35 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var targetPointArray = JsonUtils.Deserialize<float[]>(criterion.Parameters["targetPoint"].ToString());
             var targetPoint = new Vector3(targetPointArray[0], targetPointArray[1], targetPointArray[2]);
             
-            // 距离计算模式
+            // Distance calculation mode
             var distanceMode = criterion.Parameters.ContainsKey("distanceMode") ? 
                 criterion.Parameters["distanceMode"].ToString().ToLower() : "euclidean";
             
-            // 评分曲线类型
+            // Scoring curve type
             var scoringCurve = criterion.Parameters.ContainsKey("scoringCurve") ? 
                 criterion.Parameters["scoringCurve"].ToString().ToLower() : "linear";
             
-            // 最大距离（用于归一化）
+            // Maximum distance (for normalization)
             var maxDistance = criterion.Parameters.ContainsKey("maxDistance") ? 
                 ParseUtils.ParseFloat(criterion.Parameters["maxDistance"]) : 100f;
             
-            // 最小有效距离（低于此距离得分为0）
+            // Minimum effective distance (below this distance score is 0)
             var minDistance = criterion.Parameters.ContainsKey("minDistance") ? 
                 ParseUtils.ParseFloat(criterion.Parameters["minDistance"]) : 0f;
             
-            // 计算距离
+            // Calculate distance
             var distance = MathUtils.CalculateDistance(cell.WorldPosition, targetPoint, distanceMode);
             
-            // 应用最小距离限制
+            // Apply minimum distance limitation
             if (distance < minDistance)
                 return 0f;
             
-            // 归一化距离
+            // Normalize distance
             var effectiveDistance = distance - minDistance;
             var effectiveMaxDistance = maxDistance - minDistance;
             var normalizedDistance = Mathf.Clamp01(effectiveDistance / effectiveMaxDistance);
             
-            // 根据评分曲线计算最终分数
+            // Calculate final score based on scoring curve
             float score = 0f;
             
             switch (scoringCurve)
@@ -1089,21 +1147,17 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     score = normalizedDistance;
                     break;
                 case "exponential":
-                    // 指数增长：距离增加时分数快速增长
                     var exponentialFactor = criterion.Parameters.ContainsKey("exponentialFactor") ? 
                         ParseUtils.ParseFloat(criterion.Parameters["exponentialFactor"]) : 2f;
                     score = Mathf.Pow(normalizedDistance, 1f / exponentialFactor);
                     break;
                 case "logarithmic":
-                    // 对数增长：距离增加时分数缓慢增长
                     score = Mathf.Log(1f + normalizedDistance * 9f) / Mathf.Log(10f);
                     break;
                 case "smoothstep":
-                    // 平滑步进
                     score = Mathf.SmoothStep(0f, 1f, normalizedDistance);
                     break;
                 case "threshold":
-                    // 阈值模式：超过阈值距离就给满分
                     var threshold = criterion.Parameters.ContainsKey("threshold") ? 
                         ParseUtils.ParseFloat(criterion.Parameters["threshold"]) : 0.5f;
                     score = normalizedDistance >= threshold ? 1f : 0f;
@@ -1119,24 +1173,24 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
 
 
         /// <summary>
-        /// 对象密度评分计算 - 完整实现
+        /// Object density score calculation - Complete implementation
         /// 
-        /// 评分逻辑：根据指定半径内动态对象的数量和类型进行评分
+        /// Scoring logic: Score based on count and type of dynamic objects within specified radius
         /// 
-        /// 应用场景：
-        /// 1. 高密度偏好：
-        ///    - 商店位置：选择人流量大的区域
-        ///    - 集会点：选择容易聚集的位置
+        /// Application scenarios:
+        /// 1. High density preference:
+        ///    - Shop locations: Choose areas with high foot traffic
+        ///    - Gathering points: Choose positions easy to congregate
         /// 
-        /// 2. 低密度偏好（通过权重为负实现）：
-        ///    - 隐蔽位置：避开人群密集区域
-        ///    - 安静区域：远离喧嚣的地方
+        /// 2. Low density preference (implemented through negative weights):
+        ///    - Hidden positions: Avoid crowded areas
+        ///    - Quiet areas: Stay away from noisy places
         /// 
-        /// 完整实现包括：
-        /// 1. 指定半径内的3D空间搜索
-        /// 2. 对象类型过滤
-        /// 3. 距离权重衰减
-        /// 4. 多种密度计算模式
+        /// Complete implementation includes:
+        /// 1. 3D spatial search within specified radius
+        /// 2. Object type filtering
+        /// 3. Distance weight decay
+        /// 4. Multiple density calculation modes
         /// </summary>
         private static float CalculateDensityScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -1162,7 +1216,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var cellPosition = cell.WorldPosition;
             var totalDensity = 0f;
             
-            // 计算搜索范围内的网格单元
+            // Calculate grid cells within search range
             var searchRadiusInCells = Mathf.CeilToInt(radius / grid.CellSize);
             var cellIndices = cell.Indices;
             
@@ -1178,7 +1232,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                             cellIndices.z + z
                         );
                         
-                        // 检查索引是否在网格范围内
+                        // Check if indices are within grid bounds
                         if (checkIndices.x < 0 || checkIndices.x >= grid.Dimensions.x ||
                             checkIndices.y < 0 || checkIndices.y >= grid.Dimensions.y ||
                             checkIndices.z < 0 || checkIndices.z >= grid.Dimensions.z)
@@ -1191,11 +1245,11 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                         var checkCell = grid.Cells[checkCellIndex];
                         var distance = Vector3.Distance(cellPosition, checkCell.WorldPosition);
                         
-                        // 检查是否在搜索半径内
+                        // Check if within search radius
                         if (distance > radius)
                             continue;
                         
-                        // 计算该单元格的贡献
+                        // Calculate this cell's contribution
                         var cellContribution = CalculateCellDensityContribution(
                             checkCell, distance, objectTypeFilter, useDistanceWeighting, densityMode);
                         
@@ -1204,7 +1258,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 }
             }
             
-            // 根据密度模式进行最终计算
+            // Final calculation based on density mode
             float finalScore = 0f;
             
             switch (densityMode)
@@ -1213,11 +1267,10 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     finalScore = totalDensity / maxDensity;
                     break;
                 case "weighted":
-                    // 已经在计算过程中应用了距离权重
                     finalScore = totalDensity / maxDensity;
                     break;
                 case "inverse":
-                    // 反向密度：密度越低分数越高
+                    // Inverse density: Lower density gives higher score
                     finalScore = 1f - (totalDensity / maxDensity);
                     break;
                 default:
@@ -1229,44 +1282,44 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
         
         /// <summary>
-        /// 计算单个网格单元对密度的贡献
+        /// Calculate single grid cell's contribution to density
         /// </summary>
         private static float CalculateCellDensityContribution(EQSCell cell, float distance, 
             string objectTypeFilter, bool useDistanceWeighting, string densityMode)
         {
             var contribution = 0f;
             
-            // 计算动态对象贡献
+            // Calculate dynamic object contribution
             foreach (var objectId in cell.DynamicOccupants)
             {
-                // 对象类型过滤
+                // Object type filtering
                 if (!string.IsNullOrEmpty(objectTypeFilter))
                 {
-                    // 这里需要根据实际情况获取对象类型
-                    // 简化实现：假设对象ID包含类型信息或从环境中查找
+                    // Here we need to get object type based on actual situation
+                    // Simplified implementation: assume object ID contains type info or lookup from environment
                     var dynamicObj = _currentEnvironment.DynamicObjects
                         .FirstOrDefault(obj => obj.Id == objectId);
                     
                     if (dynamicObj != null && dynamicObj.Type != objectTypeFilter)
-                        continue; // 不匹配的对象类型
+                        continue; // Mismatched object type
                 }
                 
                 var objectContribution = 1f;
                 
-                // 应用距离权重衰减
+                // Apply distance weight decay
                 if (useDistanceWeighting && distance > 0)
                 {
-                    // 使用平方反比衰减
+                    // Use inverse square decay
                     objectContribution = 1f / (1f + distance * distance);
                 }
                 
                 contribution += objectContribution;
             }
             
-            // 考虑静态几何体的影响（可选）
+            // Consider static geometry influence (optional)
             if (cell.StaticOccupancy)
             {
-                var staticContribution = 0.1f; // 静态对象的基础贡献值
+                var staticContribution = 0.1f; // Base contribution value for static objects
                 
                 if (useDistanceWeighting && distance > 0)
                 {
@@ -1282,12 +1335,12 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
 
         
         /// <summary>
-        /// 高度偏好评分计算
+        /// Height preference score calculation
         /// 
-        /// 根据点位的高度进行评分，支持多种高度偏好模式：
-        /// - 高地偏好：越高分数越高（瞭望台、狙击点）
-        /// - 低地偏好：越低分数越高（隐蔽、避风）
-        /// - 特定高度：接近目标高度分数越高
+        /// Score based on position height, supporting multiple height preference modes:
+        /// - High ground preference: Higher altitude gives higher score (watchtowers, sniper positions)
+        /// - Low ground preference: Lower altitude gives higher score (concealment, shelter)
+        /// - Specific height: Closer to target height gives higher score
         /// </summary>
         private static float CalculateHeightPreferenceScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -1305,20 +1358,20 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             switch (preferenceMode)
             {
                 case "higher":
-                    // 越高越好
+                    // Higher is better
                     return Mathf.Clamp01((cellHeight - referenceHeight) / heightRange);
                 
                 case "lower":
-                    // 越低越好
+                    // Lower is better
                     return Mathf.Clamp01((referenceHeight - cellHeight) / heightRange);
                 
                 case "specific":
-                    // 接近特定高度越好
+                    // Closer to specific height is better
                     var heightDiff = Mathf.Abs(cellHeight - referenceHeight);
                     return Mathf.Clamp01(1f - (heightDiff / heightRange));
                 
                 case "avoid":
-                    // 避开特定高度
+                    // Avoid specific height
                     var avoidDiff = Mathf.Abs(cellHeight - referenceHeight);
                     return Mathf.Clamp01(avoidDiff / heightRange);
                 
@@ -1328,12 +1381,12 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
         
         /// <summary>
-        /// 坡度分析评分计算
+        /// Slope analysis score calculation
         /// 
-        /// 分析地形坡度，适用于：
-        /// - 平坦地形偏好（建筑、停车）
-        /// - 坡度地形偏好（滑雪、排水）
-        /// - 特定坡度要求
+        /// Analyze terrain slope, suitable for:
+        /// - Flat terrain preference (construction, parking)
+        /// - Sloped terrain preference (skiing, drainage)
+        /// - Specific slope requirements
         /// </summary>
         private static float CalculateSlopeAnalysisScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -1346,7 +1399,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var tolerance = criterion.Parameters.ContainsKey("tolerance") ? 
                 ParseUtils.ParseFloat(criterion.Parameters["tolerance"]) : 10f;
             
-            // 简化的坡度计算：检查周围单元格的高度差
+            // Simplified slope calculation: check height differences of surrounding cells
             if (_currentEnvironment == null)
                 return 0.5f;
             
@@ -1354,7 +1407,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var cellHeight = cell.WorldPosition.y;
             var heightDifferences = new List<float>();
             
-            // 检查相邻单元格
+            // Check adjacent cells
             var directions = new Vector3Int[]
             {
                 new Vector3Int(1, 0, 0), new Vector3Int(-1, 0, 0),
@@ -1385,15 +1438,15 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             switch (slopeMode)
             {
                 case "flat":
-                    // 平坦地形偏好
+                    // Flat terrain preference
                     return Mathf.Clamp01(1f - (slopeAngle / tolerance));
                 
                 case "steep":
-                    // 陡峭地形偏好
+                    // Steep terrain preference
                     return Mathf.Clamp01(slopeAngle / tolerance);
                 
                 case "specific":
-                    // 特定坡度偏好
+                    // Specific slope preference
                     var slopeDiff = Mathf.Abs(slopeAngle - preferredSlope);
                     return Mathf.Clamp01(1f - (slopeDiff / tolerance));
                 
@@ -1403,12 +1456,12 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
         
         /// <summary>
-        /// 掩体质量评分计算
+        /// Cover quality score calculation
         /// 
-        /// 评估位置的掩体价值：
-        /// - 周围障碍物密度
-        /// - 视线遮挡程度
-        /// - 多方向保护
+        /// Evaluate position's cover value:
+        /// - Surrounding obstacle density
+        /// - Line of sight obstruction level
+        /// - Multi-directional protection
         /// </summary>
         private static float CalculateCoverQualityScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -1425,20 +1478,20 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 return 0f;
             
             var coverScore = 0f;
-            var position = cell.WorldPosition + Vector3.up * 1.5f; // 眼睛高度
+            var position = cell.WorldPosition + Vector3.up * 1.5f; // Eye height
             
-            // 检查方向数组
+            // Check direction array
             Vector3[] checkDirections;
             
             if (threatDirections != null && threatDirections.Length > 0)
             {
-                // 使用指定的威胁方向
+                // Use specified threat directions
                 checkDirections = threatDirections.Select(dir => 
                     new Vector3(dir[0], dir[1], dir[2]).normalized).ToArray();
             }
             else
             {
-                // 使用默认的8方向检查
+                // Use default 8-directional check
                 checkDirections = new Vector3[]
                 {
                     Vector3.forward, Vector3.back, Vector3.left, Vector3.right,
@@ -1453,7 +1506,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             
             foreach (var direction in checkDirections)
             {
-                // 检查该方向是否有掩体
+                // Check if there's cover in this direction
                 if (Physics.Raycast(position, direction, coverRadius, LayerMask.GetMask("Default")))
                 {
                     protectedDirections++;
@@ -1463,17 +1516,17 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             switch (coverMode)
             {
                 case "omnidirectional":
-                    // 全方向保护
+                    // Full directional protection
                     coverScore = (float)protectedDirections / checkDirections.Length;
                     break;
                 
                 case "partial":
-                    // 部分保护即可
+                    // Partial protection is sufficient
                     coverScore = protectedDirections > 0 ? 1f : 0f;
                     break;
                 
                 case "majority":
-                    // 大部分方向有保护
+                    // Majority directions have protection
                     coverScore = protectedDirections >= (checkDirections.Length / 2) ? 1f : 0f;
                     break;
                 
@@ -1486,12 +1539,12 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
         
         /// <summary>
-        /// 路径复杂度评分计算
+        /// Path complexity score calculation
         /// 
-        /// 评估到达该位置的路径复杂度：
-        /// - 直线距离vs实际路径距离
-        /// - 路径上的障碍物数量
-        /// - 路径的曲折程度
+        /// Evaluate path complexity to reach this position:
+        /// - Straight line distance vs actual path distance
+        /// - Number of obstacles on path
+        /// - Path tortuosity degree
         /// </summary>
         private static float CalculatePathComplexityScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -1510,12 +1563,12 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             var directDistance = Vector3.Distance(startPoint, cell.WorldPosition);
             
             if (directDistance < 0.1f)
-                return 1f; // 起点位置
+                return 1f; // Starting position
             
             switch (complexityMode)
             {
                 case "simple":
-                    // 简单的直线障碍检查
+                    // Simple straight line obstacle check
                     var direction = (cell.WorldPosition - startPoint).normalized;
                     var obstacleCount = 0;
                     var checkDistance = 0f;
@@ -1535,7 +1588,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     return Mathf.Clamp01(1f - (complexity / maxComplexity));
                 
                 case "linecast":
-                    // 射线检查
+                    // Raycast check
                     var hasObstacle = Physics.Linecast(startPoint, cell.WorldPosition, LayerMask.GetMask("Default"));
                     return hasObstacle ? 0f : 1f;
                 
@@ -1545,13 +1598,13 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
         
         /// <summary>
-        /// 多点评分计算
+        /// Multi-point score calculation
         /// 
-        /// 同时考虑多个目标点的综合评分：
-        /// - 到多个点的平均距离
-        /// - 到最近点的距离
-        /// - 到最远点的距离
-        /// - 自定义权重组合
+        /// Comprehensive scoring considering multiple target points simultaneously:
+        /// - Average distance to multiple points
+        /// - Distance to nearest point
+        /// - Distance to farthest point
+        /// - Custom weight combination
         /// </summary>
         private static float CalculateMultiPointScore(EQSCell cell, EQSScoringCriterion criterion)
         {
@@ -1580,22 +1633,22 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             switch (multiMode)
             {
                 case "average":
-                    // 平均距离
+                    // Average distance
                     var avgDistance = distances.Average();
                     return Mathf.Clamp01(1f - (avgDistance / maxDistance));
                 
                 case "closest":
-                    // 最近点距离
+                    // Nearest point distance
                     var minDistance = distances.Min();
                     return Mathf.Clamp01(1f - (minDistance / maxDistance));
                 
                 case "farthest":
-                    // 最远点距离
+                    // Farthest point distance
                     var maxDist = distances.Max();
                     return Mathf.Clamp01(1f - (maxDist / maxDistance));
                 
                 case "weighted":
-                    // 加权平均
+                    // Weighted average
                     if (weights != null && weights.Length == distances.Length)
                     {
                         var weightedSum = 0f;
@@ -1612,12 +1665,12 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     }
                     else
                     {
-                        // 如果权重不匹配，回退到平均值
+                        // If weights don't match, fall back to average
                         goto case "average";
                     }
                 
                 case "best":
-                    // 最优（最近）点的分数
+                    // Best (nearest) point score
                     var bestDistance = distances.Min();
                     return Mathf.Clamp01(1f - (bestDistance / maxDistance));
                 
@@ -1638,7 +1691,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
 
                 if (type == "sphere" || type == "box")
                 {
-                    // 更健壮的center解析
+                    // More robust center parsing
                     float[] center;
                     try
                     {
@@ -1646,7 +1699,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     }
                     catch
                     {
-                        // 如果直接解析失败，尝试处理整数数组
+                        // If direct parsing fails, try handling integer array
                         center = ParseUtils.ParseFloatArray(areaData["center"]);
                     }
 
@@ -1654,7 +1707,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
 
                     if (type == "sphere")
                     {
-                        // 更健壮的radius解析
+                        // More robust radius parsing
                         float radius;
                         try
                         {
@@ -1662,13 +1715,13 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                         }
                         catch (Exception ex)
                         {
-                            throw new InvalidOperationException($"无法解析radius值: {areaData["radius"]}", ex);
+                            throw new InvalidOperationException($"Unable to parse radius value: {areaData["radius"]}", ex);
                         }
                         areaOfInterest.Radius = radius;
                     }
                     else if (type == "box")
                     {
-                        // 处理size数组
+                        // Handle size array
                         float[] size;
                         try
                         {
@@ -1689,15 +1742,15 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("解析兴趣区域失败: " + ex.Message, ex);
+                throw new InvalidOperationException("Failed to parse area of interest: " + ex.Message, ex);
             }
         }
 
 
 
         /// <summary>
-        /// 自动可视化查询结果，使用绿到红的颜色渐变
-        /// 显示所有满足条件且有评分的点，不只是前几名
+        /// Auto-visualize query results using green to red color gradient
+        /// Display all points that meet criteria and have scores, not just the top few
         /// </summary>
         private static void AutoVisualizeQueryResults(EQSQueryResult queryResult)
         {
@@ -1712,81 +1765,81 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                 {
                     QueryId = queryResult.QueryID,
                     DebugObjects = new List<GameObject>(),
-                    ExpirationTime = DateTime.MaxValue // 永久保留，不自动清除
+                    ExpirationTime = DateTime.MaxValue // Permanent retention, no automatic cleanup
                 };
 
-                // 显示所有满足条件的点，不只是前几名
+                // Display all points that meet criteria, not just the top few
                 foreach (var candidate in queryResult.Results.Select((c, index) => new { Candidate = c, Index = index }))
                 {
-                    // 根据评分计算颜色（绿到红渐变）
+                    // Calculate color based on score (green to red gradient)
                     var color = CalculateScoreColor(candidate.Candidate.Score);
-                    var debugObj = CreateScoredDebugMarker(candidate.Candidate, color, candidate.Index); // 不显示分数
+                    var debugObj = CreateScoredDebugMarker(candidate.Candidate, color, candidate.Index); // Don't display score
                     visualization.DebugObjects.Add(debugObj);
                 }
 
                 _activeVisualizations[queryResult.QueryID] = visualization;
-                Debug.Log($"[EQS] 自动创建查询 '{queryResult.QueryID}' 的可视化，共 {visualization.DebugObjects.Count} 个标记");
+                Debug.Log($"[EQS] Auto-created visualization for query '{queryResult.QueryID}' with {visualization.DebugObjects.Count} markers");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[EQS] 自动可视化查询结果失败: {ex.Message}");
+                Debug.LogError($"[EQS] Auto-visualization of query results failed: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 根据评分计算颜色（0.0=红色，1.0=绿色）
+        /// Calculate color based on score (0.0=red, 1.0=green)
         /// </summary>
         private static Color CalculateScoreColor(float score)
         {
-            // 确保评分在0-1范围内
+            // Ensure score is within 0-1 range
             score = Mathf.Clamp01(score);
             
-            // 创建从红色到绿色的渐变
-            // 红色 (1,0,0) -> 黄色 (1,1,0) -> 绿色 (0,1,0)
+            // Create gradient from red to green
+            // Red (1,0,0) -> Yellow (1,1,0) -> Green (0,1,0)
             if (score <= 0.5f)
             {
-                // 从红色到黄色
-                var t = score * 2f; // 0-0.5 映射到 0-1
+                // From red to yellow
+                var t = score * 2f; // Map 0-0.5 to 0-1
                 return new Color(1f, t, 0f);
             }
             else
             {
-                // 从黄色到绿色
-                var t = (score - 0.5f) * 2f; // 0.5-1 映射到 0-1
+                // From yellow to green
+                var t = (score - 0.5f) * 2f; // Map 0.5-1 to 0-1
                 return new Color(1f - t, 1f, 0f);
             }
         }
 
         /// <summary>
-        /// 创建带评分的调试标记
+        /// Create debug marker with score
         /// </summary>
         private static GameObject CreateScoredDebugMarker(EQSLocationCandidate candidate, Color color, int index)
         {
-            // 创建调试标记GameObject
+            // Create debug marker GameObject
             var markerName = $"EQS_QueryResult_#{index}_Score{candidate.Score:F2}";
             var debugObj = new GameObject(markerName);
             debugObj.transform.position = candidate.WorldPosition;
 
-            // 添加可视化组件
+            // Add visualization components
             var sphereRenderer = debugObj.AddComponent<MeshRenderer>();
             var meshFilter = debugObj.AddComponent<MeshFilter>();
             
-            // 使用Unity内置的球体网格
+            // Use Unity built-in sphere mesh
             meshFilter.mesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
             
-            // 创建兼容的材质
-            var material = CreateCompatibleMaterial(color, true); // 查询结果需要发光
+            // Create compatible material
+            var material = CreateCompatibleMaterial(color, true); // Query results need glow
             sphereRenderer.material = material;
 
-            // 设置统一大小（不根据排名或分数改变大小）
+            // Set uniform size (don't change size based on rank or score)
             var baseScale = 0.2f;
             debugObj.transform.localScale = Vector3.one * baseScale;
 
-            // 添加EQS调试组件
+            // Add EQS debug component
             var debugComponent = debugObj.AddComponent<EQSDebugMarker>();
             debugComponent.Initialize(candidate);
 
-            // 标记为编辑器专用对象
+            // Mark as editor-only object
             debugObj.hideFlags = HideFlags.DontSave;
 
             return debugObj;
@@ -1794,7 +1847,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
 
 
         /// <summary>
-        /// 创建兼容的材质（用于查询结果可视化）
+        /// Create compatible material (for query result visualization)
         /// </summary>
         private static Material CreateCompatibleMaterial(Color color, bool enableEmission)
         {
@@ -1802,7 +1855,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
     }
 
-    // EQS调试标记组件
+    // EQS Debug Marker Component
     public class EQSDebugMarker : MonoBehaviour
     {
         public Tool_EQS.EQSLocationCandidate Candidate { get; private set; }
@@ -1815,18 +1868,16 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         private void OnDrawGizmos()
         {
             if (Candidate == null) return;
-
-            // 绘制Gizmos
+            
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(transform.position, 0.5f);
             
-            // 绘制到关联对象的连线
             if (Candidate.AssociatedObjectIDs != null && Candidate.AssociatedObjectIDs.Count > 0)
             {
                 Gizmos.color = Color.cyan;
                 foreach (var objId in Candidate.AssociatedObjectIDs)
                 {
-                    // 这里可以添加查找对象并绘制连线的逻辑
+                    // Here you can add logic to find the object and draw the line
                 }
             }
         }
@@ -1835,11 +1886,9 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         {
             if (Candidate == null) return;
  
-            // 选中时显示更多信息
             Gizmos.color = Color.green;
             Gizmos.DrawSphere(transform.position, 0.3f);
 
-            // 显示网格索引信息
             if (Candidate.CellIndices.HasValue)
             {
                 var indices = Candidate.CellIndices.Value;

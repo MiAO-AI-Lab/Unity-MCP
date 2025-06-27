@@ -202,10 +202,10 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
             Processing
         }
 
-        // ===== 工具类和常量统一管理 =====
+        // ===== Utility classes and constants unified management =====
 
         /// <summary>
-        /// EQS系统常量配置
+        /// EQS system constants configuration
         /// </summary>
         public static class Constants
         {
@@ -224,7 +224,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
         }
 
         /// <summary>
-        /// 参数解析工具
+        /// Parameter parsing utilities
         /// </summary>
         public static class ParseUtils
         {
@@ -302,13 +302,13 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
                 }
                 catch (Exception ex)
                 {
-                    throw new ArgumentException($"无法解析为浮点数组: {ex.Message}", ex);
+                    throw new ArgumentException($"Cannot parse as float array: {ex.Message}", ex);
                 }
             }
         }
 
         /// <summary>
-        /// 对象查找工具
+        /// Object finding utilities
         /// </summary>
         public static class ObjectUtils
         {
@@ -317,7 +317,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
                 if (string.IsNullOrEmpty(objectIdOrName))
                     return null;
 
-                // 方法1: 通过InstanceID查找
+                // Method 1: Find by InstanceID
                 if (int.TryParse(objectIdOrName, out var instanceId))
                 {
                     var objectFromId = UnityEditor.EditorUtility.InstanceIDToObject(instanceId) as GameObject;
@@ -325,7 +325,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
                         return objectFromId;
                 }
 
-                // 方法2: 通过名称在所有场景中查找
+                // Method 2: Find by name in all scenes
                 for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
                 {
                     var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
@@ -344,13 +344,13 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
                     }
                 }
 
-                // 方法3: 全局查找
+                // Method 3: Global search
                 return GameObject.Find(objectIdOrName);
             }
         }
 
         /// <summary>
-        /// 材质工具
+        /// Material utilities
         /// </summary>
         public static class MaterialUtils
         {
@@ -411,7 +411,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
                 {
                     var shaderName = material.shader.name;
                     
-                    // 设置基础属性
+                    // Set basic properties
                     if (shaderName.Contains("Universal Render Pipeline") || shaderName.Contains("HDRP"))
                     {
                         if (material.HasProperty("_Metallic"))
@@ -431,7 +431,7 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
                             material.SetFloat("_Mode", 0f);
                     }
 
-                    // 设置发光属性
+                    // Set emission properties
                     if (material.HasProperty("_EmissionColor"))
                     {
                         if (enableEmission)
@@ -448,13 +448,13 @@ namespace com.IvanMurzak.Unity.MCP.Editor.API
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogWarning($"[EQS] 设置材质属性时出现警告: {ex.Message}");
+                    Debug.LogWarning($"[EQS] Warning occurred while setting material properties: {ex.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// 数学计算工具
+        /// Mathematical calculation utilities
         /// </summary>
         public static class MathUtils
         {

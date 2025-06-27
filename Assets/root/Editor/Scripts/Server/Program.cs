@@ -39,9 +39,9 @@ namespace com.IvanMurzak.Unity.MCP.Server
                 {
                     configure.EnableDetailedErrors = true;
                     configure.MaximumReceiveMessageSize = 1024 * 1024 * 256; // 256 MB
-                    configure.ClientTimeoutInterval = TimeSpan.FromSeconds(120);  // 增加到120秒
-                    configure.KeepAliveInterval = TimeSpan.FromSeconds(15);      // 增加到15秒
-                    configure.HandshakeTimeout = TimeSpan.FromSeconds(30);       // 增加到30秒
+                    configure.ClientTimeoutInterval = TimeSpan.FromSeconds(120);  // Increased to 120 seconds
+                    configure.KeepAliveInterval = TimeSpan.FromSeconds(15);      // Increased to 15 seconds
+                    configure.HandshakeTimeout = TimeSpan.FromSeconds(30);       // Increased to 30 seconds
                     configure.JsonSerialize(JsonUtils.JsonSerializerOptions);
                 });
 

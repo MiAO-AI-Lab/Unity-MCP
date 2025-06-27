@@ -185,7 +185,7 @@ namespace com.IvanMurzak.Unity.MCP.Common
 
             ServiceProvider = _services.BuildServiceProvider();
 
-            // 初始化服务定位器
+            // Initialize service locator
             McpServiceLocator.Initialize(ServiceProvider);
 
             isBuilt = true;
@@ -200,7 +200,7 @@ namespace com.IvanMurzak.Unity.MCP.Common
 
             ServiceProvider = _services.BuildServiceProvider();
 
-            // 初始化服务定位器
+            // Initialize service locator
             McpServiceLocator.Initialize(ServiceProvider);
 
             isBuilt = true;

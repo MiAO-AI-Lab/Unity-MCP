@@ -1,4 +1,4 @@
-# 功能目录
+# Feature Directory
 ## Resource
 ### GameObject
 - Hierarchy

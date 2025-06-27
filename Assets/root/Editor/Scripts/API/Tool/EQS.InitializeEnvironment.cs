@@ -412,7 +412,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
         {
             if (_currentEnvironment != null)
             {
-                // 清理网格数据
+                // Clear grid data
                 if (_currentEnvironment.Grid?.Cells != null)
                 {
                     for (int i = 0; i < _currentEnvironment.Grid.Cells.Length; i++)
@@ -425,11 +425,11 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                     }
                 }
                 
-                // 清理对象集合
+                // Clear object collections
                 _currentEnvironment.StaticGeometry?.Clear();
                 _currentEnvironment.DynamicObjects?.Clear();
                 
-                // 清理可视化相关状态（如果有的话）
+                // Clear visualization related state (if any)
                 ClearAllVisualizations();
                 
                 Debug.Log("[EQS] Previous environment state cleaned up");
@@ -438,19 +438,19 @@ Note: If you need to force reinitialize, set forceReinitialize = true
 
         private static void ClearAllVisualizations()
         {
-            // 这里可以添加清理可视化标记的逻辑
-            // 如果有其他EQS工具创建的可视化对象，在此清理
+            // Logic for clearing visualization markers can be added here
+            // Clean up visualization objects created by other EQS tools here
             Debug.Log("[EQS] Clearing all visualizations");
             try
             {
-                // 方式1: 使用更可靠的方法查找场景中的GameObject
+                // Method 1: Use more reliable method to find GameObjects in scene
                 var allGameObjects = new List<GameObject>();
                 
-                // 首先尝试FindObjectsOfType（包括非活动对象）
+                // First try FindObjectsOfType (including inactive objects)
                 var foundObjects = GameObject.FindObjectsOfType<GameObject>(true);
                 allGameObjects.AddRange(foundObjects);
                 
-                // 然后通过场景根对象递归查找（防止遗漏）
+                // Then recursively search through scene root objects (to prevent omissions)
                 foreach (var rootGO in SceneManager.GetActiveScene().GetRootGameObjects())
                 {
                     var childObjects = rootGO.GetComponentsInChildren<Transform>(true)
@@ -461,7 +461,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 
                 Debug.Log($"[EQS] Found {allGameObjects.Count} total GameObjects in active scene using combined method");
                 
-                // 过滤EQS相关对象
+                // Filter EQS related objects
                 var visualizationObjects = allGameObjects
                     .Where(go => go.name.StartsWith("EQS_Probe_") || go.name.StartsWith("EQS_QueryResult_"))
                     .ToArray();
@@ -473,7 +473,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                     Debug.Log($"[EQS] First few objects: {string.Join(", ", visualizationObjects.Take(5).Select(go => go.name))}");
                 }
                 
-                                // 方式3: 多重清理策略（确保彻底清理）
+                                // Method 3: Multiple cleanup strategies (ensure thorough cleanup)
                 int cleanedFromSearch = 0;
                 foreach (var obj in visualizationObjects)
                 {
@@ -481,13 +481,13 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                     {
                         try
                         {
-                            // 策略1: 重置所有标志并立即销毁
+                            // Strategy 1: Reset all flags and destroy immediately
                             obj.hideFlags = HideFlags.None;
                             
-                            // 策略2: 先禁用对象
+                            // Strategy 2: Disable object first
                             obj.SetActive(false);
                             
-                            // 策略3: 使用 DestroyImmediate（Editor 模式推荐）
+                            // Strategy 3: Use DestroyImmediate (recommended for Editor mode)
                             #if UNITY_EDITOR
                             if (!UnityEditor.EditorApplication.isPlaying)
                             {
@@ -507,7 +507,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                         {
                             Debug.LogWarning($"[EQS] Failed to destroy object {obj.name}: {ex.Message}");
                             
-                            // 备用策略: 如果销毁失败，至少标记为不可见
+                            // Fallback strategy: If destruction fails, at least mark as invisible
                             try
                             {
                                 obj.SetActive(false);
@@ -517,7 +517,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                             }
                             catch
                             {
-                                // 忽略备用策略的错误
+                                // Ignore fallback strategy errors
                             }
                         }
                     }
@@ -527,19 +527,19 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 {
                     Debug.Log($"[EQS] Total cleaned up: {cleanedFromSearch} visualization objects");
                     
-                    // 强制编辑器和场景刷新
+                    // Force editor and scene refresh
                     #if UNITY_EDITOR
-                    // 刷新编辑器
+                    // Refresh editor
                     UnityEditor.EditorApplication.QueuePlayerLoopUpdate();
                     UnityEditor.SceneView.RepaintAll();
                     
-                    // 强制刷新场景视图
+                    // Force refresh scene view
                     UnityEditor.EditorApplication.RepaintHierarchyWindow();
                     
-                    // 标记场景为脏状态并刷新
+                    // Mark scene as dirty and refresh
                     UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
                     
-                    // 延迟验证清理结果
+                    // Delayed verification of cleanup results
                     UnityEditor.EditorApplication.delayCall += () =>
                     {
                         var remainingObjects = GameObject.FindObjectsOfType<GameObject>(true)
@@ -569,7 +569,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
         }
 
         /// <summary>
-        /// 创建所有probe的可视化标记
+        /// Create visualization markers for all probes
         /// </summary>
         private static void CreateProbeVisualization(EQSGrid grid)
         {
@@ -581,7 +581,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                     DebugObjects = new List<GameObject>()
                 };
 
-                // 创建标准材质（灰色）
+                // Create standard material (gray)
                 var probeMaterial = MaterialUtils.CreateMaterial(Color.gray);
 
                 for (int i = 0; i < grid.Cells.Length; i++)
@@ -589,14 +589,14 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                     var cell = grid.Cells[i];
                     if (cell == null) continue;
 
-                    // 只为可通行的单元格创建probe（减少视觉混乱）
+                    // Only create probes for traversable cells (reduce visual clutter)
                     if (cell.StaticOccupancy) continue;
 
                     var probeObj = CreateProbeMarker(cell, probeMaterial, i);
                     probeVisualization.DebugObjects.Add(probeObj);
                 }
 
-                // 设置永久显示
+                // Set to display permanently
                 probeVisualization.ExpirationTime = DateTime.MaxValue;
                 _activeVisualizations["EQS_Probes_Initial"] = probeVisualization;
 
@@ -611,36 +611,36 @@ Note: If you need to force reinitialize, set forceReinitialize = true
 
 
         /// <summary>
-        /// 创建单个probe标记
+        /// Create a single probe marker
         /// </summary>
         private static GameObject CreateProbeMarker(EQSCell cell, Material material, int index)
         {
             var probeObj = new GameObject($"EQS_Probe_{index}");
             probeObj.transform.position = cell.WorldPosition;
 
-            // 添加渲染组件
+            // Add rendering components
             var meshRenderer = probeObj.AddComponent<MeshRenderer>();
             var meshFilter = probeObj.AddComponent<MeshFilter>();
             
-            // 使用Unity内置的球体网格
+            // Use Unity's built-in sphere mesh
             meshFilter.mesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
             meshRenderer.material = material;
 
-            // 设置小一点的size以避免过于显眼
+            // Set smaller size to avoid being too conspicuous
             probeObj.transform.localScale = Vector3.one * Constants.ProbeScale;
 
-            // 添加EQS probe标记组件
+            // Add EQS probe marker component
             var probeComponent = probeObj.AddComponent<EQSProbeMarker>();
             probeComponent.Initialize(cell, index);
 
-            // 标记为编辑器专用对象
+            // Mark as editor-only object
             probeObj.hideFlags = HideFlags.DontSave;
 
             return probeObj;
         }
 
         // /// <summary>
-        // /// 清理probe可视化
+        // /// Clean up probe visualization
         // /// </summary>
         // private static void CleanupProbeVisualization()
         // {
@@ -653,8 +653,8 @@ Note: If you need to force reinitialize, set forceReinitialize = true
     }
 
     /// <summary>
-    /// EQS Probe标记组件
-    /// 用于显示网格单元的基本信息和属性
+    /// EQS Probe marker component
+    /// Used to display basic information and properties of grid cells
     /// </summary>
     public class EQSProbeMarker : MonoBehaviour
     {
@@ -671,7 +671,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
         {
             if (Cell == null) return;
 
-            // 基础Gizmos绘制
+            // Basic Gizmos drawing
             Gizmos.color = Cell.StaticOccupancy ? Color.red : Color.green;
             Gizmos.DrawWireCube(transform.position, Vector3.one * 0.2f);
         }
@@ -680,7 +680,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
         {
             if (Cell == null) return;
 
-            // 选中时显示详细信息
+            // Show detailed information when selected
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireCube(transform.position, Vector3.one * 0.5f);
 
