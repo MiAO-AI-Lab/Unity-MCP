@@ -8,6 +8,8 @@ using System.Net.Http;
 using System.Text;
 using System.IO;
 using com.MiAO.Unity.MCP.Server.Protocol;
+using com.MiAO.Unity.MCP.Common;
+using System.Linq;
 
 namespace com.MiAO.Unity.MCP.Server.Proxy
 {
@@ -63,21 +65,29 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// </summary>
         private async Task<AgentModelResponse> ProcessVisionRequestAsync(AgentModelRequest request)
         {
-            if (string.IsNullOrEmpty(request.ImageData))
+            var imageMessages = request.Messages.Where(m => m.Type == MessageType.Image).ToList();
+            if (imageMessages.Count == 0)
             {
                 return AgentModelResponse.Error("Image data is required for vision model");
             }
 
+            // var textMessages = request.Messages.Where(m => m.Type == MessageType.Text).ToList();
+            // var prompt = textMessages.Count > 0 ? string.Join(" ", textMessages.Select(m => m.Content)) : "Please analyze this image.";
+            var imageData = imageMessages.Select(m => m.Content).ToList();
+
             try
             {
-                // Validate image data
-                if (!IsValidBase64Image(request.ImageData))
+                // Validate all image data
+                foreach (var image in imageData)
                 {
-                    return AgentModelResponse.Error("Invalid image data format");
+                    if (!IsValidBase64Image(image))
+                    {
+                        return AgentModelResponse.Error("Invalid image data format");
+                    }
                 }
 
-                // Use unified API call
-                var result = await CallUnifiedModelAPI(_config.visionModelProvider, ModelMode.Vision, request.Prompt, request.ImageData);
+                // Use unified API call with multiple images
+                var result = await CallUnifiedModelAPI(_config.visionModelProvider, ModelMode.Vision, request.Messages);
                 return AgentModelResponse.Success(result);
             }
             catch (Exception ex)
@@ -91,10 +101,16 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// </summary>
         private async Task<AgentModelResponse> ProcessTextRequestAsync(AgentModelRequest request)
         {
+            var textMessages = request.Messages.Where(m => m.Type == MessageType.Text).ToList();
+            if (textMessages.Count == 0)
+            {
+                return AgentModelResponse.Error("Text content is required for text model");
+            }
+
             try
             {
                 // Use unified API call
-                var result = await CallUnifiedModelAPI(_config.textModelProvider, ModelMode.Text, request.Prompt);
+                var result = await CallUnifiedModelAPI(_config.textModelProvider, ModelMode.Text, request.Messages);
                 return AgentModelResponse.Success(result);
             }
             catch (Exception ex)
@@ -108,13 +124,27 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// </summary>
         private async Task<AgentModelResponse> ProcessCodeRequestAsync(AgentModelRequest request)
         {
+            var textMessages = request.Messages.Where(m => m.Type == MessageType.Text).ToList();
+            var codeMessages = request.Messages.Where(m => m.Type == MessageType.Code).ToList();
+
+            if (textMessages.Count == 0)
+            {
+                return AgentModelResponse.Error("Text prompt is required for code model");
+            }
+
+            var prompt = string.Join(" ", textMessages.Select(m => m.Content));
+            var codeContext = codeMessages.Count > 0 ? string.Join("\n", codeMessages.Select(m => m.Content)) : null;
+
             try
             {
                 // Add specific prompt prefix for code requests
-                var codePrompt = BuildCodePrompt(request.Prompt, request.CodeContext);
+                var codePrompt = BuildCodePrompt(prompt, codeContext);
+                
+                // Create message with code prompt
+                var promptMessages = new List<Message> { new Message { Type = MessageType.Text, Content = codePrompt } };
                 
                 // Use unified API call
-                var result = await CallUnifiedModelAPI(_config.codeModelProvider, ModelMode.Text, codePrompt);
+                var result = await CallUnifiedModelAPI(_config.codeModelProvider, ModelMode.Text, promptMessages);
                 return AgentModelResponse.Success(result);
             }
             catch (Exception ex)
@@ -135,22 +165,22 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// <summary>
         /// Unified model API call function
         /// </summary>
-        private async Task<string> CallUnifiedModelAPI(string provider, ModelMode mode, string prompt, string? imageData = null)
+        private async Task<string> CallUnifiedModelAPI(string provider, ModelMode mode, List<Message> messages)
         {
             provider = provider.ToLower();
             
 #if UNITY_5_3_OR_NEWER
-            UnityEngine.Debug.Log($"[AgentModelProxy] Calling {provider} {mode} API");
+            UnityEngine.Debug.Log($"[AgentModelProxy] Calling {provider} {mode} API with {messages?.Count ?? 0} messages");
 #else
-            Console.WriteLine($"[AgentModelProxy] Calling {provider} {mode} API");
+            Console.WriteLine($"[AgentModelProxy] Calling {provider} {mode} API with {messages?.Count ?? 0} messages");
 #endif
 
             return provider switch
             {
-                "openai" => await CallOpenAIAPI(mode, prompt, imageData),
-                "gemini" => await CallGeminiAPI(mode, prompt, imageData),
-                "claude" => await CallClaudeAPI(mode, prompt, imageData),
-                "local" => await CallLocalAPI(mode, prompt, imageData),
+                "openai" => await CallOpenAIAPI(mode, messages),
+                "gemini" => await CallGeminiAPI(mode, messages),
+                "claude" => await CallClaudeAPI(mode, messages),
+                "local" => await CallLocalAPI(mode, messages),
                 _ => throw new Exception($"Unsupported model provider: {provider}")
             };
         }
@@ -158,7 +188,7 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// <summary>
         /// OpenAI unified API call
         /// </summary>
-        private async Task<string> CallOpenAIAPI(ModelMode mode, string prompt, string? imageData = null)
+        private async Task<string> CallOpenAIAPI(ModelMode mode, List<Message> messages)
         {
             if (string.IsNullOrEmpty(_config.openaiApiKey))
             {
@@ -167,36 +197,52 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
 
             object requestBody;
             
-            if (mode == ModelMode.Vision && !string.IsNullOrEmpty(imageData))
+            if (mode == ModelMode.Vision)
             {
-                var cleanBase64 = CleanBase64ImageData(imageData);
+                var messageList = new List<object>();
+
+                var currentRole = messages[0].Role;
+                var preparedMessage = new
+                {
+                    role=currentRole.ToString().ToLower(),
+                    content=new List<object>()
+                };
+                foreach (var message in messages)
+                {
+                    if (message.Role != currentRole)
+                    {
+                        messageList.Add(preparedMessage);
+                        currentRole = message.Role;
+                        preparedMessage = new
+                        {
+                            role=currentRole.ToString().ToLower(),
+                            content=new List<object> { message.FormatContent() }
+                        };
+                    }
+                    else
+                    {
+                        preparedMessage.content.Add(message.FormatContent());
+                    }
+                }
+                messageList.Add(preparedMessage);
+
                 requestBody = new
                 {
                     model = _config.openaiModel,
-                    messages = new[]
-                    {
-                        new
-                        {
-                            role = "user",
-                            content = new object[]
-                            {
-                                new { type = "text", text = prompt },
-                                new { type = "image_url", image_url = new { url = $"data:image/png;base64,{cleanBase64}" } }
-                            }
-                        }
-                    },
+                    messages = messageList,
                     max_tokens = _config.maxTokens,
                     temperature = 0.7
                 };
             }
             else
             {
+                var textContent = string.Join(" ", messages.Where(m => m.Type == MessageType.Text).Select(m => m.Content));
                 requestBody = new
                 {
                     model = _config.openaiModel,
                     messages = new[]
                     {
-                        new { role = "user", content = prompt }
+                        new { role = "user", content = textContent }
                     },
                     max_tokens = _config.maxTokens,
                     temperature = 0.7
@@ -226,7 +272,7 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// <summary>
         /// Gemini unified API call
         /// </summary>
-        private async Task<string> CallGeminiAPI(ModelMode mode, string prompt, string? imageData = null)
+        private async Task<string> CallGeminiAPI(ModelMode mode, List<Message> messages)
         {
             if (string.IsNullOrEmpty(_config.geminiApiKey))
             {
@@ -235,36 +281,50 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
 
             object requestBody;
             
-            if (mode == ModelMode.Vision && !string.IsNullOrEmpty(imageData))
+            if (mode == ModelMode.Vision)
             {
-                var cleanBase64 = CleanBase64ImageData(imageData);
+                var contentsList = new List<object>();
+
+                var currentRole = messages[0].Role;
+                var preparedContent = new
+                {
+                    parts = new List<object>()
+                };
+                foreach (var message in messages)
+                {
+                    var formattedContent = message.Type == MessageType.Image 
+                        ? FormatGeminiImageContent(message.Content)
+                        : message.FormatGeminiContent();
+                        
+                    if (message.Role != currentRole)
+                    {
+                        contentsList.Add(preparedContent);
+                        currentRole = message.Role;
+                        preparedContent = new
+                        {
+                            parts = new List<object> { formattedContent }
+                        };
+                    }
+                    else
+                    {
+                        preparedContent.parts.Add(formattedContent);
+                    }
+                }
+                contentsList.Add(preparedContent);
+                
                 requestBody = new
                 {
-                    contents = new[]
-                    {
-                        new
-                        {
-                            parts = new object[]
-                            {
-                                new { text = prompt },
-                                new { 
-                                    inline_data = new { 
-                                        mime_type = "image/png", 
-                                        data = cleanBase64 
-                                    } 
-                                }
-                            }
-                        }
-                    }
+                    contents = contentsList
                 };
             }
             else
             {
+                var textContent = string.Join(" ", messages.Where(m => m.Type == MessageType.Text).Select(m => m.Content));
                 requestBody = new
                 {
                     contents = new[]
                     {
-                        new { parts = new[] { new { text = prompt } } }
+                        new { parts = new[] { new { text = textContent } } }
                     }
                 };
             }
@@ -292,7 +352,7 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// <summary>
         /// Claude unified API call
         /// </summary>
-        private async Task<string> CallClaudeAPI(ModelMode mode, string prompt, string? imageData = null)
+        private async Task<string> CallClaudeAPI(ModelMode mode, List<Message> messages)
         {
             if (string.IsNullOrEmpty(_config.claudeApiKey))
             {
@@ -301,43 +361,56 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
 
             object requestBody;
             
-            if (mode == ModelMode.Vision && !string.IsNullOrEmpty(imageData))
+            if (mode == ModelMode.Vision)
             {
-                var cleanBase64 = CleanBase64ImageData(imageData);
+                var messageList = new List<object>();
+
+                var currentRole = messages[0].Role;
+                var preparedMessage = new
+                {
+                    role = currentRole.ToString().ToLower(),
+                    content = new List<object>()
+                };
+                foreach (var message in messages)
+                {
+                    var formattedContent = message.Type == MessageType.Image 
+                        ? FormatClaudeImageContent(message.Content)
+                        : message.FormatClaudeContent();
+                        
+                    if (message.Role != currentRole)
+                    {
+                        messageList.Add(preparedMessage);
+                        currentRole = message.Role;
+                        preparedMessage = new
+                        {
+                            role = currentRole.ToString().ToLower(),
+                            content = new List<object> { formattedContent }
+                        };
+                    }
+                    else
+                    {
+                        preparedMessage.content.Add(formattedContent);
+                    }
+                }
+                messageList.Add(preparedMessage);
+                
                 requestBody = new
                 {
                     model = _config.claudeModel,
                     max_tokens = _config.maxTokens,
-                    messages = new[]
-                    {
-                        new
-                        {
-                            role = "user",
-                            content = new object[]
-                            {
-                                new { type = "text", text = prompt },
-                                new { 
-                                    type = "image", 
-                                    source = new { 
-                                        type = "base64", 
-                                        media_type = "image/png", 
-                                        data = cleanBase64 
-                                    } 
-                                }
-                            }
-                        }
-                    }
+                    messages = messageList
                 };
             }
             else
             {
+                var textContent = string.Join(" ", messages.Where(m => m.Type == MessageType.Text).Select(m => m.Content));
                 requestBody = new
                 {
                     model = _config.claudeModel,
                     max_tokens = _config.maxTokens,
                     messages = new[]
                     {
-                        new { role = "user", content = prompt }
+                        new { role = "user", content = textContent }
                     }
                 };
             }
@@ -366,26 +439,33 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         /// <summary>
         /// Local API unified call
         /// </summary>
-        private async Task<string> CallLocalAPI(ModelMode mode, string prompt, string? imageData = null)
+        private async Task<string> CallLocalAPI(ModelMode mode, List<Message> messages)
         {
             object requestBody;
             
-            if (mode == ModelMode.Vision && !string.IsNullOrEmpty(imageData))
+            if (mode == ModelMode.Vision)
             {
+                var messageList = new List<object>();
+
+                var currentRole = messages[0].Role;
+                var textContent = string.Join(" ", messages.Where(m => m.Type == MessageType.Text).Select(m => m.Content));
+                var imageMessages = messages.Where(m => m.Type == MessageType.Image).Select(m => m.Content).ToArray();
+                
                 requestBody = new
                 {
                     model = _config.localModel,
-                    prompt = prompt,
-                    images = new[] { imageData },
+                    prompt = textContent,
+                    images = imageMessages,
                     stream = false
                 };
             }
             else
             {
+                var textContent = string.Join(" ", messages.Where(m => m.Type == MessageType.Text).Select(m => m.Content));
                 requestBody = new
                 {
                     model = _config.localModel,
-                    prompt = prompt,
+                    prompt = textContent,
                     stream = false
                 };
             }
@@ -405,6 +485,36 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
             {
                 throw new Exception($"Local API call failed: {response.StatusCode} - {responseText}");
             }
+        }
+
+        /// <summary>
+        /// Format Gemini image content
+        /// </summary>
+        private object FormatGeminiImageContent(string imageContent)
+        {
+            var cleanBase64 = CleanBase64ImageData(imageContent);
+            return new { 
+                inline_data = new { 
+                    mime_type = "image/png", 
+                    data = cleanBase64 
+                } 
+            };
+        }
+
+        /// <summary>
+        /// Format Claude image content
+        /// </summary>
+        private object FormatClaudeImageContent(string imageContent)
+        {
+            var cleanBase64 = CleanBase64ImageData(imageContent);
+            return new { 
+                type = "image", 
+                source = new { 
+                    type = "base64", 
+                    media_type = "image/png", 
+                    data = cleanBase64 
+                } 
+            };
         }
 
         /// <summary>

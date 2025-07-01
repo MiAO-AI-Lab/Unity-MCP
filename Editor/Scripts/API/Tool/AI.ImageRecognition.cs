@@ -55,7 +55,7 @@ Supports multiple AI service providers and flexible output formats.
 Can return analysis results, Base64 data, or both for direct AI communication.")]
         public async Task<string> ImageRecognition
         (
-            [Description("Path to the image file to analyze. Supports PNG, JPG, JPEG, GIF, BMP, WebP formats.")]
+            [Description("Path to the image file to analyze. Supports PNG, JPG, JPEG, GIF, BMP, WebP formats. If need to analyze multiple images, please write in format: image1.png|image2.png|image3.png")]
             string imagePath,
             
             [Description("Custom prompt for image analysis. Describe what you want to know about the image. Default is 'Please describe the content of the image in detail, including objects, colors, shapes, and any visible text. Respond in English.'")]
@@ -74,40 +74,45 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
                 if (string.IsNullOrEmpty(imagePath))
                     return Error.ImagePathIsEmpty();
 
-                // Check if file exists
-                if (!File.Exists(imagePath))
-                    return Error.ImageFileNotFound(imagePath);
-
-                // Check file format
-                string extension = Path.GetExtension(imagePath).ToLowerInvariant();
-                if (!SupportedImageFormats.Contains(extension))
-                    return Error.UnsupportedImageFormat(imagePath);
-
-                // Read and encode image
-                string base64Image;
-                byte[] imageBytes;
-                try
+                // Split multiple image paths
+                string[] imagePaths = imagePath.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                
+                // Validate all image paths
+                var validatedImages = new List<(string path, byte[] data, string base64)>();
+                
+                foreach (string path in imagePaths)
                 {
-                    // Read image file directly to avoid Unity texture processing thread issues
-                    imageBytes = File.ReadAllBytes(imagePath);
-                    base64Image = Convert.ToBase64String(imageBytes);
+                    string trimmedPath = path.Trim();
                     
-                    Debug.Log($"[AI_ImageRecognition] Original image size: {FormatFileSize(imageBytes.Length)}");
-                }
-                catch (Exception ex)
-                {
-                    return Error.FailedToReadImageFile(imagePath, ex);
-                }
+                    // Check if file exists
+                    if (!File.Exists(trimmedPath))
+                        return Error.ImageFileNotFound(trimmedPath);
 
-                Debug.Log($"[AI_ImageRecognition] Image loaded: {imagePath}");
-                Debug.Log($"[AI_ImageRecognition] Image size: {FormatFileSize(imageBytes.Length)}");
-                Debug.Log($"[AI_ImageRecognition] Base64 length: {base64Image.Length}");
+                    // Check file format
+                    string extension = Path.GetExtension(trimmedPath).ToLowerInvariant();
+                    if (!SupportedImageFormats.Contains(extension))
+                        return Error.UnsupportedImageFormat(trimmedPath);
+
+                    // Read and encode image
+                    try
+                    {
+                        byte[] imageBytes = File.ReadAllBytes(trimmedPath);
+                        string base64Image = Convert.ToBase64String(imageBytes);
+                        
+                        validatedImages.Add((trimmedPath, imageBytes, base64Image));
+                        Debug.Log($"[AI_ImageRecognition] Image loaded: {trimmedPath}, {FormatFileSize(imageBytes.Length)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        return Error.FailedToReadImageFile(trimmedPath, ex);
+                    }
+                }
 
                 // Build complete analysis prompt
-                string fullPrompt = BuildAnalysisPrompt(prompt, focus, maxLength);
+                string fullPrompt = BuildAnalysisPrompt(prompt, focus, maxLength, validatedImages.Count);
 
                 // Perform AI analysis
-                return await PerformAIAnalysisAsync(base64Image, fullPrompt, imagePath);
+                return await PerformMultipleImagesAnalysisAsync(validatedImages, fullPrompt);
             }
             catch (Exception ex)
             {
@@ -115,33 +120,61 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
             }
         }
 
-        private static string BuildAnalysisPrompt(string userPrompt, string focus, int maxLength)
+        private static string BuildAnalysisPrompt(string userPrompt, string focus, int maxLength, int imageCount = 1)
         {
             var promptBuilder = new StringBuilder();
             
             // Add language instruction
             promptBuilder.AppendLine("Please respond in English.");
 
+            // Add multiple images instruction if applicable
+            if (imageCount > 1)
+            {
+                promptBuilder.AppendLine($"You are analyzing {imageCount} images. Please analyze each image and provide a comprehensive comparison or combined analysis as appropriate.");
+            }
+
             // Add focus instruction
             switch (focus.ToLowerInvariant())
             {
                 case "objects":
-                    promptBuilder.AppendLine("Focus on identifying and describing objects in the image.");
+                    string objectInstruction = imageCount > 1 
+                        ? "Focus on identifying and describing objects in each image, and compare objects across images."
+                        : "Focus on identifying and describing objects in the image.";
+                    promptBuilder.AppendLine(objectInstruction);
                     break;
                 case "text":
-                    promptBuilder.AppendLine("Focus on reading and transcribing any text visible in the image.");
+                    string textInstruction = imageCount > 1 
+                        ? "Focus on reading and transcribing any text visible in each image."
+                        : "Focus on reading and transcribing any text visible in the image.";
+                    promptBuilder.AppendLine(textInstruction);
                     break;
                 case "colors":
-                    promptBuilder.AppendLine("Focus on describing colors, color schemes, and visual aesthetics.");
+                    string colorInstruction = imageCount > 1 
+                        ? "Focus on describing colors, color schemes, and visual aesthetics in each image and compare them."
+                        : "Focus on describing colors, color schemes, and visual aesthetics.";
+                    promptBuilder.AppendLine(colorInstruction);
                     break;
                 case "scene":
-                    promptBuilder.AppendLine("Focus on describing the overall scene, setting, and context.");
+                    string sceneInstruction = imageCount > 1 
+                        ? "Focus on describing the overall scene, setting, and context of each image."
+                        : "Focus on describing the overall scene, setting, and context.";
+                    promptBuilder.AppendLine(sceneInstruction);
                     break;
                 case "technical":
-                    promptBuilder.AppendLine("Focus on technical aspects like composition, lighting, and image quality.");
+                    string technicalInstruction = imageCount > 1 
+                        ? "Focus on technical aspects like composition, lighting, and image quality for each image."
+                        : "Focus on technical aspects like composition, lighting, and image quality.";
+                    promptBuilder.AppendLine(technicalInstruction);
                     break;
+                case "general":
+                    string generalInstruction = imageCount > 1 
+                        ? "Provide a comprehensive analysis of each image and their relationships."
+                        : "Provide a comprehensive analysis of the image.";
+                    promptBuilder.AppendLine(generalInstruction);
+                    break;
+                case "none": // Do not add any focus instruction
                 default:
-                    promptBuilder.AppendLine("Provide a comprehensive analysis of the image.");
+                    promptBuilder.AppendLine("");
                     break;
             }
 
@@ -152,31 +185,54 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
             // Add length limitation
             if (maxLength > 0)
             {
-                string lengthInstruction = $"\nPlease limit your response to approximately {maxLength} characters.";
+                string lengthInstruction = imageCount > 1
+                    ? $"\nPlease limit your response to approximately {maxLength} characters for the combined analysis."
+                    : $"\nPlease limit your response to approximately {maxLength} characters.";
                 promptBuilder.AppendLine(lengthInstruction);
             }
 
             return promptBuilder.ToString();
         }
 
-        private static async Task<string> PerformAIAnalysisAsync(string base64Image, string prompt, string imagePath)
+        private static async Task<string> PerformMultipleImagesAnalysisAsync(List<(string path, byte[] data, string base64)> images, string prompt)
         {
             try
             {
-                Debug.Log($"[AI_ImageRecognition] Starting AI analysis via RpcRouter");
+                Debug.Log($"[AI_ImageRecognition] Starting multiple images AI analysis via RpcRouter");
+                Debug.Log($"[AI_ImageRecognition] Analyzing {images.Count} images");
                 Debug.Log($"[AI_ImageRecognition] Prompt: {prompt}");
 
                 var rpcRouter = McpServiceLocator.GetRequiredService<IRpcRouter>();
                 
+                // For multiple images, we'll create a list of base64 data
+                // and include image information in the prompt
+                var promptBuilder = new StringBuilder();
+                promptBuilder.AppendLine(prompt);
+                // promptBuilder.AppendLine();
+                // promptBuilder.AppendLine("Images being analyzed:");
+                
+                var base64ImagesList = new List<string>();
+                
+                for (int i = 0; i < images.Count; i++)
+                {
+                    var image = images[i];
+                    promptBuilder.AppendLine($"Image {i + 1}: {Path.GetFileName(image.path)} ({FormatFileSize(image.data.Length)})");
+                    base64ImagesList.Add(image.base64);
+                }
+
+                var messages = new List<Message> { Message.Text(promptBuilder.ToString()) };
+                foreach (var base64Image in base64ImagesList)
+                {
+                    messages.Add(Message.Image(base64Image));
+                }
                 var request = new RequestModelUse
                 {
                     RequestID = Guid.NewGuid().ToString(),
                     ModelType = "vision",
-                    Prompt = prompt,
-                    ImageData = base64Image,
+                    Messages = messages,
                 };
 
-                Debug.Log($"[AI_ImageRecognition] Sending request with ID: {request.RequestID}");
+                Debug.Log($"[AI_ImageRecognition] Sending multiple images request with ID: {request.RequestID}");
                 
                 var response = await rpcRouter.RequestModelUse(request);
                 
@@ -184,19 +240,19 @@ Can return analysis results, Base64 data, or both for direct AI communication.")
                 if (response?.Value?.IsSuccess == true)
                 {
                     var result = response.Value.Content?.ToString() ?? "No content received";
-                    Debug.Log($"[AI_ImageRecognition] Analysis result: {result}");
+                    Debug.Log($"[AI_ImageRecognition] Multiple images analysis result: {result}");
                     return result;
                 }
                 else
                 {
                     var errorMessage = response?.Value?.ErrorMessage ?? "Unknown error";
-                    Debug.LogError($"[AI_ImageRecognition] Analysis failed: {errorMessage}");
+                    Debug.LogError($"[AI_ImageRecognition] Multiple images analysis failed: {errorMessage}");
                     return Error.AIRequestFailed(errorMessage);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[AI_ImageRecognition] Analysis failed: {ex.Message}");
+                Debug.LogError($"[AI_ImageRecognition] Multiple images analysis failed: {ex.Message}");
                 return Error.AIRequestFailed(ex.Message);
             }
         }

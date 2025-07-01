@@ -53,14 +53,9 @@ namespace com.MiAO.Unity.MCP.Server
                 var parameters = new System.Collections.Generic.Dictionary<string, object>
                 {
                     ["ModelType"] = request.ModelType,
-                    ["Prompt"] = request.Prompt,
+                    ["Messages"] = request.Messages,
                     ["Parameters"] = request.Parameters
                 };
-                
-                if (request.ImageData != null)
-                {
-                    parameters["ImageData"] = request.ImageData;
-                }
 
                 var result = await modelUseGateway.CallAsync<string>("ModelUse", parameters);
                 
