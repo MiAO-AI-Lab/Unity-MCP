@@ -20,14 +20,28 @@ The system is extensible: you can define custom `tool`s directly in your Unity p
 
 ## ✅New Core Features
 
-### 1. McpServer Aggregator
+### 🚀 1. Workflow Middleware Architecture
 
-Implemented powerful MCP server aggregation capabilities, supporting:
+**Architecture Overview**:
+```
+AI Agent → MCP Protocol → McpServer (Workflow Middleware) → Unity Runtime
+                              ↓
+                        RPC Gateway → ModelUse/Unity etc.
+                              ↓  
+                        Workflow Orchestration Engine
+```
 
-- **Multi-Server Aggregation**: Aggregate multiple MCP servers & apply middlewares
-- **Unified Service Hosting**: Host & emit unified MCP servers out
-- **MiddlewareServices**: Implement MiddlewareServices in McpServer
-- **Automatic Service Discovery**: Automatically register through `[ScriptableService]` attribute
+#### Workflow Architecture
+
+**Layer 1: RPC Gateway**
+- ✅ **Dynamic Unity Tool Discovery** - Runtime discovery via `ToolRouter_ListAll` RPC
+- ✅ **Tool Calls** - Auto-generated tool proxies
+- ✅ **Unified Interface** - All RPC calls through unified `IRpcGateway` interface
+
+**Layer 2: Workflow Orchestration**
+- ✅ **Expression Syntax Support** - `${input.param}`, `${step.result}`
+- ✅ **Conditional Execution** - Step conditions and retry policies  
+- ✅ **Multiple Step Types** - `rpc_call`, `model_use`, `data_transform`
 
 ### 2. AI Model Integration & ModelUse API
 
@@ -237,9 +251,14 @@ Added numerous tool features
   - 🔲 Houdini integration
   - 🔲 Figma integration
 - 🔲 Custom middleware system
-- 🔲 Auto-register middleware as McpTool
 - 🔲 Shared context
 - 🔲 Pipeline parallel execution
+
+#### Workflow Engine
+- ✅ Data flow orchestration
+- ✅ Pipeline parallel execution
+- 🔲 Error handling & rollback
+- 🔲 Workflow templates
 
 ### AI Tool Layer
 
@@ -396,6 +415,31 @@ public class Tool_GameObject
 # Add custom in-game `tool`
 
 > ⚠️ Not yet supported. The work is in progress
+
+#### 🎯 Middleware Workflow
+
+**Workflow Definition Syntax**:
+```json
+{
+  "id": "simple_equipment_binding",
+  "steps": [
+    {
+      "id": "find_character",
+      "type": "rpc_call", 
+      "connector": "unity",
+      "operation": "GameObject_Find",
+      "parameters": { "name": "${input.characterName}" }
+    },
+    {
+      "id": "validate_character",
+      "type": "model_use",
+      "connector": "model_use", 
+      "operation": "text",
+      "parameters": { "prompt": "Validate: ${find_character.result}" }
+    }
+  ]
+}
+```
 
 # Contribution
 
