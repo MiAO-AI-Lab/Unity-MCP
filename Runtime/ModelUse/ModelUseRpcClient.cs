@@ -38,11 +38,16 @@ namespace com.MiAO.Unity.MCP.Runtime.ModelUse
         /// <summary>
         /// Request vision model processing
         /// </summary>
-        public async Task<T> RequestVisionAsync<T>(string prompt, string imageData, Dictionary<string, object>? parameters = null)
+        public async Task<T> RequestVisionAsync<T>(string prompt, List<string> imageData, Dictionary<string, object>? parameters = null)
         {
-            var request = new ModelUseRequest("vision", prompt)
+            var messages = new List<Message> { Message.Text(prompt) };
+            foreach (var image in imageData)
             {
-                ImageData = imageData,
+                messages.Add(Message.Image(image));
+            }
+
+            var request = new ModelUseRequest("vision", messages)
+            {
                 Parameters = parameters
             };
 
@@ -60,7 +65,13 @@ namespace com.MiAO.Unity.MCP.Runtime.ModelUse
                 requestParams["codeContext"] = codeContext;
             }
 
-            var request = new ModelUseRequest("code", prompt)
+            var messages = new List<Message> { Message.Text(prompt) };
+            if (!string.IsNullOrEmpty(codeContext))
+            {
+                messages.Add(Message.Code(codeContext));
+            }
+
+            var request = new ModelUseRequest("code", messages)
             {
                 Parameters = requestParams
             };
@@ -81,8 +92,7 @@ namespace com.MiAO.Unity.MCP.Runtime.ModelUse
                 {
                     RequestID = Guid.NewGuid().ToString(),
                     ModelType = request.ModelType,
-                    Prompt = request.Prompt,
-                    ImageData = request.ImageData,
+                    Messages = request.Messages,
                     Parameters = request.Parameters
                 };
 
@@ -144,7 +154,7 @@ namespace com.MiAO.Unity.MCP.Runtime.ModelUse
     public interface IModelUseService
     {
         Task<T> RequestTextAsync<T>(string prompt, Dictionary<string, object>? parameters = null);
-        Task<T> RequestVisionAsync<T>(string prompt, string imageData, Dictionary<string, object>? parameters = null);
+        Task<T> RequestVisionAsync<T>(string prompt, List<string> imageData, Dictionary<string, object>? parameters = null);
         Task<T> RequestCodeAsync<T>(string prompt, string? codeContext = null, Dictionary<string, object>? parameters = null);
         Task<T> RequestAsync<T>(ModelUseRequest request);
     }

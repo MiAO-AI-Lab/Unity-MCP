@@ -33,7 +33,15 @@ namespace com.MiAO.Unity.MCP.Server.Protocol
         {
             try
             {
-                var request = JsonSerializer.Deserialize<ModelUseRequest>(requestJson);
+                // First parse the outer JSON to get the parameters field
+                var outerRequest = JsonSerializer.Deserialize<JsonElement>(requestJson);
+                if (!outerRequest.TryGetProperty("parameters", out var parametersElement))
+                {
+                    return CreateErrorResponse("Parameters field not found in request");
+                }
+
+                // Then deserialize the parameters as ModelUseRequest
+                var request = JsonSerializer.Deserialize<ModelUseRequest>(parametersElement.GetRawText());
                 if (request == null)
                 {
                     return CreateErrorResponse("Invalid request format");
@@ -67,9 +75,7 @@ namespace com.MiAO.Unity.MCP.Server.Protocol
                 var agentRequest = new AgentModelRequest
                 {
                     Type = request.ModelType,
-                    Prompt = request.Prompt,
-                    ImageData = request.ImageData,
-                    CodeContext = request.CodeContext,
+                    Messages = request.Messages,
                     Parameters = request.Parameters ?? new Dictionary<string, object>()
                 };
 
@@ -99,8 +105,8 @@ namespace com.MiAO.Unity.MCP.Server.Protocol
             if (string.IsNullOrEmpty(request.ModelType))
                 return ValidationResult.Invalid("ModelType is required");
 
-            if (string.IsNullOrEmpty(request.Prompt))
-                return ValidationResult.Invalid("Prompt is required");
+            if (request.Messages == null || request.Messages.Count == 0)
+                return ValidationResult.Invalid("Messages are required");
 
             // Validate model type
             var supportedTypes = new[] { "vision", "text", "code" };
@@ -137,9 +143,7 @@ namespace com.MiAO.Unity.MCP.Server.Protocol
     public class AgentModelRequest
     {
         public string Type { get; set; } = string.Empty;
-        public string Prompt { get; set; } = string.Empty;
-        public string? ImageData { get; set; }
-        public string? CodeContext { get; set; }
+        public List<Message> Messages { get; set; } = new();
         public Dictionary<string, object> Parameters { get; set; } = new();
     }
 
@@ -167,4 +171,44 @@ namespace com.MiAO.Unity.MCP.Server.Protocol
         public static ValidationResult Valid() => new() { IsValid = true };
         public static ValidationResult Invalid(string errorMessage) => new() { IsValid = false, ErrorMessage = errorMessage };
     }
+
+    // /// <summary>
+    // /// Helper class for creating common message patterns
+    // /// </summary>
+    // public static class MessageHelper
+    // {
+    //     /// <summary>
+    //     /// Create a simple text request
+    //     /// </summary>
+    //     public static ModelUseRequest CreateTextRequest(string modelType, string prompt)
+    //     {
+    //         return new ModelUseRequest(modelType, new List<Message> { Message.Text(prompt) });
+    //     }
+
+    //     /// <summary>
+    //     /// Create a multi-modal request with text and images
+    //     /// </summary>
+    //     public static ModelUseRequest CreateMultiModalRequest(string modelType, string prompt, List<string> imageData)
+    //     {
+    //         var messages = new List<Message> { Message.Text(prompt) };
+    //         foreach (var image in imageData)
+    //         {
+    //             messages.Add(Message.Image(image));
+    //         }
+    //         return new ModelUseRequest(modelType, messages);
+    //     }
+
+    //     /// <summary>
+    //     /// Create a request with code context
+    //     /// </summary>
+    //     public static ModelUseRequest CreateCodeRequest(string modelType, string prompt, string codeContext)
+    //     {
+    //         var messages = new List<Message>
+    //         {
+    //             Message.Text(prompt),
+    //             Message.Code(codeContext)
+    //         };
+    //         return new ModelUseRequest(modelType, messages);
+    //     }
+    // }
 }
