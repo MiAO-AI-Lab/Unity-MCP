@@ -411,7 +411,7 @@ This project is based on the original open-source project by **Ivan Murzak** and
 
 ### Original Project
 - **Author**: Ivan Murzak
-- **Original Repository**: https://github.com/MiAO-AI-Lab/Unity-MCP
+- **Original Repository**: https://github.com/IvanMurzak/Unity-MCP
 - **License**: Apache License 2.0
 
 ### Modifications and Extensions
