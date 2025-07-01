@@ -6,6 +6,7 @@ using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using com.MiAO.Unity.MCP.Server.RpcGateway.External;
 
 namespace com.MiAO.Unity.MCP.Server
 {
@@ -37,40 +38,45 @@ namespace com.MiAO.Unity.MCP.Server
             return ResponseData<string>.Success(data, string.Empty).TaskFromResult<IResponseData<string>>();
         }
 
-        // Added: Handle ModelUse requests from Unity Runtime
+        // Added: Handle ModelUse requests from Unity Runtime using ModelUse RPC Gateway
         public async Task<IResponseData<ModelUseResponse>> RequestModelUse(RequestModelUse request)
         {
             _logger.LogTrace($"RemoteApp RequestModelUse. {_guid}. Request: {request.ModelType}");
 
             try
             {
-                // Create ComplexServiceHandler to handle ModelUse requests
-                var handlerLogger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<Handlers.ComplexServiceHandler>();
-                var handler = new Handlers.ComplexServiceHandler(handlerLogger);
-
-                // Build ModelUse request JSON
-                var modelRequest = new ModelUseRequest
+                // Use ModelUse RPC Gateway instead of deleted ComplexServiceHandler
+                var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<ModelUseRpcGateway>();
+                var modelUseGateway = new ModelUseRpcGateway(logger);
+                
+                // Build ModelUse request parameters
+                var parameters = new System.Collections.Generic.Dictionary<string, object>
                 {
-                    ModelType = request.ModelType,
-                    Prompt = request.Prompt,
-                    ImageData = request.ImageData,
-                    Parameters = request.Parameters
+                    ["ModelType"] = request.ModelType,
+                    ["Prompt"] = request.Prompt,
+                    ["Parameters"] = request.Parameters
                 };
-
-                var requestJson = System.Text.Json.JsonSerializer.Serialize(modelRequest);
-                var responseJson = await handler.HandleModelUseRequestAsync(requestJson);
-                _logger.LogError("Model use response: {ResponseJson}", responseJson);
-
-                var response = System.Text.Json.JsonSerializer.Deserialize<ModelUseResponse>(responseJson);
-
-                if (response == null)
+                
+                if (request.ImageData != null)
                 {
-                    return ResponseData<ModelUseResponse>.Error(request.RequestID, "Failed to process model request");
+                    parameters["ImageData"] = request.ImageData;
                 }
 
-                var r = ResponseData<ModelUseResponse>.Success(request.RequestID, "Sucessfully processed the model request");
-                r.Value = response;
-                return r;
+                var result = await modelUseGateway.CallAsync<string>("ModelUse", parameters);
+                
+                if (!string.IsNullOrEmpty(result))
+                {
+                    var response = System.Text.Json.JsonSerializer.Deserialize<ModelUseResponse>(result);
+                    
+                    if (response != null)
+                    {
+                        var r = ResponseData<ModelUseResponse>.Success(request.RequestID, "Successfully processed the model request");
+                        r.Value = response;
+                        return r;
+                    }
+                }
+
+                return ResponseData<ModelUseResponse>.Error(request.RequestID, "Failed to process model request");
             }
             catch (Exception ex)
             {

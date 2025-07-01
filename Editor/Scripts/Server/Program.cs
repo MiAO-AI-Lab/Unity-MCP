@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using com.IvanMurzak.ReflectorNet.Utils;
 using com.IvanMurzak.ReflectorNet;
+using com.MiAO.Unity.MCP.Server.Handlers;
 
 namespace com.MiAO.Unity.MCP.Server
 {
@@ -35,6 +36,9 @@ namespace com.MiAO.Unity.MCP.Server
                 // builder.Logging.ClearProviders();
                 builder.Logging.AddNLog();
 
+                // Register WorkflowHandler in DI container
+                builder.Services.AddSingleton<WorkflowHandler>();
+
                 builder.Services.AddSignalR(configure =>
                 {
                     configure.EnableDetailedErrors = true;
@@ -56,8 +60,9 @@ namespace com.MiAO.Unity.MCP.Server
                     .WithStdioServerTransport()
                     //.WithPromptsFromAssembly()
                     .WithToolsFromAssembly()
-                    .WithCallToolHandler(ToolRouter.Call)
-                    .WithListToolsHandler(ToolRouter.ListAll);
+                    // Use enhanced ToolRouter, supports workflow middleware
+                    .WithCallToolHandler(ToolRouter.CallEnhanced)
+                    .WithListToolsHandler(ToolRouter.ListAllEnhanced);
                 //.WithReadResourceHandler(ResourceRouter.ReadResource)
                 //.WithListResourcesHandler(ResourceRouter.ListResources)
                 //.WithListResourceTemplatesHandler(ResourceRouter.ListResourceTemplates);
@@ -81,6 +86,16 @@ namespace com.MiAO.Unity.MCP.Server
                 });
 
                 var app = builder.Build();
+
+                // Initialize Workflow Middleware -----------------------------------------------
+                // Get WorkflowHandler from DI container and initialize it
+                var workflowHandler = app.Services.GetRequiredService<WorkflowHandler>();
+                await workflowHandler.InitializeAsync();
+
+                // Initialize enhanced ToolRouter with workflow support
+                ToolRouter.InitializeEnhanced(workflowHandler);
+
+                logger.Info("Workflow middleware initialized successfully");
 
                 // Middleware ----------------------------------------------------------------
                 // ---------------------------------------------------------------------------
@@ -107,6 +122,16 @@ namespace com.MiAO.Unity.MCP.Server
                     });
                 }
 
+                // Clean up resources when application stops
+                var lifetime = app.Services.GetRequiredService<Microsoft.Extensions.Hosting.IHostApplicationLifetime>();
+                lifetime.ApplicationStopping.Register(async () =>
+                {
+                    logger.Info("Application stopping, cleaning up workflow resources...");
+                    await workflowHandler.DisposeAsync();
+                    await ToolRouter.DisposeAsync();
+                });
+
+                logger.Info("Unity MCP Server with Workflow Middleware starting...");
                 await app.RunAsync();
             }
             catch (Exception ex)

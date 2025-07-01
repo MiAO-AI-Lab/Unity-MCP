@@ -1,0 +1,168 @@
+{
+    "id": "simple_equipment_binding",
+    "name": "Simple Equipment Binding",
+    "description": "Bind equipment to a character using Unity tools",
+    "version": "1.0.0",
+    "author": "Unity MCP System",
+    "metadata": {
+        "category": "Animation",
+        "tags": [
+            "equipment",
+            "binding",
+            "character"
+        ],
+        "runtimeRequirements": [
+            "Unity"
+        ],
+        "pluginDependencies": []
+    },
+    "parameters": [
+        {
+            "name": "characterName",
+            "type": "string",
+            "description": "Name of the character GameObject",
+            "required": true,
+            "validation": [
+                {
+                    "type": "not_empty",
+                    "parameters": {}
+                }
+            ]
+        },
+        {
+            "name": "equipmentName",
+            "type": "string",
+            "description": "Name of the equipment to bind",
+            "required": true,
+            "validation": [
+                {
+                    "type": "not_empty",
+                    "parameters": {}
+                }
+            ]
+        },
+        {
+            "name": "mountPoint",
+            "type": "string",
+            "description": "Mount point name (e.g., 'RightHand', 'LeftHand')",
+            "required": false,
+            "defaultValue": "RightHand"
+        }
+    ],
+    "steps": [
+        {
+            "id": "find_character",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "GameObject_Find",
+            "parameters": {
+                "gameObjectRef": {
+                    "name": "${input.characterName}"
+                },
+                "includeChildrenDepth": 1,
+                "briefData": false
+            },
+            "timeoutSeconds": 10
+        },
+        {
+            "id": "validate_character",
+            "type": "model_use",
+            "connector": "model_use",
+            "operation": "text",
+            "parameters": {
+                "prompt": "Please validate if this character is suitable for equipment binding: ${find_character.result}. Respond with 'valid' or 'invalid' and a brief reason.",
+                "parameters": {
+                    "max_tokens": 100
+                }
+            },
+            "condition": "${find_character.success}",
+            "timeoutSeconds": 30
+        },
+        {
+            "id": "create_mount_point",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "GameObject_Manage",
+            "parameters": {
+                "operation": "create",
+                "name": "${input.mountPoint}_Mount",
+                "parentGameObjectRef": {
+                    "name": "${input.characterName}"
+                },
+                "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "rotation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                },
+                "isLocalSpace": true,
+                "primitiveType": -1
+            },
+            "condition": "${validate_character.success}",
+            "retryPolicy": {
+                "maxAttempts": 3,
+                "delaySeconds": 1,
+                "backoffStrategy": "linear"
+            }
+        },
+        {
+            "id": "attach_equipment",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "GameObject_Manage",
+            "parameters": {
+                "operation": "setParent",
+                "gameObjectRef": {
+                    "name": "${input.equipmentName}"
+                },
+                "parentGameObjectRef": {
+                    "name": "${input.mountPoint}_Mount"
+                },
+                "worldPositionStays": false
+            },
+            "condition": "${create_mount_point.success}"
+        },
+        {
+            "id": "generate_report",
+            "type": "data_transform",
+            "connector": "system",
+            "operation": "json_stringify",
+            "parameters": {
+                "data": {
+                    "character": "${input.characterName}",
+                    "equipment": "${input.equipmentName}",
+                    "mountPoint": "${input.mountPoint}",
+                    "validation": "${validate_character.result}",
+                    "success": "${attach_equipment.success}"
+                },
+                "transform": "json_stringify"
+            }
+        }
+    ],
+    "outputs": {
+        "bindingResult": {
+            "source": "${attach_equipment.result}",
+            "type": "string",
+            "description": "Equipment binding operation result"
+        },
+        "validationReport": {
+            "source": "${validate_character.result}",
+            "type": "string",
+            "description": "AI validation report"
+        },
+        "summary": {
+            "source": "${generate_report.result}",
+            "type": "string",
+            "description": "Complete operation summary"
+        }
+    }
+}

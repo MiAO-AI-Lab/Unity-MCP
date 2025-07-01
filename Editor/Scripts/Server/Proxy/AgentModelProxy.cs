@@ -1,6 +1,7 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Net.Http;
@@ -510,14 +511,186 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         }
 
         /// <summary>
-        /// Check connection status
+        /// Check connection status for all configured model providers
         /// </summary>
         public async Task<bool> IsConnectedAsync()
         {
             try
             {
-                // Simple check if configuration is valid
-                return !string.IsNullOrEmpty(_config.openaiApiKey) && !string.IsNullOrEmpty(_config.openaiBaseUrl);
+                // Check if at least one model provider is properly configured and accessible
+                var providers = new[] { _config.visionModelProvider, _config.textModelProvider, _config.codeModelProvider };
+                var uniqueProviders = providers.Distinct().ToArray();
+
+                foreach (var provider in uniqueProviders)
+                {
+                    if (await IsProviderConnectedAsync(provider.ToLower()))
+                    {
+                        return true; // At least one provider is working
+                    }
+                }
+
+                return false; // No providers are working
+            }
+            catch (Exception ex)
+            {
+#if UNITY_5_3_OR_NEWER
+                UnityEngine.Debug.LogError($"[AgentModelProxy] Error checking connection: {ex.Message}");
+#else
+                Console.WriteLine($"[AgentModelProxy] Error checking connection: {ex.Message}");
+#endif
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Check if a specific model provider is properly configured and accessible
+        /// </summary>
+        private async Task<bool> IsProviderConnectedAsync(string provider)
+        {
+            try
+            {
+                switch (provider)
+                {
+                    case "openai":
+                        if (string.IsNullOrEmpty(_config.openaiApiKey) || string.IsNullOrEmpty(_config.openaiBaseUrl))
+                            return false;
+                        // Test with a simple request
+                        return await TestOpenAIConnection();
+
+                    case "gemini":
+                        if (string.IsNullOrEmpty(_config.geminiApiKey) || string.IsNullOrEmpty(_config.geminiBaseUrl))
+                            return false;
+                        return await TestGeminiConnection();
+
+                    case "claude":
+                        if (string.IsNullOrEmpty(_config.claudeApiKey) || string.IsNullOrEmpty(_config.claudeBaseUrl))
+                            return false;
+                        return await TestClaudeConnection();
+
+                    case "local":
+                        if (string.IsNullOrEmpty(_config.localApiUrl))
+                            return false;
+                        return await TestLocalConnection();
+
+                    default:
+                        return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Test OpenAI connection with a simple request
+        /// </summary>
+        private async Task<bool> TestOpenAIConnection()
+        {
+            try
+            {
+                var requestBody = new
+                {
+                    model = _config.openaiModel,
+                    messages = new[] { new { role = "user", content = "Hi" } },
+                    max_tokens = 1
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_config.openaiApiKey}");
+
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var response = await _httpClient.PostAsync(_config.openaiBaseUrl, content, cts.Token);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Test Gemini connection
+        /// </summary>
+        private async Task<bool> TestGeminiConnection()
+        {
+            try
+            {
+                var requestBody = new
+                {
+                    contents = new[] { new { parts = new[] { new { text = "Hi" } } } }
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                _httpClient.DefaultRequestHeaders.Clear();
+                var url = $"{_config.geminiBaseUrl}/{_config.geminiModel}:generateContent?key={_config.geminiApiKey}";
+
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var response = await _httpClient.PostAsync(url, content, cts.Token);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Test Claude connection
+        /// </summary>
+        private async Task<bool> TestClaudeConnection()
+        {
+            try
+            {
+                var requestBody = new
+                {
+                    model = _config.claudeModel,
+                    max_tokens = 1,
+                    messages = new[] { new { role = "user", content = "Hi" } }
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("x-api-key", _config.claudeApiKey);
+                _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var response = await _httpClient.PostAsync(_config.claudeBaseUrl, content, cts.Token);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Test local API connection
+        /// </summary>
+        private async Task<bool> TestLocalConnection()
+        {
+            try
+            {
+                var requestBody = new
+                {
+                    model = _config.localModel,
+                    prompt = "Hi",
+                    stream = false
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                var response = await _httpClient.PostAsync(_config.localApiUrl, content, cts.Token);
+                return response.IsSuccessStatusCode;
             }
             catch
             {

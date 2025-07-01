@@ -13,7 +13,7 @@ namespace com.MiAO.Unity.MCP.Server
 {
     public static partial class ToolRouter
     {
-        public static async ValueTask<ListToolsResult> ListAll(RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken)
+        public static async ValueTask<ListToolsResult> ListAll(CancellationToken cancellationToken)
         {
             var logger = LogManager.GetCurrentClassLogger();
             logger.Trace("{0}.ListAll", nameof(ToolRouter));
@@ -53,6 +53,11 @@ namespace com.MiAO.Unity.MCP.Server
             mcpServerService.McpServer.ServerOptions.Capabilities?.Tools?.ToolCollection?.Clear();
 
             return result;
+        }
+
+        public static async ValueTask<ListToolsResult> ListAll(RequestContext<ListToolsRequestParams> request, CancellationToken cancellationToken)
+        {
+            return await ListAll(cancellationToken);
         }
     }
 }
