@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -288,10 +289,25 @@ namespace com.MiAO.Unity.MCP.Editor
                 root.Query<TextField>("localApiUrl").First().value = config.localApiUrl ?? "";
                 root.Query<TextField>("localModel").First().value = config.localModel ?? "llava";
 
-                // Model provider settings
-                root.Query<TextField>("visionModelProvider").First().value = config.visionModelProvider ?? "openai";
-                root.Query<TextField>("textModelProvider").First().value = config.textModelProvider ?? "openai";
-                root.Query<TextField>("codeModelProvider").First().value = config.codeModelProvider ?? "claude";
+                // Model provider settings - using DropdownField
+                var providerOptions = new System.Collections.Generic.List<string> { "openai", "claude", "gemini", "local" };
+                
+                var visionProviderDropdown = root.Query<DropdownField>("visionModelProvider").First();
+                visionProviderDropdown.choices = providerOptions;
+                visionProviderDropdown.value = config.visionModelProvider ?? "openai";
+                
+                var textProviderDropdown = root.Query<DropdownField>("textModelProvider").First();
+                textProviderDropdown.choices = providerOptions;
+                textProviderDropdown.value = config.textModelProvider ?? "openai";
+                
+                var codeProviderDropdown = root.Query<DropdownField>("codeModelProvider").First();
+                codeProviderDropdown.choices = providerOptions;
+                codeProviderDropdown.value = config.codeModelProvider ?? "claude";
+
+                // Register change callbacks for immediate config update
+                visionProviderDropdown.RegisterValueChangedCallback(evt => SaveAIConfigurationImmediate(root));
+                textProviderDropdown.RegisterValueChangedCallback(evt => SaveAIConfigurationImmediate(root));
+                codeProviderDropdown.RegisterValueChangedCallback(evt => SaveAIConfigurationImmediate(root));
 
                 // Other settings
                 root.Query<IntegerField>("timeoutSeconds").First().value = config.timeoutSeconds;
@@ -324,16 +340,16 @@ namespace com.MiAO.Unity.MCP.Editor
                     localApiUrl = root.Query<TextField>("localApiUrl").First().value,
                     localModel = root.Query<TextField>("localModel").First().value,
                     
-                    visionModelProvider = root.Query<TextField>("visionModelProvider").First().value,
-                    textModelProvider = root.Query<TextField>("textModelProvider").First().value,
-                    codeModelProvider = root.Query<TextField>("codeModelProvider").First().value,
+                    visionModelProvider = root.Query<DropdownField>("visionModelProvider").First().value,
+                    textModelProvider = root.Query<DropdownField>("textModelProvider").First().value,
+                    codeModelProvider = root.Query<DropdownField>("codeModelProvider").First().value,
                     
                     timeoutSeconds = root.Query<IntegerField>("timeoutSeconds").First().value,
                     maxTokens = root.Query<IntegerField>("maxTokens").First().value
                 };
 
                 // 1. Save configuration file in Unity package
-                var unityConfigPath = "Packages/com.MiAO.Unity.MCP/Config/AI_Config.json";
+                var unityConfigPath = "Packages/com.miao.Unity.MCP/Config/AI_Config.json";
                 var jsonText = JsonUtility.ToJson(config, true);
                 System.IO.File.WriteAllText(unityConfigPath, jsonText);
                 
@@ -363,7 +379,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 var projectRoot = System.IO.Path.Combine(UnityEngine.Application.dataPath, "..");
                 var serverConfigPath = System.IO.Path.Combine(
                     projectRoot,
-                    "Library", "com.MiAO.unity.mcp.server", "bin~", "Release", "net9.0", 
+                    "Library", "com.miao.unity.mcp.server", "bin~", "Release", "net9.0", 
                     "Config", "AI_Config.json"
                 );
                 
@@ -386,6 +402,58 @@ namespace com.MiAO.Unity.MCP.Editor
         }
 
         /// <summary>
+        /// Save AI configuration immediately when dropdown values change
+        /// </summary>
+        private void SaveAIConfigurationImmediate(VisualElement root)
+        {
+            try
+            {
+                var config = new AIConfigData
+                {
+                    openaiApiKey = root.Query<TextField>("openaiApiKey").First().value,
+                    openaiModel = root.Query<TextField>("openaiModel").First().value,
+                    openaiBaseUrl = root.Query<TextField>("openaiBaseUrl").First().value,
+                    
+                    geminiApiKey = root.Query<TextField>("geminiApiKey").First().value,
+                    geminiModel = root.Query<TextField>("geminiModel").First().value,
+                    geminiBaseUrl = root.Query<TextField>("geminiBaseUrl").First().value,
+                    
+                    claudeApiKey = root.Query<TextField>("claudeApiKey").First().value,
+                    claudeModel = root.Query<TextField>("claudeModel").First().value,
+                    claudeBaseUrl = root.Query<TextField>("claudeBaseUrl").First().value,
+                    
+                    localApiUrl = root.Query<TextField>("localApiUrl").First().value,
+                    localModel = root.Query<TextField>("localModel").First().value,
+                    
+                    visionModelProvider = root.Query<DropdownField>("visionModelProvider").First().value,
+                    textModelProvider = root.Query<DropdownField>("textModelProvider").First().value,
+                    codeModelProvider = root.Query<DropdownField>("codeModelProvider").First().value,
+                    
+                    timeoutSeconds = root.Query<IntegerField>("timeoutSeconds").First().value,
+                    maxTokens = root.Query<IntegerField>("maxTokens").First().value
+                };
+
+                // 1. Save configuration file in Unity package
+                var unityConfigPath = "Packages/com.miao.Unity.MCP/Config/AI_Config.json";
+                var jsonText = JsonUtility.ToJson(config, true);
+                System.IO.File.WriteAllText(unityConfigPath, jsonText);
+                
+                // 2. Also update server environment configuration file
+                UpdateServerConfiguration(config);
+                
+                // 3. Reload AgentModelProxy configuration
+                ReloadAgentModelProxyConfig();
+                
+                Debug.Log($"Model provider configuration updated automatically!");
+                SaveChanges("[AI Connector] Model provider changed");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Failed to save AI configuration immediately: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Reload AgentModelProxy configuration
         /// </summary>
         private void ReloadAgentModelProxyConfig()
@@ -393,7 +461,7 @@ namespace com.MiAO.Unity.MCP.Editor
             try
             {
                 // Use reflection to call AgentModelProxy.ReloadConfig()
-                var agentModelProxyType = System.Type.GetType("com.MiAO.Unity.MCP.Editor.Server.AgentModelProxy, com.MiAO.Unity.MCP.Editor");
+                var agentModelProxyType = System.Type.GetType("com.miao.Unity.MCP.Editor.Server.AgentModelProxy, com.miao.Unity.MCP.Editor");
                 if (agentModelProxyType != null)
                 {
                     var reloadConfigMethod = agentModelProxyType.GetMethod("ReloadConfig", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);

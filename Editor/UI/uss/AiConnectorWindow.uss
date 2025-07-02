@@ -293,6 +293,23 @@
     border-width: 2px;
 }
 
+.config-item .unity-dropdown-field__input {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(175, 232, 230, 0.3);
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.config-item .unity-dropdown-field__input:focus {
+    border-color: rgb(175, 232, 230);
+    border-width: 2px;
+}
+
+.config-item .unity-dropdown-field__input:hover {
+    border-color: rgba(175, 232, 230, 0.6);
+}
+
 .save-config-btn {
     margin-top: 16px;
     margin-bottom: 8px;
