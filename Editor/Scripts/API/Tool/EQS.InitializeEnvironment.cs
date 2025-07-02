@@ -38,13 +38,13 @@ Returns information:
             string[]? dynamicObjectTagsFilter = null,
             [Description("Optional. Grid cell size in meters, affects query precision and performance, default 1.0 meters")]
             float? gridCellSizeOverride = null,
-            [Description("Optional. Force specify grid dimensions {x,y,z}, overrides automatic calculation")]
+            [Description("Optional. Create an environment with a specific grid dimensions {x,y,z} and x * y * z = total cells")]
             Vector3Int? gridDimensionsOverride = null,
             [Description("Whether to force re-initialization even if environment already exists. Default true always reinitializes")]
             bool forceReinitialize = true,
-            [Description("Custom region center position. If specified, only this region will be used instead of entire scene")]
+            [Description("Custom region center position. Default is {\"x\":0,\"y\":0,\"z\":0}")]
             Vector3? customRegionCenter = null,
-            [Description("Custom region size (width, height, depth). Must be specified together with customRegionCenter")]
+            [Description("Custom region size (width, height, depth). Default is {\"x\":10,\"y\":10,\"z\":10}")]
             Vector3? customRegionSize = null
         )
         => MainThread.Instance.Run(() =>
@@ -69,10 +69,13 @@ Returns information:
                 }
 
                 // Validate custom region parameters
-                if ((customRegionCenter.HasValue && !customRegionSize.HasValue) || 
-                    (!customRegionCenter.HasValue && customRegionSize.HasValue))
+                if (!customRegionCenter.HasValue)
                 {
-                    return Error.InvalidCustomRegion("customRegionCenter and customRegionSize must be specified together");
+                    customRegionCenter = new Vector3(0, 0, 0);
+                }
+                if (!customRegionSize.HasValue)
+                {
+                    customRegionSize = new Vector3(10, 10, 10);
                 }
 
                 if (customRegionSize.HasValue && (customRegionSize.Value.x <= 0 || customRegionSize.Value.y <= 0 || customRegionSize.Value.z <= 0))
@@ -122,10 +125,8 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 // Clean up previous environment state
                 CleanupPreviousEnvironment();
 
-                // Calculate bounds - use custom region if specified, otherwise calculate scene bounds
-                var bounds = customRegionCenter.HasValue && customRegionSize.HasValue
-                    ? CalculateCustomRegionBounds(customRegionCenter.Value, customRegionSize.Value)
-                    : CalculateSceneBounds(targetScene);
+                // Calculate bounds
+                var bounds = CalculateCustomRegionBounds(customRegionCenter.Value, customRegionSize.Value);
                 
                 // Create grid
                 var grid = CreateGrid(bounds, gridCellSizeOverride, gridDimensionsOverride);
@@ -161,8 +162,8 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 _currentEnvironment = environmentData;
                 _environmentHash = currentConfigHash;
                 
-                // Create visualization for all probes
-                CreateProbeVisualization(grid);
+                // Create Gizmo-based visualization for all probes
+                CreateGizmoProbeVisualization(grid);
                 
                 var executionTime = (DateTime.Now - startTime).TotalMilliseconds;
                 
@@ -192,7 +193,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
   ""dynamicObjectsCount"": {dynamicObjects.Count},
   ""executionTimeMs"": {executionTime:F2},
   ""forceReinitialize"": {forceReinitialize.ToString().ToLower()},
-  ""probeVisualizationCreated"": true
+  ""gizmoVisualizationCreated"": true
 }}
 ```
 
@@ -205,10 +206,14 @@ Note: If you need to force reinitialize, set forceReinitialize = true
 - Static Geometry: {staticGeometry.Count}
 - Dynamic Objects: {dynamicObjects.Count}
 
-# Visualization Information:
-- All probe visualizations created
-- Probe Material: Gray Standard Material
-- All probes can be viewed in the Scene view
+# Gizmo Visualization Information:
+- Gizmo-based probe visualization created
+- Uses Unity Gizmos system (no GameObjects created)
+- Green spheres: Walkable cells
+- Red spheres: Occupied cells  
+- Yellow spheres: Cells with dynamic occupants
+- Select the 'EQS Environment Visualization Group' in Hierarchy to view all probes
+- Probes visible in Scene view when visualization group is selected
 ";
             }
             catch (Exception ex)
@@ -228,41 +233,6 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 return $"[Error] EQS environment initialization failed: {ex.Message}\nState automatically cleaned up, can try initializing again.";
             }
         });
-
-        private static Bounds CalculateSceneBounds(Scene scene)
-        {
-            var bounds = new Bounds();
-            var hasValidBounds = false;
-            
-            foreach (var rootGO in scene.GetRootGameObjects())
-            {
-                var renderers = rootGO.GetComponentsInChildren<Renderer>();
-                foreach (var renderer in renderers)
-                {
-                    if (!hasValidBounds)
-                    {
-                        bounds = renderer.bounds;
-                        hasValidBounds = true;
-                    }
-                    else
-                    {
-                        bounds.Encapsulate(renderer.bounds);
-                    }
-                }
-            }
-            
-            // If no renderer found, use default bounds
-            if (!hasValidBounds)
-            {
-                bounds = new Bounds(Vector3.zero, new Vector3(100, 10, 100));
-            }
-            
-            // Expand bounds to ensure sufficient space
-            bounds.Expand(Constants.DefaultBoundsExpansion);
-            
-            return bounds;
-        }
-
         private static Bounds CalculateCustomRegionBounds(Vector3 center, Vector3 size)
         {
             return new Bounds(center, size);
@@ -485,7 +455,23 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             
             int totalCleaned = 0;
             
-            // Clear Probe environment objects
+            // Clear Gizmo-based Environment Visualization Groups
+            var environmentGroups = GameObject.FindObjectsOfType<EQSEnvironmentVisualizationGroup>();
+            foreach (var group in environmentGroups)
+            {
+                #if UNITY_EDITOR
+                if (!UnityEditor.EditorApplication.isPlaying)
+                    GameObject.DestroyImmediate(group.gameObject);
+                else
+                    GameObject.Destroy(group.gameObject);
+                #else
+                GameObject.Destroy(group.gameObject);
+                #endif
+                totalCleaned++;
+                Debug.Log($"[EQS] Cleared EQS Environment Visualization Group: {group.name}");
+            }
+            
+            // Clear legacy Probe environment objects (for backward compatibility)
             var probeParent = GameObject.Find("EQS_Probe_Environment");
             if (probeParent != null)
             {
@@ -499,7 +485,7 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 GameObject.Destroy(probeParent);
                 #endif
                 totalCleaned += probeCount;
-                Debug.Log($"[EQS] Cleared EQS_Probe_Environment with {probeCount} probe objects");
+                Debug.Log($"[EQS] Cleared legacy EQS_Probe_Environment with {probeCount} probe objects");
             }
             
             // Clear QueryResult aggregation objects
@@ -536,159 +522,303 @@ Note: If you need to force reinitialize, set forceReinitialize = true
         }
 
         /// <summary>
-        /// Create visualization markers for all probes
+        /// Create Gizmo-based visualization for all probes
         /// </summary>
-        private static void CreateProbeVisualization(EQSGrid grid)
+        private static void CreateGizmoProbeVisualization(EQSGrid grid)
         {
             try
             {
-                var probeVisualization = new EQSVisualization
-                {
-                    QueryId = "EQS_Probes_Initial",
-                    DebugObjects = new List<GameObject>()
-                };
+                // Find or create EQS Environment Visualization Group
+                var visualizationGroup = FindOrCreateEnvironmentVisualizationGroup();
+                visualizationGroup.UpdateEnvironmentData(grid);
 
-                // Create standard material (gray)
-                var probeMaterial = MaterialUtils.CreateMaterial(Color.gray);
-
-                for (int i = 0; i < grid.Cells.Length; i++)
-                {
-                    var cell = grid.Cells[i];
-                    if (cell == null) continue;
-
-                    // Only create probes for traversable cells (reduce visual clutter)
-                    if (cell.StaticOccupancy) continue;
-
-                    var probeObj = CreateProbeMarker(cell, probeMaterial, i);
-                    probeVisualization.DebugObjects.Add(probeObj);
-                }
-
-                // Set to display permanently
-                probeVisualization.ExpirationTime = DateTime.MaxValue;
-                _activeVisualizations["EQS_Probes_Initial"] = probeVisualization;
-
-                Debug.Log($"[EQS] Created {probeVisualization.DebugObjects.Count} probe visualization markers");
+                Debug.Log($"[EQS] Created Gizmo-based environment visualization with {grid.Cells.Count(c => c != null && !c.StaticOccupancy)} probe markers");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[EQS] Failed to create probe visualization: {ex.Message}");
+                Debug.LogError($"[EQS] Failed to create Gizmo environment visualization: {ex.Message}");
             }
         }
 
-
-
         /// <summary>
-        /// Create a single probe marker
+        /// Find or create EQS Environment Visualization Group
         /// </summary>
-        private static GameObject CreateProbeMarker(EQSCell cell, Material material, int index)
+        private static EQSEnvironmentVisualizationGroup FindOrCreateEnvironmentVisualizationGroup()
         {
-            // Get or create EQS_Environment parent object
-            var parentObj = GetOrCreateEQSEnvironmentParent();
-            
-            var probeObj = new GameObject($"EQS_Probe_{index}");
-            probeObj.transform.position = cell.WorldPosition;
-            
-            // Set parent object
-            probeObj.transform.SetParent(parentObj.transform);
-
-            // Add rendering components
-            var meshRenderer = probeObj.AddComponent<MeshRenderer>();
-            var meshFilter = probeObj.AddComponent<MeshFilter>();
-            
-            // Use Unity's built-in sphere mesh
-            meshFilter.mesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
-            meshRenderer.material = material;
-
-            // Disable shadows for cleaner visualization
-            meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            meshRenderer.receiveShadows = false;
-
-            // Set smaller size to avoid being too conspicuous
-            probeObj.transform.localScale = Vector3.one * Constants.ProbeScale;
-
-            // Add EQS probe marker component
-            var probeComponent = probeObj.AddComponent<EQSProbeMarker>();
-            probeComponent.Initialize(cell, index);
-
-            // Mark as editor-only object
-            probeObj.hideFlags = HideFlags.DontSave;
-
-            return probeObj;
-        }
-        
-        /// <summary>
-        /// Get or create EQS_Environment parent object
-        /// </summary>
-        private static GameObject GetOrCreateEQSEnvironmentParent()
-        {
-            // Try to find existing EQS_Environment object
-            var existingParent = GameObject.Find("EQS_Probe_Environment");
-            if (existingParent != null)
+            // Try to find existing environment visualization group
+            var existingGroup = GameObject.FindObjectOfType<EQSEnvironmentVisualizationGroup>();
+            if (existingGroup != null)
             {
-                return existingParent;
+                return existingGroup;
             }
-            
-            // If not exists, create new parent object
-            var parentObj = new GameObject("EQS_Probe_Environment");
-            parentObj.hideFlags = HideFlags.DontSave;
-            
-            return parentObj;
-        }
 
-        // /// <summary>
-        // /// Clean up probe visualization
-        // /// </summary>
-        // private static void CleanupProbeVisualization()
-        // {
-        //     if (_activeVisualizations.ContainsKey("EQS_Probes_Initial"))
-        //     {
-        //         CleanupVisualization("EQS_Probes_Initial");
-        //         _activeVisualizations.Remove("EQS_Probes_Initial");
-        //     }
-        // }
+            // Create new environment visualization group
+            var groupObj = new GameObject("EQS Environment Visualization Group");
+            var group = groupObj.AddComponent<EQSEnvironmentVisualizationGroup>();
+            
+            // Mark as editor-only object
+            groupObj.hideFlags = HideFlags.DontSave;
+            
+            return group;
+        }
     }
 
     /// <summary>
-    /// EQS Probe marker component
-    /// Used to display basic information and properties of grid cells
+    /// EQS Environment Visualization Group Component - Similar to Light Probe Group
+    /// Uses Gizmos for visualization instead of creating GameObjects
     /// </summary>
-    public class EQSProbeMarker : MonoBehaviour
+    public class EQSEnvironmentVisualizationGroup : MonoBehaviour
     {
-        public Tool_EQS.EQSCell Cell { get; private set; }
-        public int CellIndex { get; private set; }
-
-        public void Initialize(Tool_EQS.EQSCell cell, int index)
+        [System.Serializable]
+        public class ProbeData
         {
-            Cell = cell;
-            CellIndex = index;
+            public Vector3 position;
+            public Vector3Int cellIndices;
+            public bool isOccupied;
+            public bool isWalkable;
+            public int dynamicOccupantCount;
+            public int cellIndex;
+            public bool isSelected = false;
+
+            public ProbeData(Tool_EQS.EQSCell cell, int index)
+            {
+                position = cell.WorldPosition;
+                cellIndices = cell.Indices;
+                isOccupied = cell.StaticOccupancy;
+                isWalkable = !cell.StaticOccupancy;
+                dynamicOccupantCount = cell.DynamicOccupants.Count;
+                cellIndex = index;
+            }
+        }
+
+        [Header("EQS Environment Information")]
+        [HideInInspector]
+        public string EnvironmentId = "EQS_Environment";
+        
+        [Header("Visualization Settings")]
+        [Range(0.01f, 1.0f)]
+        public float probeSize = 0.15f;
+        [Range(0f, 1f)]
+        public float selectedAlpha = 0.5f;
+        [Range(0f, 1f)]
+        public float unselectedAlpha = 0f;
+        public bool showOnlyWalkable = true;
+        
+        [Header("Color Settings")]
+        public Color walkableColor = Color.green;
+        public Color occupiedColor = Color.red;
+        public Color dynamicOccupantColor = Color.yellow;
+        
+        [HideInInspector]
+        public List<ProbeData> probes = new List<ProbeData>();
+        [HideInInspector]
+        public Vector3 gridOrigin;
+        [HideInInspector]
+        public Vector3Int gridDimensions;
+        [HideInInspector]
+        public float cellSize;
+
+        public void UpdateEnvironmentData(Tool_EQS.EQSGrid grid)
+        {
+            probes.Clear();
+            gridOrigin = grid.Origin;
+            gridDimensions = grid.Dimensions;
+            cellSize = grid.CellSize;
+
+            for (int i = 0; i < grid.Cells.Length; i++)
+            {
+                var cell = grid.Cells[i];
+                if (cell == null) continue;
+
+                // Only add walkable cells if showOnlyWalkable is true
+                if (showOnlyWalkable && cell.StaticOccupancy) continue;
+
+                probes.Add(new ProbeData(cell, i));
+            }
+
+            // Update object name to reflect probe count
+            gameObject.name = $"EQS Environment Visualization Group ({probes.Count} probes)";
         }
 
         private void OnDrawGizmos()
         {
-            if (Cell == null) return;
+            if (probes == null || probes.Count == 0) return;
 
-            // Basic Gizmos drawing
-            Gizmos.color = Cell.StaticOccupancy ? Color.red : Color.green;
-            Gizmos.DrawWireCube(transform.position, Vector3.one * 0.2f);
+            // Only draw basic probes when this GameObject is not selected
+            #if UNITY_EDITOR
+            if (UnityEditor.Selection.Contains(gameObject)) return;
+            #endif
+
+            DrawBasicProbes();
         }
 
         private void OnDrawGizmosSelected()
         {
-            if (Cell == null) return;
+            if (probes == null || probes.Count == 0) return;
 
-            // Show detailed information when selected
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireCube(transform.position, Vector3.one * 0.5f);
+            // Draw all probes when group is selected
+            DrawAllProbes();
+        }
 
-            #if UNITY_EDITOR
-            var labelText = $"Probe #{CellIndex}\n" +
-                           $"Position: {Cell.WorldPosition}\n" +
-                           $"Indices: {Cell.Indices}\n" +
-                           $"Static: {Cell.StaticOccupancy}\n" +
-                           $"Dynamic: {Cell.DynamicOccupants.Count}";
+        private void DrawBasicProbes()
+        {
+            // Draw simple probes when group is not selected
+            foreach (var probe in probes)
+            {
+                var color = GetProbeColor(probe);
+                color.a = unselectedAlpha;
+                Gizmos.color = color;
+                Gizmos.DrawSphere(probe.position, probeSize * 0.8f); // Slightly smaller when not selected
+            }
+        }
+
+        private void DrawAllProbes()
+        {
+            // Draw all probes with full detail when group is selected
+            foreach (var probe in probes)
+            {
+                var color = GetProbeColor(probe);
+                color.a = selectedAlpha;
+                Gizmos.color = color;
+                
+                // Draw probe sphere
+                Gizmos.DrawSphere(probe.position, probeSize);
+            }
+        }
+
+        private Color GetProbeColor(ProbeData probe)
+        {
+            if (probe.dynamicOccupantCount > 0)
+                return dynamicOccupantColor;
+            else if (probe.isOccupied)
+                return occupiedColor;
+            else
+                return walkableColor;
+        }
+
+        // Inspector display for debugging - single line summary
+        public string GetSummaryText()
+        {
+            if (probes.Count == 0) return "No probes";
             
-            UnityEditor.Handles.Label(transform.position + Vector3.up * 1f, labelText);
-            #endif
+            var walkableCount = probes.Count(p => p.isWalkable);
+            var occupiedCount = probes.Count(p => p.isOccupied);
+            var dynamicCount = probes.Count(p => p.dynamicOccupantCount > 0);
+            
+            return $"Total: {probes.Count}, Walkable: {walkableCount}, Occupied: {occupiedCount}, Dynamic: {dynamicCount}";
         }
     }
+
+    #if UNITY_EDITOR
+    [UnityEditor.CustomEditor(typeof(EQSEnvironmentVisualizationGroup))]
+    public class EQSEnvironmentVisualizationGroupEditor : UnityEditor.Editor
+    {
+        private bool showProbeDetails = false;
+        private Vector2 scrollPosition;
+
+        public override void OnInspectorGUI()
+        {
+            var group = (EQSEnvironmentVisualizationGroup)target;
+
+            // Basic information
+            UnityEditor.EditorGUILayout.LabelField("Environment Information", UnityEditor.EditorStyles.boldLabel);
+            UnityEditor.EditorGUILayout.LabelField($"Environment ID: {group.EnvironmentId}");
+            UnityEditor.EditorGUILayout.LabelField($"Grid Origin: {group.gridOrigin}");
+            UnityEditor.EditorGUILayout.LabelField($"Grid Dimensions: {group.gridDimensions}");
+            UnityEditor.EditorGUILayout.LabelField($"Cell Size: {group.cellSize}");
+            
+            UnityEditor.EditorGUILayout.Space();
+
+            // Probe statistics
+            UnityEditor.EditorGUILayout.LabelField("Probe Statistics", UnityEditor.EditorStyles.boldLabel);
+            
+            // Display statistics in separate lines for better readability
+            if (group.probes.Count == 0)
+            {
+                UnityEditor.EditorGUILayout.LabelField("No probes");
+            }
+            else
+            {
+                var walkableCount = group.probes.Count(p => p.isWalkable);
+                var occupiedCount = group.probes.Count(p => p.isOccupied);
+                var dynamicCount = group.probes.Count(p => p.dynamicOccupantCount > 0);
+                
+                UnityEditor.EditorGUILayout.LabelField($"Total: {group.probes.Count}");
+                UnityEditor.EditorGUILayout.LabelField($"Walkable: {walkableCount}");
+                UnityEditor.EditorGUILayout.LabelField($"Occupied: {occupiedCount}");
+                UnityEditor.EditorGUILayout.LabelField($"Dynamic: {dynamicCount}");
+            }
+            
+            UnityEditor.EditorGUILayout.Space();
+
+            // Visualization settings
+            DrawDefaultInspector();
+            
+            UnityEditor.EditorGUILayout.Space();
+
+            // Probe details
+            showProbeDetails = UnityEditor.EditorGUILayout.Foldout(showProbeDetails, $"Probe Details ({group.probes?.Count ?? 0})");
+            if (showProbeDetails && group.probes != null && group.probes.Count > 0)
+            {
+                scrollPosition = UnityEditor.EditorGUILayout.BeginScrollView(scrollPosition, UnityEngine.GUILayout.MaxHeight(200));
+                
+                for (int i = 0; i < Mathf.Min(group.probes.Count, 50); i++) // Limit to 50 for performance
+                {
+                    var probe = group.probes[i];
+                    UnityEditor.EditorGUILayout.BeginVertical("box");
+                    UnityEditor.EditorGUILayout.LabelField($"Probe #{probe.cellIndex}");
+                    UnityEditor.EditorGUILayout.LabelField($"Position: {probe.position}");
+                    UnityEditor.EditorGUILayout.LabelField($"Indices: {probe.cellIndices}");
+                    UnityEditor.EditorGUILayout.LabelField($"Walkable: {probe.isWalkable}");
+                    UnityEditor.EditorGUILayout.LabelField($"Dynamic Count: {probe.dynamicOccupantCount}");
+                    UnityEditor.EditorGUILayout.EndVertical();
+                    
+                    if (i < group.probes.Count - 1)
+                        UnityEditor.EditorGUILayout.Space();
+                }
+                
+                if (group.probes.Count > 50)
+                {
+                    UnityEditor.EditorGUILayout.LabelField($"... and {group.probes.Count - 50} more probes");
+                }
+                
+                UnityEditor.EditorGUILayout.EndScrollView();
+            }
+
+            UnityEditor.EditorGUILayout.Space();
+
+            // Action buttons
+            UnityEditor.EditorGUILayout.BeginHorizontal();
+            if (UnityEngine.GUILayout.Button("Focus on Environment"))
+            {
+                FocusOnEnvironment(group);
+            }
+            if (UnityEngine.GUILayout.Button("Clear Visualization"))
+            {
+                if (UnityEditor.EditorUtility.DisplayDialog("Clear Visualization", 
+                    "Are you sure you want to remove this EQS environment visualization?", "Yes", "Cancel"))
+                {
+                    DestroyImmediate(group.gameObject);
+                }
+            }
+            UnityEditor.EditorGUILayout.EndHorizontal();
+        }
+
+        private void FocusOnEnvironment(EQSEnvironmentVisualizationGroup group)
+        {
+            if (group.probes == null || group.probes.Count == 0) return;
+            
+            // Calculate bounds of all probes
+            var bounds = new Bounds(group.probes[0].position, Vector3.zero);
+            foreach (var probe in group.probes)
+            {
+                bounds.Encapsulate(probe.position);
+            }
+            
+            UnityEditor.SceneView.lastActiveSceneView.pivot = bounds.center;
+            UnityEditor.SceneView.lastActiveSceneView.size = Mathf.Max(bounds.size.x, bounds.size.z) * 1.2f;
+            UnityEditor.SceneView.lastActiveSceneView.Repaint();
+        }
+    }
+    #endif
 } 

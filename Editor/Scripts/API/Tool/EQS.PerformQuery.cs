@@ -1756,29 +1756,11 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         {
             try
             {
-                // if (_activeVisualizations.ContainsKey(queryResult.QueryID))
-                // {
-                //     CleanupVisualization(queryResult.QueryID);
-                // }
+                // Find or create EQS Visualization Group
+                var visualizationGroup = FindOrCreateVisualizationGroup(queryResult.QueryID);
+                visualizationGroup.UpdateQueryResults(queryResult);
 
-                var visualization = new EQSVisualization
-                {
-                    QueryId = queryResult.QueryID,
-                    DebugObjects = new List<GameObject>(),
-                    ExpirationTime = DateTime.MaxValue // Permanent retention, no automatic cleanup
-                };
-
-                // Display all points that meet criteria, not just the top few
-                foreach (var candidate in queryResult.Results.Select((c, index) => new { Candidate = c, Index = index }))
-                {
-                    // Calculate color based on score (green to red gradient)
-                    var color = CalculateScoreColor(candidate.Candidate.Score);
-                    var debugObj = CreateScoredDebugMarker(candidate.Candidate, color, candidate.Index); // Don't display score
-                    visualization.DebugObjects.Add(debugObj);
-                }
-
-                _activeVisualizations[queryResult.QueryID] = visualization;
-                Debug.Log($"[EQS] Auto-created visualization for query '{queryResult.QueryID}' with {visualization.DebugObjects.Count} markers");
+                Debug.Log($"[EQS] Auto-created visualization for query '{queryResult.QueryID}' with {queryResult.Results.Count} markers");
             }
             catch (Exception ex)
             {
@@ -1787,146 +1769,689 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         }
 
         /// <summary>
-        /// Calculate color based on score (0.0=red, 1.0=green)
+        /// Find or create EQS Visualization Group
         /// </summary>
-        private static Color CalculateScoreColor(float score)
+        private static EQSVisualizationGroup FindOrCreateVisualizationGroup(string queryId)
         {
-            // Ensure score is within 0-1 range
-            score = Mathf.Clamp01(score);
-            
-            // Create gradient from red to green
-            // Red (1,0,0) -> Yellow (1,1,0) -> Green (0,1,0)
-            if (score <= 0.5f)
+            // Try to find existing visualization group
+            var existingGroup = GameObject.FindObjectOfType<EQSVisualizationGroup>();
+            if (existingGroup != null && existingGroup.QueryId == queryId)
             {
-                // From red to yellow
-                var t = score * 2f; // Map 0-0.5 to 0-1
-                return new Color(1f, t, 0f);
+                return existingGroup;
             }
-            else
-            {
-                // From yellow to green
-                var t = (score - 0.5f) * 2f; // Map 0.5-1 to 0-1
-                return new Color(1f - t, 1f, 0f);
-            }
-        }
 
-        /// <summary>
-        /// Create debug marker with score
-        /// </summary>
-        private static GameObject CreateScoredDebugMarker(EQSLocationCandidate candidate, Color color, int index)
-        {
-            // Get or create EQS_QueryResult_Aggregation parent object
-            var parentObj = GetOrCreateEQSQueryResultParent();
+            // Create new visualization group
+            var groupObj = new GameObject($"EQS Visualization Group [{queryId}]");
+            var group = groupObj.AddComponent<EQSVisualizationGroup>();
+            group.QueryId = queryId;
             
-            // Create debug marker GameObject
-            var markerName = $"EQS_QueryResult_#{index}_Score{candidate.Score:F2}";
-            var debugObj = new GameObject(markerName);
-            debugObj.transform.position = candidate.WorldPosition;
-            
-            // Set parent object
-            debugObj.transform.SetParent(parentObj.transform);
-
-            // Add visualization components
-            var sphereRenderer = debugObj.AddComponent<MeshRenderer>();
-            var meshFilter = debugObj.AddComponent<MeshFilter>();
-            
-            // Use Unity built-in sphere mesh
-            meshFilter.mesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
-            
-            // Create compatible material
-            var material = CreateCompatibleMaterial(color, true); // Query results need glow
-            sphereRenderer.material = material;
-
-            // Disable shadow casting and receiving
-            sphereRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            sphereRenderer.receiveShadows = false;
-
-            // Set uniform size (don't change size based on rank or score)
-            var baseScale = 0.2f;
-            debugObj.transform.localScale = Vector3.one * baseScale;
-
-            // Add EQS debug component
-            var debugComponent = debugObj.AddComponent<EQSDebugMarker>();
-            debugComponent.Initialize(candidate);
-
             // Mark as editor-only object
-            debugObj.hideFlags = HideFlags.DontSave;
-
-            return debugObj;
-        }
-        
-        /// <summary>
-        /// Get or create EQS_QueryResult_Aggregation parent object
-        /// </summary>
-        private static GameObject GetOrCreateEQSQueryResultParent()
-        {
-            // Try to find existing EQS_QueryResult_Aggregation object
-            var existingParent = GameObject.Find("EQS_QueryResult_Aggregation");
-            if (existingParent != null)
-            {
-                return existingParent;
-            }
+            groupObj.hideFlags = HideFlags.DontSave;
             
-            // If it doesn't exist, create a new parent object
-            var parentObj = new GameObject("EQS_QueryResult_Aggregation");
-            parentObj.hideFlags = HideFlags.DontSave;
-            
-            return parentObj;
+            return group;
         }
 
-
-        /// <summary>
-        /// Create compatible material (for query result visualization)
-        /// </summary>
-        private static Material CreateCompatibleMaterial(Color color, bool enableEmission)
-        {
-            return MaterialUtils.CreateMaterial(color, enableEmission);
-        }
     }
 
-    // EQS Debug Marker Component
-    public class EQSDebugMarker : MonoBehaviour
+    // EQS Visualization Group Component - Similar to Light Probe Group
+    public class EQSVisualizationGroup : MonoBehaviour
     {
-        public Tool_EQS.EQSLocationCandidate Candidate { get; private set; }
-
-        public void Initialize(Tool_EQS.EQSLocationCandidate candidate)
+        [System.Serializable]
+        public class MarkerData
         {
-            Candidate = candidate;
-        }
+            public Vector3 position;
+            public float score;
+            public Color color;
+            public Vector3Int? cellIndices;
+            public Dictionary<string, float> breakdownScores;
+            public List<string> associatedObjectIDs;
+            public bool isSelected = false;
 
-        private void OnDrawGizmos()
-        {
-            if (Candidate == null) return;
-            
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(transform.position, 0.5f);
-            
-            if (Candidate.AssociatedObjectIDs != null && Candidate.AssociatedObjectIDs.Count > 0)
+            public MarkerData(Tool_EQS.EQSLocationCandidate candidate)
             {
-                Gizmos.color = Color.cyan;
-                foreach (var objId in Candidate.AssociatedObjectIDs)
+                position = candidate.WorldPosition;
+                score = candidate.Score;
+                color = CalculateScoreColor(score);
+                cellIndices = candidate.CellIndices;
+                breakdownScores = new Dictionary<string, float>(candidate.BreakdownScores);
+                associatedObjectIDs = new List<string>(candidate.AssociatedObjectIDs);
+            }
+
+            private static Color CalculateScoreColor(float score)
+            {
+                score = Mathf.Clamp01(score);
+                if (score <= 0.5f)
                 {
-                    // Here you can add logic to find the object and draw the line
+                    var t = score * 2f;
+                    return new Color(1f, t, 0f);
+                }
+                else
+                {
+                    var t = (score - 0.5f) * 2f;
+                    return new Color(1f - t, 1f, 0f);
                 }
             }
         }
 
+        [Header("EQS Query Information")]
+        public string QueryId;
+        
+        [Header("Visualization Settings")]
+        public float markerSize = 0.3f;
+        public float selectedAlpha = 1.0f;
+        public float unselectedAlpha = 0.5f;
+        
+        [Header("Information Display")]
+        public bool showScore = true;
+        public bool showPosition = true;
+        
+        [Header("Query Results")]
+        public List<MarkerData> markers = new List<MarkerData>();
+
+        public void UpdateQueryResults(Tool_EQS.EQSQueryResult queryResult)
+        {
+            QueryId = queryResult.QueryID;
+            markers.Clear();
+
+            foreach (var candidate in queryResult.Results)
+            {
+                markers.Add(new MarkerData(candidate));
+            }
+
+            // Update object name to reflect result count
+            gameObject.name = $"EQS Visualization Group [{QueryId}] ({markers.Count} results)";
+        }
+
+        private void OnDrawGizmos()
+        {
+            if (markers == null || markers.Count == 0) return;
+
+            // Only draw basic markers when this GameObject is not selected
+            // This prevents double rendering when the object is selected
+            #if UNITY_EDITOR
+            if (UnityEditor.Selection.Contains(gameObject)) return;
+            #endif
+
+            DrawBasicMarkers();
+        }
+
         private void OnDrawGizmosSelected()
         {
-            if (Candidate == null) return;
- 
-            Gizmos.color = Color.green;
-            Gizmos.DrawSphere(transform.position, 0.3f);
+            if (markers == null || markers.Count == 0) return;
 
-            if (Candidate.CellIndices.HasValue)
+            // Draw all markers when group is selected
+            DrawAllMarkers();
+        }
+
+        private void DrawBasicMarkers()
+        {
+            // Draw simple markers when group is not selected
+            foreach (var marker in markers)
             {
-                var indices = Candidate.CellIndices.Value;
-                var labelText = $"Grid: ({indices.x}, {indices.y}, {indices.z})\nScore: {Candidate.Score:F3}";
-                
-                #if UNITY_EDITOR
-                UnityEditor.Handles.Label(transform.position + Vector3.up * 2f, labelText);
-                #endif
+                var color = marker.color;
+                color.a = unselectedAlpha;
+                Gizmos.color = color;
+                Gizmos.DrawSphere(marker.position, markerSize * 0.8f); // Slightly smaller when not selected
             }
         }
+
+        private void DrawAllMarkers()
+        {
+            // Draw all markers with full detail when group is selected
+            foreach (var marker in markers)
+            {
+                var color = marker.color;
+                color.a = marker.isSelected ? selectedAlpha : unselectedAlpha;
+                Gizmos.color = color;
+                
+                // Draw marker sphere
+                Gizmos.DrawSphere(marker.position, markerSize);
+            }
+        }
+
+
+
+        private Vector3 CalculateCenter()
+        {
+            if (markers.Count == 0) return transform.position;
+            
+            var sum = Vector3.zero;
+            foreach (var marker in markers)
+            {
+                sum += marker.position;
+            }
+            return sum / markers.Count;
+        }
+
+        // Inspector display for debugging
+        public string GetSummaryText()
+        {
+            if (markers.Count == 0) return "No results";
+            
+            var bestScore = markers.Max(m => m.score);
+            var avgScore = markers.Average(m => m.score);
+            var worstScore = markers.Min(m => m.score);
+            
+            return $"Results: {markers.Count}\nBest: {bestScore:F3}\nAvg: {avgScore:F3}\nWorst: {worstScore:F3}";
+        }
     }
+
+    #if UNITY_EDITOR
+    [CustomEditor(typeof(EQSVisualizationGroup))]
+    public class EQSVisualizationGroupEditor : UnityEditor.Editor
+    {
+        private bool showMarkerDetails = false;
+        private Vector2 scrollPosition;
+        private int selectedMarkerCount = 0;
+
+        void OnSceneGUI()
+        {
+            var group = (EQSVisualizationGroup)target;
+            if (group.markers == null || group.markers.Count == 0) return;
+
+            // Handle marker selection in Scene view
+            HandleMarkerInteraction(group);
+            
+            // Draw information for selected markers
+            DrawSelectedMarkerInfo(group);
+            
+            // Handle keyboard shortcuts
+            HandleKeyboardShortcuts(group);
+        }
+
+        private void HandleMarkerInteraction(EQSVisualizationGroup group)
+        {
+            var currentEvent = Event.current;
+            var controlId = GUIUtility.GetControlID(FocusType.Passive);
+
+            for (int i = 0; i < group.markers.Count; i++)
+            {
+                var marker = group.markers[i];
+                var worldPos = marker.position;
+                
+                // Calculate handle size based on distance (uniform size)
+                var handleSize = HandleUtility.GetHandleSize(worldPos) * group.markerSize * 0.5f;
+                
+                // Draw selection handle
+                EditorGUI.BeginChangeCheck();
+                
+                // Use original color with different transparency
+                var handleColor = marker.color;
+                handleColor.a = marker.isSelected ? 0.5f : 0f;
+                
+                using (new Handles.DrawingScope(handleColor))
+                {
+                    // Create clickable sphere handle
+                    var buttonPressed = Handles.Button(worldPos, Quaternion.identity, handleSize, handleSize * 2f, Handles.SphereHandleCap);
+                    
+                    if (buttonPressed)
+                    {
+                        // Handle selection logic
+                        bool isMultiSelect = currentEvent.control || currentEvent.command;
+                        
+                        if (!isMultiSelect)
+                        {
+                            // Single selection - deselect all others
+                            for (int j = 0; j < group.markers.Count; j++)
+                            {
+                                group.markers[j].isSelected = (j == i);
+                            }
+                        }
+                        else
+                        {
+                            // Multi-selection - toggle this marker
+                            marker.isSelected = !marker.isSelected;
+                        }
+                        
+                        // Mark object as dirty for undo system
+                        Undo.RecordObject(group, "Select EQS Marker");
+                        EditorUtility.SetDirty(group);
+                        Repaint();
+                    }
+                }
+                
+                if (EditorGUI.EndChangeCheck())
+                {
+                    SceneView.RepaintAll();
+                }
+            }
+            
+            // Handle rectangle selection
+            HandleRectangleSelection(group, controlId);
+        }
+
+        private void HandleRectangleSelection(EQSVisualizationGroup group, int controlId)
+        {
+            var currentEvent = Event.current;
+            
+            switch (currentEvent.GetTypeForControl(controlId))
+            {
+                case EventType.MouseDown:
+                    if (currentEvent.button == 0 && !currentEvent.alt)
+                    {
+                        // Start potential rectangle selection
+                        GUIUtility.hotControl = controlId;
+                        currentEvent.Use();
+                    }
+                    break;
+                    
+                case EventType.MouseDrag:
+                    if (GUIUtility.hotControl == controlId)
+                    {
+                        // TODO: Implement rectangle selection if needed
+                        currentEvent.Use();
+                    }
+                    break;
+                    
+                case EventType.MouseUp:
+                    if (GUIUtility.hotControl == controlId)
+                    {
+                        GUIUtility.hotControl = 0;
+                        currentEvent.Use();
+                    }
+                    break;
+            }
+        }
+
+        private void DrawSelectedMarkerInfo(EQSVisualizationGroup group)
+        {
+            var selectedMarkers = group.markers.Where(m => m.isSelected).ToList();
+            if (selectedMarkers.Count == 0) return;
+
+            // Draw info for each selected marker
+            foreach (var marker in selectedMarkers)
+            {
+                var worldPos = marker.position + Vector3.up * 0.3f;
+                
+                // Create info text based on options
+                var infoLines = new List<string>();
+                
+                if (group.showScore)
+                {
+                    infoLines.Add($"Score: {marker.score:F3}");
+                }
+                
+                if (group.showPosition)
+                {
+                    infoLines.Add($"[{marker.position.x:F2}, {marker.position.y:F2}, {marker.position.z:F2}]");
+                    
+                    if (marker.cellIndices.HasValue)
+                    {
+                        var indices = marker.cellIndices.Value;
+                        infoLines.Add($"Grid: ({indices.x}, {indices.y}, {indices.z})");
+                    }
+                }
+                
+                // Only show info if at least one option is enabled
+                if (infoLines.Count == 0) continue;
+                
+                var infoText = string.Join("\n", infoLines);
+                
+                // Draw background box
+                var guiPos = HandleUtility.WorldToGUIPoint(worldPos);
+                var content = new GUIContent(infoText);
+                var style = GUI.skin.box;
+                var size = style.CalcSize(content);
+                
+                var rect = new Rect(guiPos.x - size.x * 0.5f, guiPos.y - size.y, size.x, size.y);
+                
+                Handles.BeginGUI();
+                GUI.backgroundColor = new Color(0, 0, 0, 0.7f);
+                GUI.Box(rect, content, style);
+                GUI.backgroundColor = Color.white;
+                Handles.EndGUI();
+            }
+            
+            // Draw selection count info at the bottom of screen
+            if (selectedMarkers.Count > 0)
+            {
+                var screenRect = SceneView.currentDrawingSceneView.camera.pixelRect;
+                var infoRect = new Rect(10, screenRect.height - 60, 200, 40);
+                
+                Handles.BeginGUI();
+                var selectionInfo = $"Selected: {selectedMarkers.Count} marker(s)\nAvg Score: {selectedMarkers.Average(m => m.score):F3}";
+                GUI.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+                GUI.Box(infoRect, selectionInfo);
+                GUI.backgroundColor = Color.white;
+                Handles.EndGUI();
+            }
+        }
+
+        private void HandleKeyboardShortcuts(EQSVisualizationGroup group)
+        {
+            var currentEvent = Event.current;
+            if (currentEvent.type != EventType.KeyDown) return;
+
+            switch (currentEvent.keyCode)
+            {
+                case KeyCode.A:
+                    if (currentEvent.control || currentEvent.command)
+                    {
+                        // Ctrl+A: Select all markers
+                        Undo.RecordObject(group, "Select All EQS Markers");
+                        foreach (var marker in group.markers)
+                            marker.isSelected = true;
+                        EditorUtility.SetDirty(group);
+                        currentEvent.Use();
+                        Repaint();
+                    }
+                    break;
+                    
+                case KeyCode.D:
+                    if (currentEvent.control || currentEvent.command)
+                    {
+                        // Ctrl+D: Deselect all markers
+                        Undo.RecordObject(group, "Deselect All EQS Markers");
+                        foreach (var marker in group.markers)
+                            marker.isSelected = false;
+                        EditorUtility.SetDirty(group);
+                        currentEvent.Use();
+                        Repaint();
+                    }
+                    break;
+                    
+                case KeyCode.I:
+                    if (currentEvent.control || currentEvent.command)
+                    {
+                        // Ctrl+I: Invert selection
+                        Undo.RecordObject(group, "Invert EQS Marker Selection");
+                        foreach (var marker in group.markers)
+                            marker.isSelected = !marker.isSelected;
+                        EditorUtility.SetDirty(group);
+                        currentEvent.Use();
+                        Repaint();
+                    }
+                    break;
+                    
+                case KeyCode.F:
+                    if (selectedMarkerCount > 0)
+                    {
+                        // F: Focus on selected markers
+                        FocusOnSelectedMarkers(group);
+                        currentEvent.Use();
+                    }
+                    break;
+            }
+        }
+
+        public override void OnInspectorGUI()
+        {
+            var group = (EQSVisualizationGroup)target;
+            
+            // Update selected marker count
+            selectedMarkerCount = group.markers?.Count(m => m.isSelected) ?? 0;
+            
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("EQS Visualization Group", EditorStyles.boldLabel);
+            
+            // Show keyboard shortcuts info
+            if (selectedMarkerCount > 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "Scene Shortcuts:\n" +
+                    "• Ctrl+A: Select All\n" +
+                    "• Ctrl+D: Deselect All\n" +
+                    "• Ctrl+I: Invert Selection\n" +
+                    "• F: Focus on Selected\n" +
+                    "• Click markers in Scene to select individually\n" +
+                    "• Hold Ctrl/Cmd for multi-selection", 
+                    UnityEditor.MessageType.Info);
+            }
+            
+            EditorGUILayout.Space();
+
+            // Query information
+            EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.TextField("Query ID", group.QueryId);
+            EditorGUILayout.IntField("Marker Count", group.markers?.Count ?? 0);
+            EditorGUI.EndDisabledGroup();
+
+            if (group.markers != null && group.markers.Count > 0)
+            {
+                var bestScore = group.markers.Max(m => m.score);
+                var avgScore = group.markers.Average(m => m.score);
+                var worstScore = group.markers.Min(m => m.score);
+
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.FloatField("Best Score", bestScore);
+                EditorGUILayout.FloatField("Average Score", avgScore);
+                EditorGUILayout.FloatField("Worst Score", worstScore);
+                EditorGUI.EndDisabledGroup();
+            }
+
+            EditorGUILayout.Space();
+
+            // Visualization settings
+            EditorGUILayout.LabelField("Visualization Settings", EditorStyles.boldLabel);
+            
+            EditorGUI.BeginChangeCheck();
+            var newMarkerSize = EditorGUILayout.Slider("Marker Size", group.markerSize, 0.1f, 2.0f);
+            var newSelectedAlpha = EditorGUILayout.Slider("Selected Alpha", group.selectedAlpha, 0.1f, 1.0f);
+            var newUnselectedAlpha = EditorGUILayout.Slider("Unselected Alpha", group.unselectedAlpha, 0.05f, 1.0f);
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(group, "Change Visualization Settings");
+                group.markerSize = newMarkerSize;
+                group.selectedAlpha = newSelectedAlpha;
+                group.unselectedAlpha = newUnselectedAlpha;
+                EditorUtility.SetDirty(group);
+                SceneView.RepaintAll();
+            }
+
+            EditorGUILayout.Space();
+            
+            // Information Display options
+            EditorGUILayout.LabelField("Information Display", EditorStyles.boldLabel);
+            
+            EditorGUI.BeginChangeCheck();
+            var newShowScore = EditorGUILayout.Toggle("Show Score", group.showScore);
+            var newShowPosition = EditorGUILayout.Toggle("Show Position", group.showPosition);
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(group, "Change Information Display Settings");
+                group.showScore = newShowScore;
+                group.showPosition = newShowPosition;
+                EditorUtility.SetDirty(group);
+                SceneView.RepaintAll();
+            }
+
+            EditorGUILayout.Space();
+
+            // Selection info
+            if (group.markers != null && group.markers.Count > 0)
+            {
+                var selectedMarkers = group.markers.Where(m => m.isSelected).ToList();
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField($"Selection: {selectedMarkers.Count} of {group.markers.Count} markers selected", EditorStyles.boldLabel);
+                
+                // Selection buttons
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Select All"))
+                {
+                    foreach (var marker in group.markers)
+                        marker.isSelected = true;
+                    SceneView.RepaintAll();
+                }
+                if (GUILayout.Button("Deselect All"))
+                {
+                    foreach (var marker in group.markers)
+                        marker.isSelected = false;
+                    SceneView.RepaintAll();
+                }
+                if (GUILayout.Button("Invert Selection"))
+                {
+                    foreach (var marker in group.markers)
+                        marker.isSelected = !marker.isSelected;
+                    SceneView.RepaintAll();
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space();
+
+                // Marker details toggle
+                showMarkerDetails = EditorGUILayout.Foldout(showMarkerDetails, 
+                    $"Marker Details ({group.markers.Count} markers)");
+
+                if (showMarkerDetails)
+                {
+                    EditorGUILayout.Space();
+                    
+                    // Scroll view for markers
+                    scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, 
+                        GUILayout.Height(Mathf.Min(300, group.markers.Count * 60)));
+
+                    var sortedMarkers = group.markers.OrderByDescending(m => m.score).ToList();
+                    
+                    for (int i = 0; i < sortedMarkers.Count; i++)
+                    {
+                        var marker = sortedMarkers[i];
+                        
+                        EditorGUILayout.BeginVertical(marker.isSelected ? "box" : GUI.skin.box);
+                        
+                        EditorGUILayout.BeginHorizontal();
+                        
+                        // Selection toggle
+                        EditorGUI.BeginChangeCheck();
+                        var newSelected = EditorGUILayout.Toggle(marker.isSelected, GUILayout.Width(20));
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            marker.isSelected = newSelected;
+                            SceneView.RepaintAll();
+                        }
+                        
+                        // Color indicator
+                        var rect = EditorGUILayout.GetControlRect(GUILayout.Width(20), GUILayout.Height(20));
+                        EditorGUI.DrawRect(rect, marker.color);
+                        
+                        EditorGUILayout.BeginVertical();
+                        EditorGUILayout.LabelField($"Rank #{i + 1} {(marker.isSelected ? "[Selected]" : "")}", 
+                            marker.isSelected ? EditorStyles.boldLabel : EditorStyles.label);
+                        EditorGUILayout.LabelField($"Score: {marker.score:F3}");
+                        EditorGUILayout.LabelField($"Position: ({marker.position.x:F1}, {marker.position.y:F1}, {marker.position.z:F1})");
+                        
+                        if (marker.cellIndices.HasValue)
+                        {
+                            var indices = marker.cellIndices.Value;
+                            EditorGUILayout.LabelField($"Grid: ({indices.x}, {indices.y}, {indices.z})");
+                        }
+                        EditorGUILayout.EndVertical();
+                        
+                        // Locate button
+                        if (GUILayout.Button("Locate", GUILayout.Width(60)))
+                        {
+                            LocateMarker(marker);
+                        }
+                        
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.EndVertical();
+                        
+                        if (i < sortedMarkers.Count - 1)
+                            EditorGUILayout.Space();
+                    }
+                    
+                    EditorGUILayout.EndScrollView();
+                }
+            }
+
+            EditorGUILayout.Space();
+
+            // Action buttons
+            EditorGUILayout.BeginHorizontal();
+            
+            if (GUILayout.Button("Focus on Best Result"))
+            {
+                FocusOnBestResult(group);
+            }
+            
+            var currentSelectedMarkers = group.markers?.Where(m => m.isSelected).ToList();
+            EditorGUI.BeginDisabledGroup(currentSelectedMarkers == null || currentSelectedMarkers.Count == 0);
+            if (GUILayout.Button($"Focus on Selected ({currentSelectedMarkers?.Count ?? 0})"))
+            {
+                FocusOnSelectedMarkers(group);
+            }
+            EditorGUI.EndDisabledGroup();
+            
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Focus on Group"))
+            {
+                FocusOnGroup(group);
+            }
+
+            if (GUILayout.Button("Clear Visualization"))
+            {
+                if (EditorUtility.DisplayDialog("Clear Visualization", 
+                    "Are you sure you want to remove this EQS visualization?", "Yes", "Cancel"))
+                {
+                    DestroyImmediate(group.gameObject);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void LocateMarker(EQSVisualizationGroup.MarkerData marker)
+        {
+            SceneView.lastActiveSceneView.pivot = marker.position;
+            SceneView.lastActiveSceneView.Repaint();
+        }
+
+        private void FocusOnBestResult(EQSVisualizationGroup group)
+        {
+            if (group.markers == null || group.markers.Count == 0) return;
+            
+            var bestMarker = group.markers.OrderByDescending(m => m.score).First();
+            SceneView.lastActiveSceneView.pivot = bestMarker.position;
+            SceneView.lastActiveSceneView.size = 10f;
+            SceneView.lastActiveSceneView.Repaint();
+        }
+
+        private void FocusOnSelectedMarkers(EQSVisualizationGroup group)
+        {
+            if (group.markers == null || group.markers.Count == 0) return;
+            
+            var selectedMarkers = group.markers.Where(m => m.isSelected).ToList();
+            if (selectedMarkers.Count == 0) return;
+            
+            if (selectedMarkers.Count == 1)
+            {
+                // Single selected marker - focus closely
+                SceneView.lastActiveSceneView.pivot = selectedMarkers[0].position;
+                SceneView.lastActiveSceneView.size = 5f;
+            }
+            else
+            {
+                // Multiple selected markers - calculate bounds
+                var bounds = new Bounds(selectedMarkers[0].position, Vector3.zero);
+                foreach (var marker in selectedMarkers)
+                {
+                    bounds.Encapsulate(marker.position);
+                }
+                
+                SceneView.lastActiveSceneView.pivot = bounds.center;
+                SceneView.lastActiveSceneView.size = Mathf.Max(bounds.size.x, bounds.size.z) * 1.2f;
+            }
+            
+            SceneView.lastActiveSceneView.Repaint();
+        }
+
+        private void FocusOnGroup(EQSVisualizationGroup group)
+        {
+            if (group.markers == null || group.markers.Count == 0) return;
+            
+            // Calculate bounds of all markers
+            var bounds = new Bounds(group.markers[0].position, Vector3.zero);
+            foreach (var marker in group.markers)
+            {
+                bounds.Encapsulate(marker.position);
+            }
+            
+            SceneView.lastActiveSceneView.pivot = bounds.center;
+            SceneView.lastActiveSceneView.size = Mathf.Max(bounds.size.x, bounds.size.z) * 1.2f;
+            SceneView.lastActiveSceneView.Repaint();
+        }
+    }
+    #endif
 } 
