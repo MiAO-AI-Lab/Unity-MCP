@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using com.MiAO.Unity.MCP.Common;
@@ -21,10 +22,13 @@ namespace com.MiAO.Unity.MCP.Editor.API
 - getLoaded: Retrieve list of currently loaded scenes
 - getHierarchy: Extract scene hierarchy with specified depth
 - cameraControl: Control scene camera position, rotation, and field of view
-- capture: Capture scene from different viewpoints")]
+- capture: Capture scene from different camera viewpoints. Include front, side, top, isometric, and scene view
+- getSceneViewCamera: Get current Scene View camera position, rotation, and settings
+- findByComponent: Find all GameObjects in scene that have a specific component type
+- screenToRay: Convert screen coordinates to world space ray and optionally perform raycast")]
         public string Operations
         (
-            [Description("Operation type: 'getLoaded', 'getHierarchy', 'cameraControl', 'capture'")]
+            [Description("Operation type: 'getLoaded', 'getHierarchy', 'cameraControl', 'capture', 'getSceneViewCamera', 'findByComponent', 'screenToRay'")]
             string operation,
             [Description("For getHierarchy: depth of hierarchy to include. For capture: capture resolution")]
             int depth = 3,
@@ -51,7 +55,23 @@ namespace com.MiAO.Unity.MCP.Editor.API
             [Description("For capture: capture isometric view")]
             bool captureIsometricView = false,
             [Description("For capture: capture current scene view window directly (when true, ignores ALL camera-related capture options)")]
-            bool captureSceneView = true
+            bool captureSceneView = true,
+            [Description("For findByComponent: component type name to search for (e.g., 'UnityEngine.Camera', 'Rigidbody', 'MeshRenderer')")]
+            string? componentType = null,
+            [Description("For screenToRay: X coordinate in screen/screenshot space")]
+            float screenX = 0,
+            [Description("For screenToRay: Y coordinate in screen/screenshot space")]
+            float screenY = 0,
+            [Description("For screenToRay: width of the screen/screenshot (used for coordinate conversion)")]
+            float screenWidth = 1920,
+            [Description("For screenToRay: height of the screen/screenshot (used for coordinate conversion)")]
+            float screenHeight = 1080,
+            [Description("For screenToRay: whether to perform raycast along the generated ray")]
+            bool performRaycast = true,
+            [Description("For screenToRay: maximum distance for raycast (only used when performRaycast=true)")]
+            float rayMaxDistance = 100f,
+            [Description("For screenToRay: layer mask for raycast, -1 means all layers (only used when performRaycast=true)")]
+            int rayLayerMask = -1
         )
         {
             return operation.ToLower() switch
@@ -60,7 +80,10 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 "gethierarchy" => GetSceneHierarchy(depth, sceneName),
                 "cameracontrol" => ControlCamera(sceneName, rotation, fieldOfView, targetName, targetTag),
                 "capture" => CaptureScene(depth, backgroundColorHex, fileName, captureFrontView, captureSideView, captureTopView, captureIsometricView, captureSceneView),
-                _ => "[Error] Invalid operation. Valid operations: 'getLoaded', 'getHierarchy', 'cameraControl', 'capture'"
+                "getsceneviewcamera" => GetSceneViewCameraInfo(),
+                "findbycomponent" => FindGameObjectsByComponent(componentType, sceneName, depth),
+                "screentoray" => ScreenToRay(screenX, screenY, screenWidth, screenHeight, performRaycast, rayMaxDistance, rayLayerMask),
+                _ => "[Error] Invalid operation. Valid operations: 'getLoaded', 'getHierarchy', 'cameraControl', 'capture', 'getSceneViewCamera', 'findByComponent', 'screenToRay'"
             };
         }
 
@@ -69,6 +92,77 @@ namespace com.MiAO.Unity.MCP.Editor.API
             return MainThread.Instance.Run(() =>
             {
                 return $"[Success] " + LoadedScenes;
+            });
+        }
+
+        private string GetSceneViewCameraInfo()
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    // Get the current Scene View
+                    SceneView sceneView = SceneView.lastActiveSceneView;
+                    if (sceneView == null)
+                    {
+                        // Try to get any available Scene View
+                        var sceneViews = SceneView.sceneViews;
+                        if (sceneViews.Count > 0)
+                        {
+                            sceneView = sceneViews[0] as SceneView;
+                        }
+                    }
+
+                    if (sceneView == null)
+                    {
+                        return "[Error] No Scene View window found. Please open a Scene View window.";
+                    }
+
+                    // Get Scene View camera
+                    Camera sceneCamera = sceneView.camera;
+                    if (sceneCamera == null)
+                    {
+                        return "[Error] Scene View camera not found.";
+                    }
+
+                    // Get camera transform information
+                    Vector3 position = sceneCamera.transform.position;
+                    Vector3 eulerAngles = sceneCamera.transform.eulerAngles;
+                    float fieldOfView = sceneCamera.fieldOfView;
+                    float nearClipPlane = sceneCamera.nearClipPlane;
+                    float farClipPlane = sceneCamera.farClipPlane;
+                    bool isOrthographic = sceneCamera.orthographic;
+                    float orthographicSize = sceneCamera.orthographicSize;
+
+                    // Get Scene View specific settings
+                    bool in2DMode = sceneView.in2DMode;
+
+                    // Format the information as easily parsable parameters
+                    string result = "[Success] Scene View Camera Information:\n";
+                    result += $"Position: {position.x:F3},{position.y:F3},{position.z:F3}\n";
+                    result += $"Rotation: {eulerAngles.x:F3},{eulerAngles.y:F3},{eulerAngles.z:F3}\n";
+                    result += $"Field of View: {fieldOfView:F1}\n";
+                    result += $"Near Clip Plane: {nearClipPlane:F3}\n";
+                    result += $"Far Clip Plane: {farClipPlane:F3}\n";
+                    result += $"Is Orthographic: {isOrthographic}\n";
+                    if (isOrthographic)
+                    {
+                        result += $"Orthographic Size: {orthographicSize:F3}\n";
+                    }
+                    result += $"2D Mode: {in2DMode}\n";
+                    
+                    // Add ready-to-use parameter strings for camera control
+                    result += "\n--- Ready-to-use Parameters ---\n";
+                    result += $"For cameraControl position parameter: \"{position.x:F3},{position.y:F3},{position.z:F3}\"\n";
+                    result += $"For cameraControl rotation parameter: \"{eulerAngles.x:F3},{eulerAngles.y:F3},{eulerAngles.z:F3}\"\n";
+                    result += $"For cameraControl fieldOfView parameter: \"{fieldOfView:F1}\"\n";
+
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    return $"[Error] Failed to get Scene View camera info: {ex.Message}";
+                }
             });
         }
 
@@ -84,6 +178,270 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     return Error.NotFoundSceneWithName(loadedSceneName);
 
                 return scene.ToMetadata(includeChildrenDepth: includeChildrenDepth).Print();
+            });
+        }
+
+        private string FindGameObjectsByComponent(string? componentTypeName, string? loadedSceneName, int includeChildrenDepth)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    // Validate component type parameter
+                    if (string.IsNullOrEmpty(componentTypeName))
+                    {
+                        return "[Error] Component type name is required. Examples: 'UnityEngine.Camera', 'Rigidbody', 'MeshRenderer', 'Transform'";
+                    }
+
+                    // Get the scene to search in
+                    var scene = string.IsNullOrEmpty(loadedSceneName)
+                        ? UnityEngine.SceneManagement.SceneManager.GetActiveScene()
+                        : UnityEngine.SceneManagement.SceneManager.GetSceneByName(loadedSceneName);
+
+                    if (!scene.IsValid())
+                        return Error.NotFoundSceneWithName(loadedSceneName);
+
+                    // Try to get the component type
+                    System.Type componentType = null;
+                    
+                    // First try direct type lookup
+                    componentType = System.Type.GetType(componentTypeName);
+                    
+                    // If not found, try common Unity Engine types
+                    if (componentType == null)
+                    {
+                        var unityEngineTypeName = componentTypeName.Contains('.') ? componentTypeName : $"UnityEngine.{componentTypeName}";
+                        componentType = System.Type.GetType($"{unityEngineTypeName}, UnityEngine");
+                        
+                        // Also try UnityEngine.CoreModule for some types
+                        if (componentType == null)
+                        {
+                            componentType = System.Type.GetType($"{unityEngineTypeName}, UnityEngine.CoreModule");
+                        }
+                    }
+
+                    // If still not found, search through all loaded assemblies
+                    if (componentType == null)
+                    {
+                        foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+                        {
+                            componentType = assembly.GetTypes().FirstOrDefault(t => 
+                                t.Name.Equals(componentTypeName, System.StringComparison.OrdinalIgnoreCase) ||
+                                t.FullName.Equals(componentTypeName, System.StringComparison.OrdinalIgnoreCase));
+                            
+                            if (componentType != null)
+                                break;
+                        }
+                    }
+
+                    if (componentType == null)
+                    {
+                        return $"[Error] Component type '{componentTypeName}' not found. Please check the type name. Examples: 'Camera', 'Rigidbody', 'MeshRenderer', 'Transform'";
+                    }
+
+                    // Check if the type is actually a Component
+                    if (!typeof(UnityEngine.Component).IsAssignableFrom(componentType))
+                    {
+                        return $"[Error] Type '{componentTypeName}' is not a Unity Component. Please specify a valid Component type.";
+                    }
+
+                    // Find all GameObjects in the scene with the specified component
+                    var foundGameObjects = new System.Collections.Generic.List<GameObject>();
+                    var rootGameObjects = scene.GetRootGameObjects();
+
+                    foreach (var rootGO in rootGameObjects)
+                    {
+                        // Check root GameObject
+                        if (rootGO.GetComponent(componentType) != null)
+                        {
+                            foundGameObjects.Add(rootGO);
+                        }
+
+                        // Check all children
+                        var allChildren = rootGO.GetComponentsInChildren(componentType, true); // include inactive
+                        foreach (var component in allChildren)
+                        {
+                            if (component != null && !foundGameObjects.Contains(component.gameObject))
+                            {
+                                foundGameObjects.Add(component.gameObject);
+                            }
+                        }
+                    }
+
+                    // Build the result
+                    var result = new System.Text.StringBuilder();
+                    result.AppendLine($"[Success] Found {foundGameObjects.Count} GameObject(s) with component '{componentType.Name}' in scene '{scene.name}':");
+                    result.AppendLine();
+
+                    if (foundGameObjects.Count == 0)
+                    {
+                        result.AppendLine($"No GameObjects found with component type '{componentType.Name}' in the specified scene.");
+                        return result.ToString();
+                    }
+
+                    // Sort by hierarchy path for better readability
+                    foundGameObjects.Sort((a, b) => GetGameObjectPath(a).CompareTo(GetGameObjectPath(b)));
+
+                    // Display results with detailed information
+                    for (int i = 0; i < foundGameObjects.Count; i++)
+                    {
+                        var go = foundGameObjects[i];
+                        var components = go.GetComponents(componentType);
+                        
+                        result.AppendLine($"[{i + 1}] GameObject: {go.name}");
+                        result.AppendLine($"    InstanceID: {go.GetInstanceID()}");
+                        result.AppendLine($"    Path: {GetGameObjectPath(go)}");
+                        result.AppendLine($"    Active: {go.activeInHierarchy}");
+                        result.AppendLine($"    Tag: {go.tag}");
+                        result.AppendLine($"    Layer: {LayerMask.LayerToName(go.layer)}");
+                        result.AppendLine($"    Components of type '{componentType.Name}': {components.Length}");
+                        
+                        // Show component details if requested depth is > 0
+                        if (includeChildrenDepth > 0)
+                        {
+                            foreach (var comp in components)
+                            {
+                                result.AppendLine($"      - {comp.GetType().Name} (InstanceID: {comp.GetInstanceID()})");
+                            }
+                        }
+                        
+                        result.AppendLine();
+                    }
+
+                    // Add summary statistics
+                    result.AppendLine("=== Summary ===");
+                    result.AppendLine($"Total GameObjects found: {foundGameObjects.Count}");
+                    result.AppendLine($"Component type searched: {componentType.FullName}");
+                    result.AppendLine($"Scene searched: {scene.name}");
+                    result.AppendLine($"Include inactive GameObjects: Yes");
+
+                    return result.ToString();
+                }
+                catch (System.Exception ex)
+                {
+                    return $"[Error] Failed to search for GameObjects with component '{componentTypeName}': {ex.Message}";
+                }
+            });
+        }
+
+        // Helper method to get the full hierarchy path of a GameObject
+        private string GetGameObjectPath(GameObject go)
+        {
+            var path = go.name;
+            var parent = go.transform.parent;
+            
+            while (parent != null)
+            {
+                path = parent.name + "/" + path;
+                parent = parent.parent;
+            }
+            
+            return path;
+        }
+
+        private string ScreenToRay(float screenX, float screenY, float screenWidth, float screenHeight, bool performRaycast, float rayMaxDistance, int rayLayerMask)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    // Parameter validation
+                    if (screenWidth <= 0 || screenHeight <= 0)
+                        return "[Error] Screen width and height must be positive values.";
+                    
+                    if (screenX < 0 || screenX > screenWidth || screenY < 0 || screenY > screenHeight)
+                        return "[Error] Screen coordinates must be within the screen bounds.";
+
+                    // Find the main camera or any active camera
+                    Camera targetCamera = Camera.main;
+                    if (targetCamera == null)
+                    {
+                        // Try to find any active camera
+                        Camera[] cameras = UnityEngine.Object.FindObjectsOfType<Camera>();
+                        foreach (var cam in cameras)
+                        {
+                            if (cam.enabled && cam.gameObject.activeInHierarchy)
+                            {
+                                targetCamera = cam;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (targetCamera == null)
+                        return "[Error] No active camera found in the scene.";
+
+                    // Convert screenshot coordinates to Unity screen coordinates
+                    // Unity screen space: (0,0) at bottom-left, (width,height) at top-right
+                    // Screenshot coordinates: often (0,0) at top-left
+                    
+                    // Convert screenshot coordinates to normalized coordinates (0-1)
+                    float normalizedX = screenX / screenWidth;
+                    float normalizedY = 1f - (screenY / screenHeight); // Flip Y axis
+                    
+                    // Convert to camera screen coordinates
+                    float cameraScreenX = normalizedX * targetCamera.pixelWidth;
+                    float cameraScreenY = normalizedY * targetCamera.pixelHeight;
+                    
+                    Vector3 screenPoint = new Vector3(cameraScreenX, cameraScreenY, 0);
+                    
+                    // Generate ray from camera through screen point
+                    Ray ray = targetCamera.ScreenPointToRay(screenPoint);
+                    
+                    string result = "[Success] Screen-to-ray conversion completed.\\n";
+                    result += $"# Input Information:\\n";
+                    result += $"Screenshot coordinates: ({screenX}, {screenY})\\n";
+                    result += $"Screenshot size: {screenWidth} x {screenHeight}\\n";
+                    result += $"Camera: {targetCamera.name} (InstanceID: {targetCamera.GetInstanceID()})\\n";
+                    result += $"Camera screen coordinates: ({cameraScreenX:F1}, {cameraScreenY:F1})\\n";
+                    result += $"\\n# Ray Information:\\n";
+                    result += $"Ray origin: {ray.origin}\\n";
+                    result += $"Ray direction: {ray.direction}\\n";
+                    
+                    // Optional raycast
+                    if (performRaycast)
+                    {
+                        result += $"\\n# Raycast Results:\\n";
+                        result += $"Max distance: {rayMaxDistance}\\n";
+                        result += $"Layer mask: {rayLayerMask}\\n";
+                        
+                        bool hit = Physics.Raycast(ray, out RaycastHit hitInfo, rayMaxDistance, rayLayerMask);
+                        if (hit)
+                        {
+                            result += $"✅ HIT DETECTED:\\n";
+                            result += $"Hit point: {hitInfo.point}\\n";
+                            result += $"Hit distance: {hitInfo.distance:F3}\\n";
+                            result += $"Hit normal: {hitInfo.normal}\\n";
+                            result += $"Hit object: {hitInfo.collider.gameObject.name}\\n";
+                            result += $"Hit object tag: {hitInfo.collider.gameObject.tag}\\n";
+                            result += $"Hit object layer: {hitInfo.collider.gameObject.layer}\\n";
+                            result += $"Hit collider: {hitInfo.collider.name} (InstanceID: {hitInfo.collider.GetInstanceID()})\\n";
+                            
+                            if (hitInfo.rigidbody != null)
+                            {
+                                result += $"Rigidbody: {hitInfo.rigidbody.name}\\n";
+                            }
+                        }
+                        else
+                        {
+                            result += $"❌ No collision detected within {rayMaxDistance} units.\\n";
+                        }
+                    }
+                    
+                    // Add coordinate conversion info for debugging
+                    result += $"\\n# Coordinate Conversion Details:\\n";
+                    result += $"Normalized coordinates: ({normalizedX:F3}, {normalizedY:F3})\\n";
+                    result += $"Camera pixel dimensions: {targetCamera.pixelWidth} x {targetCamera.pixelHeight}\\n";
+                    result += $"Camera field of view: {targetCamera.fieldOfView}°\\n";
+                    result += $"Camera position: {targetCamera.transform.position}\\n";
+                    result += $"Camera rotation: {targetCamera.transform.eulerAngles}\\n";
+                    
+                    return result;
+                }
+                catch (System.Exception ex)
+                {
+                    return $"[Error] Exception in ScreenToRay: {ex.Message}";
+                }
             });
         }
 
@@ -199,6 +557,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 {
                     // Scene View capture mode - ignores all camera-related parameters
                     resultMsg += CaptureCurrentSceneView(baseFileName, captureResolution);
+                    
+                    // Clean up any temporary cameras created for this purpose
+                    resultMsg += CleanupTemporaryCameras();
                 }
                 else
                 {
@@ -216,6 +577,11 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     if (!captureFrontView && !captureSideView && !captureTopView && !captureIsometricView)
                     {
                         resultMsg = "[Warning] No capture options selected. Please enable at least one capture mode.";
+                    }
+                    else
+                    {
+                        // Clean up any remaining temporary cameras as additional safety measure
+                        resultMsg += CleanupTemporaryCameras();
                     }
                 }
 
@@ -292,18 +658,28 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     }
                     finally
                     {
-                        // Clean up all resources
+                        // Clean up all resources in correct order to avoid Unity warnings
+                        
+                        // Step 1: Disconnect camera from render texture first
+                        if (tempCamera != null && tempCamera.targetTexture != null)
+                        {
+                            tempCamera.targetTexture = null;
+                        }
+                        
+                        // Step 2: Reset active render texture
+                        RenderTexture.active = null;
+                        
+                        // Step 3: Clean up texture resources
                         if (tex != null)
                             UnityEngine.Object.DestroyImmediate(tex);
                             
                         if (rt != null)
                         {
-                            RenderTexture.active = null;
                             rt.Release();
                             UnityEngine.Object.DestroyImmediate(rt);
                         }
                         
-                        // Always destroy temporary camera
+                        // Step 4: Finally destroy temporary camera
                         if (tempCameraGO != null)
                             UnityEngine.Object.DestroyImmediate(tempCameraGO);
                     }
@@ -627,13 +1003,18 @@ namespace com.MiAO.Unity.MCP.Editor.API
                         }
                         finally
                         {
-                            // Restore original settings
+                            // Clean up resources in correct order to avoid Unity warnings
+                            
+                            // Step 1: Restore original camera settings first
                             if (sceneCamera != null)
                             {
                                 sceneCamera.targetTexture = originalRT;
                             }
                             
-                            // Cleanup resources
+                            // Step 2: Reset active render texture to be safe
+                            RenderTexture.active = null;
+                            
+                            // Step 3: Cleanup texture resources
                             if (tex != null)
                                 UnityEngine.Object.DestroyImmediate(tex);
                             if (rt != null)
@@ -649,6 +1030,73 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     }
                 }
             });
+        }
+
+        // Helper method to clean up temporary cameras
+        private string CleanupTemporaryCameras()
+        {
+            try
+            {
+                var allCameras = UnityEngine.Object.FindObjectsOfType<Camera>();
+                var tempCameras = new System.Collections.Generic.List<Camera>();
+                var cleanupPatterns = new string[]
+                {
+                    "SceneViewCamera_Copy",     // Manually created scene view cameras
+                    "TempCamera_",              // CaptureFromCamera temporary cameras
+                    "_Copy",                    // Any copy cameras
+                    "Capture_Camera",           // Additional capture camera pattern
+                    "Temp_"                     // General temporary pattern
+                };
+                
+                // Find cameras that match temporary naming patterns
+                foreach (var cam in allCameras)
+                {
+                    if (cam == null || cam.gameObject == null) continue;
+                    
+                    string cameraName = cam.gameObject.name;
+                    bool isTemporary = false;
+                    
+                    // Check against all cleanup patterns
+                    foreach (var pattern in cleanupPatterns)
+                    {
+                        if (cameraName.Contains(pattern))
+                        {
+                            isTemporary = true;
+                            break;
+                        }
+                    }
+                    
+                    // Additional safety check: exclude main cameras and scene cameras
+                    if (isTemporary && 
+                        !cameraName.Equals("Main Camera") && 
+                        !cameraName.StartsWith("SceneCamera") &&
+                        cam.cameraType != CameraType.SceneView)
+                    {
+                        tempCameras.Add(cam);
+                    }
+                }
+                
+                if (tempCameras.Count > 0)
+                {
+                    var cleanedCameraNames = new System.Collections.Generic.List<string>();
+                    foreach (var tempCam in tempCameras)
+                    {
+                        if (tempCam != null && tempCam.gameObject != null)
+                        {
+                            cleanedCameraNames.Add(tempCam.gameObject.name);
+                            UnityEngine.Object.DestroyImmediate(tempCam.gameObject);
+                        }
+                    }
+                    
+                    return $"\n[Cleanup] Removed {cleanedCameraNames.Count} temporary camera(s): {string.Join(", ", cleanedCameraNames)}";
+                }
+                
+                return ""; // Silent when no cleanup needed to avoid noise
+            }
+            catch (System.Exception ex)
+            {
+                return $"\n[Cleanup Warning] Failed to clean up temporary cameras: {ex.Message}";
+            }
         }
 
         // Data structures for camera positioning
