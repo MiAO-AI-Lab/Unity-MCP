@@ -90,9 +90,9 @@
                 
                 <ui:VisualElement class="config-group">
                     <ui:Foldout text="Model Provider Selection" value="true" class="config-group-foldout">
-                        <ui:TextField label="Vision Provider" name="visionModelProvider" class="config-item" />
-                        <ui:TextField label="Text Provider" name="textModelProvider" class="config-item" />
-                        <ui:TextField label="Code Provider" name="codeModelProvider" class="config-item" />
+                        <ui:DropdownField label="Vision Provider" name="visionModelProvider" class="config-item" />
+                        <ui:DropdownField label="Text Provider" name="textModelProvider" class="config-item" />
+                        <ui:DropdownField label="Code Provider" name="codeModelProvider" class="config-item" />
                     </ui:Foldout>
                 </ui:VisualElement>
                 
