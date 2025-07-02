@@ -43,6 +43,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
             public static string NoQueryResults(string queryId)
                 => $"[Error] Query '{queryId}' returned no results.";
 
+            public static string InvalidCustomRegion(string reason)
+                => $"[Error] Invalid custom region configuration: {reason}";
+
             private static string[] GetLoadedSceneNames()
             {
                 var sceneCount = UnityEngine.SceneManagement.SceneManager.sceneCount;
@@ -373,8 +376,8 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
                 var shaderNames = new[]
                 {
-                    "Universal Render Pipeline/Lit",
                     "Universal Render Pipeline/Unlit",
+                    "Universal Render Pipeline/Lit",
                     "HDRP/Lit",
                     "Standard",
                     "Unlit/Color",

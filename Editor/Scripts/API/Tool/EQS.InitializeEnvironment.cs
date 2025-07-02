@@ -36,12 +36,16 @@ Returns information:
             bool includeDynamicObjects = true,
             [Description("Only include dynamic objects with these tags, e.g. ['Player', 'Enemy']")]
             string[]? dynamicObjectTagsFilter = null,
-            [Description("Grid cell size in meters, affects query precision and performance, default 1.0 meters")]
+            [Description("Optional. Grid cell size in meters, affects query precision and performance, default 1.0 meters")]
             float? gridCellSizeOverride = null,
-            [Description("Force specify grid dimensions {x,y,z}, overrides automatic calculation")]
+            [Description("Optional. Force specify grid dimensions {x,y,z}, overrides automatic calculation")]
             Vector3Int? gridDimensionsOverride = null,
             [Description("Whether to force re-initialization even if environment already exists. Default true always reinitializes")]
-            bool forceReinitialize = true
+            bool forceReinitialize = true,
+            [Description("Custom region center position. If specified, only this region will be used instead of entire scene")]
+            Vector3? customRegionCenter = null,
+            [Description("Custom region size (width, height, depth). Must be specified together with customRegionCenter")]
+            Vector3? customRegionSize = null
         )
         => MainThread.Instance.Run(() =>
         {
@@ -64,19 +68,40 @@ Returns information:
                     }
                 }
 
+                // Validate custom region parameters
+                if ((customRegionCenter.HasValue && !customRegionSize.HasValue) || 
+                    (!customRegionCenter.HasValue && customRegionSize.HasValue))
+                {
+                    return Error.InvalidCustomRegion("customRegionCenter and customRegionSize must be specified together");
+                }
+
+                if (customRegionSize.HasValue && (customRegionSize.Value.x <= 0 || customRegionSize.Value.y <= 0 || customRegionSize.Value.z <= 0))
+                {
+                    return Error.InvalidCustomRegion("customRegionSize must have positive values for all dimensions");
+                }
+
                 // Generate hash value for current scene configuration for cache checking
                 var currentConfigHash = GenerateConfigurationHash(targetScene, includeStaticGeometry, includeDynamicObjects, 
-                    dynamicObjectTagsFilter, gridCellSizeOverride, gridDimensionsOverride);
+                    dynamicObjectTagsFilter, gridCellSizeOverride, gridDimensionsOverride, customRegionCenter, customRegionSize);
                 
                 // Check if re-initialization is needed
                 if (!forceReinitialize && _currentEnvironment != null && _environmentHash == currentConfigHash)
                 {
+                    var isCustomRegion = customRegionCenter.HasValue && customRegionSize.HasValue;
+                    var regionInfo = isCustomRegion 
+                        ? $@"""customRegion"": {{
+    ""center"": [{customRegionCenter.Value.x}, {customRegionCenter.Value.y}, {customRegionCenter.Value.z}],
+    ""size"": [{customRegionSize.Value.x}, {customRegionSize.Value.y}, {customRegionSize.Value.z}]
+  }},"
+                        : @"""useEntireScene"": true,";
+
                     return @$"[Cache Hit] EQS environment has already been initialized, using cached data.
 # Environment Information:
 ```json
 {{
   ""sceneIdentifier"": ""{targetScene.name}"",
   ""environmentHash"": ""{_environmentHash}"",
+  {regionInfo}
   ""gridInfo"": {{
     ""cellSize"": {_currentEnvironment.Grid.CellSize},
     ""dimensions"": [{_currentEnvironment.Grid.Dimensions.x}, {_currentEnvironment.Grid.Dimensions.y}, {_currentEnvironment.Grid.Dimensions.z}],
@@ -97,11 +122,13 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 // Clean up previous environment state
                 CleanupPreviousEnvironment();
 
-                // Calculate scene bounds
-                var sceneBounds = CalculateSceneBounds(targetScene);
+                // Calculate bounds - use custom region if specified, otherwise calculate scene bounds
+                var bounds = customRegionCenter.HasValue && customRegionSize.HasValue
+                    ? CalculateCustomRegionBounds(customRegionCenter.Value, customRegionSize.Value)
+                    : CalculateSceneBounds(targetScene);
                 
                 // Create grid
-                var grid = CreateGrid(sceneBounds, gridCellSizeOverride, gridDimensionsOverride);
+                var grid = CreateGrid(bounds, gridCellSizeOverride, gridDimensionsOverride);
                 
                 // Collect static geometry
                 var staticGeometry = new List<EQSStaticGeometry>();
@@ -140,12 +167,21 @@ Note: If you need to force reinitialize, set forceReinitialize = true
                 var executionTime = (DateTime.Now - startTime).TotalMilliseconds;
                 
                 var statusMessage = forceReinitialize ? "[Force Reinitialize]" : "[Success]";
+                var isCustomRegionFinal = customRegionCenter.HasValue && customRegionSize.HasValue;
+                var regionInfoFinal = isCustomRegionFinal 
+                    ? $@"""customRegion"": {{
+    ""center"": [{customRegionCenter.Value.x}, {customRegionCenter.Value.y}, {customRegionCenter.Value.z}],
+    ""size"": [{customRegionSize.Value.x}, {customRegionSize.Value.y}, {customRegionSize.Value.z}]
+  }},"
+                    : @"""useEntireScene"": true,";
+
                 return @$"{statusMessage} EQS environment initialization succeeded.
 # Environment Information:
 ```json
 {{
   ""sceneIdentifier"": ""{targetScene.name}"",
   ""environmentHash"": ""{currentConfigHash}"",
+  {regionInfoFinal}
   ""gridInfo"": {{
     ""cellSize"": {grid.CellSize},
     ""dimensions"": [{grid.Dimensions.x}, {grid.Dimensions.y}, {grid.Dimensions.z}],
@@ -225,6 +261,11 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             bounds.Expand(Constants.DefaultBoundsExpansion);
             
             return bounds;
+        }
+
+        private static Bounds CalculateCustomRegionBounds(Vector3 center, Vector3 size)
+        {
+            return new Bounds(center, size);
         }
 
         private static EQSGrid CreateGrid(Bounds sceneBounds, float? cellSizeOverride, Vector3Int? dimensionsOverride)
@@ -396,10 +437,12 @@ Note: If you need to force reinitialize, set forceReinitialize = true
         }
 
         private static string GenerateConfigurationHash(Scene scene, bool includeStaticGeometry, bool includeDynamicObjects, 
-            string[]? dynamicObjectTagsFilter, float? gridCellSizeOverride, Vector3Int? gridDimensionsOverride)
+            string[]? dynamicObjectTagsFilter, float? gridCellSizeOverride, Vector3Int? gridDimensionsOverride,
+            Vector3? customRegionCenter, Vector3? customRegionSize)
         {
             var configString = $"{scene.name}_{includeStaticGeometry}_{includeDynamicObjects}_" +
-                               $"{string.Join(",", dynamicObjectTagsFilter ?? new string[0])}_{gridCellSizeOverride}_{gridDimensionsOverride}";
+                               $"{string.Join(",", dynamicObjectTagsFilter ?? new string[0])}_{gridCellSizeOverride}_{gridDimensionsOverride}_" +
+                               $"{customRegionCenter}_{customRegionSize}";
             
             using (var sha256 = SHA256.Create())
             {
@@ -438,133 +481,57 @@ Note: If you need to force reinitialize, set forceReinitialize = true
 
         private static void ClearAllVisualizations()
         {
-            // Logic for clearing visualization markers can be added here
-            // Clean up visualization objects created by other EQS tools here
             Debug.Log("[EQS] Clearing all visualizations");
-            try
+            
+            int totalCleaned = 0;
+            
+            // Clear Probe environment objects
+            var probeParent = GameObject.Find("EQS_Probe_Environment");
+            if (probeParent != null)
             {
-                // Method 1: Use more reliable method to find GameObjects in scene
-                var allGameObjects = new List<GameObject>();
-                
-                // First try FindObjectsOfType (including inactive objects)
-                var foundObjects = GameObject.FindObjectsOfType<GameObject>(true);
-                allGameObjects.AddRange(foundObjects);
-                
-                // Then recursively search through scene root objects (to prevent omissions)
-                foreach (var rootGO in SceneManager.GetActiveScene().GetRootGameObjects())
-                {
-                    var childObjects = rootGO.GetComponentsInChildren<Transform>(true)
-                        .Select(t => t.gameObject)
-                        .Where(go => !allGameObjects.Contains(go));
-                    allGameObjects.AddRange(childObjects);
-                }
-                
-                Debug.Log($"[EQS] Found {allGameObjects.Count} total GameObjects in active scene using combined method");
-                
-                // Filter EQS related objects
-                var visualizationObjects = allGameObjects
-                    .Where(go => go.name.StartsWith("EQS_Probe_") || go.name.StartsWith("EQS_QueryResult_"))
-                    .ToArray();
-                
-                Debug.Log($"[EQS] Found {visualizationObjects.Length} EQS visualization objects to clean up");
-                
-                if (visualizationObjects.Length > 0)
-                {
-                    Debug.Log($"[EQS] First few objects: {string.Join(", ", visualizationObjects.Take(5).Select(go => go.name))}");
-                }
-                
-                                // Method 3: Multiple cleanup strategies (ensure thorough cleanup)
-                int cleanedFromSearch = 0;
-                foreach (var obj in visualizationObjects)
-                {
-                    if (obj != null)
-                    {
-                        try
-                        {
-                            // Strategy 1: Reset all flags and destroy immediately
-                            obj.hideFlags = HideFlags.None;
-                            
-                            // Strategy 2: Disable object first
-                            obj.SetActive(false);
-                            
-                            // Strategy 3: Use DestroyImmediate (recommended for Editor mode)
-                            #if UNITY_EDITOR
-                            if (!UnityEditor.EditorApplication.isPlaying)
-                            {
-                                GameObject.DestroyImmediate(obj);
-                            }
-                            else
-                            {
-                                GameObject.Destroy(obj);
-                            }
-                            #else
-                            GameObject.Destroy(obj);
-                            #endif
-                            
-                            cleanedFromSearch++;
-                        }
-                        catch (System.Exception ex)
-                        {
-                            Debug.LogWarning($"[EQS] Failed to destroy object {obj.name}: {ex.Message}");
-                            
-                            // Fallback strategy: If destruction fails, at least mark as invisible
-                            try
-                            {
-                                obj.SetActive(false);
-                                obj.hideFlags = HideFlags.HideAndDontSave;
-                                if (obj.GetComponent<Renderer>() != null)
-                                    obj.GetComponent<Renderer>().enabled = false;
-                            }
-                            catch
-                            {
-                                // Ignore fallback strategy errors
-                            }
-                        }
-                    }
-                }
-                
-                if (cleanedFromSearch > 0)
-                {
-                    Debug.Log($"[EQS] Total cleaned up: {cleanedFromSearch} visualization objects");
-                    
-                    // Force editor and scene refresh
-                    #if UNITY_EDITOR
-                    // Refresh editor
-                    UnityEditor.EditorApplication.QueuePlayerLoopUpdate();
-                    UnityEditor.SceneView.RepaintAll();
-                    
-                    // Force refresh scene view
-                    UnityEditor.EditorApplication.RepaintHierarchyWindow();
-                    
-                    // Mark scene as dirty and refresh
-                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-                    
-                    // Delayed verification of cleanup results
-                    UnityEditor.EditorApplication.delayCall += () =>
-                    {
-                        var remainingObjects = GameObject.FindObjectsOfType<GameObject>(true)
-                            .Where(go => go.name.StartsWith("EQS_Probe_"))
-                            .ToArray();
-                        
-                        if (remainingObjects.Length > 0)
-                        {
-                            Debug.LogWarning($"[EQS] Warning: {remainingObjects.Length} probe objects still remain after cleanup");
-                        }
-                        else
-                        {
-                            Debug.Log("[EQS] Cleanup verification: All probe objects successfully removed");
-                        }
-                    };
-                    #endif
-                }
+                var probeCount = probeParent.transform.childCount;
+                #if UNITY_EDITOR
+                if (!UnityEditor.EditorApplication.isPlaying)
+                    GameObject.DestroyImmediate(probeParent);
                 else
-                {
-                    Debug.LogWarning("[EQS] No EQS visualization objects found to clean up using all methods");
-                }
+                    GameObject.Destroy(probeParent);
+                #else
+                GameObject.Destroy(probeParent);
+                #endif
+                totalCleaned += probeCount;
+                Debug.Log($"[EQS] Cleared EQS_Probe_Environment with {probeCount} probe objects");
             }
-            catch (Exception ex)
+            
+            // Clear QueryResult aggregation objects
+            var queryResultParent = GameObject.Find("EQS_QueryResult_Aggregation");
+            if (queryResultParent != null)
             {
-                Debug.LogWarning($"[EQS] Exception cleaning up visualization objects: {ex.Message}");
+                var queryResultCount = queryResultParent.transform.childCount;
+                #if UNITY_EDITOR
+                if (!UnityEditor.EditorApplication.isPlaying)
+                    GameObject.DestroyImmediate(queryResultParent);
+                else
+                    GameObject.Destroy(queryResultParent);
+                #else
+                GameObject.Destroy(queryResultParent);
+                #endif
+                totalCleaned += queryResultCount;
+                Debug.Log($"[EQS] Cleared EQS_QueryResult_Aggregation with {queryResultCount} query result objects");
+            }
+            
+            if (totalCleaned > 0)
+            {
+                Debug.Log($"[EQS] Successfully cleared {totalCleaned} total visualization objects");
+                
+                #if UNITY_EDITOR
+                // Refresh editor
+                UnityEditor.EditorApplication.QueuePlayerLoopUpdate();
+                UnityEditor.SceneView.RepaintAll();
+                #endif
+            }
+            else
+            {
+                Debug.Log("[EQS] No EQS visualization objects found to clean up");
             }
         }
 
@@ -615,8 +582,14 @@ Note: If you need to force reinitialize, set forceReinitialize = true
         /// </summary>
         private static GameObject CreateProbeMarker(EQSCell cell, Material material, int index)
         {
+            // Get or create EQS_Environment parent object
+            var parentObj = GetOrCreateEQSEnvironmentParent();
+            
             var probeObj = new GameObject($"EQS_Probe_{index}");
             probeObj.transform.position = cell.WorldPosition;
+            
+            // Set parent object
+            probeObj.transform.SetParent(parentObj.transform);
 
             // Add rendering components
             var meshRenderer = probeObj.AddComponent<MeshRenderer>();
@@ -625,6 +598,10 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             // Use Unity's built-in sphere mesh
             meshFilter.mesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
             meshRenderer.material = material;
+
+            // Disable shadows for cleaner visualization
+            meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            meshRenderer.receiveShadows = false;
 
             // Set smaller size to avoid being too conspicuous
             probeObj.transform.localScale = Vector3.one * Constants.ProbeScale;
@@ -637,6 +614,25 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             probeObj.hideFlags = HideFlags.DontSave;
 
             return probeObj;
+        }
+        
+        /// <summary>
+        /// Get or create EQS_Environment parent object
+        /// </summary>
+        private static GameObject GetOrCreateEQSEnvironmentParent()
+        {
+            // Try to find existing EQS_Environment object
+            var existingParent = GameObject.Find("EQS_Probe_Environment");
+            if (existingParent != null)
+            {
+                return existingParent;
+            }
+            
+            // If not exists, create new parent object
+            var parentObj = new GameObject("EQS_Probe_Environment");
+            parentObj.hideFlags = HideFlags.DontSave;
+            
+            return parentObj;
         }
 
         // /// <summary>

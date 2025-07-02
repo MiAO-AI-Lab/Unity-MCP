@@ -1815,10 +1815,16 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
         /// </summary>
         private static GameObject CreateScoredDebugMarker(EQSLocationCandidate candidate, Color color, int index)
         {
+            // Get or create EQS_QueryResult_Aggregation parent object
+            var parentObj = GetOrCreateEQSQueryResultParent();
+            
             // Create debug marker GameObject
             var markerName = $"EQS_QueryResult_#{index}_Score{candidate.Score:F2}";
             var debugObj = new GameObject(markerName);
             debugObj.transform.position = candidate.WorldPosition;
+            
+            // Set parent object
+            debugObj.transform.SetParent(parentObj.transform);
 
             // Add visualization components
             var sphereRenderer = debugObj.AddComponent<MeshRenderer>();
@@ -1830,6 +1836,10 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             // Create compatible material
             var material = CreateCompatibleMaterial(color, true); // Query results need glow
             sphereRenderer.material = material;
+
+            // Disable shadow casting and receiving
+            sphereRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            sphereRenderer.receiveShadows = false;
 
             // Set uniform size (don't change size based on rank or score)
             var baseScale = 0.2f;
@@ -1843,6 +1853,25 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             debugObj.hideFlags = HideFlags.DontSave;
 
             return debugObj;
+        }
+        
+        /// <summary>
+        /// Get or create EQS_QueryResult_Aggregation parent object
+        /// </summary>
+        private static GameObject GetOrCreateEQSQueryResultParent()
+        {
+            // Try to find existing EQS_QueryResult_Aggregation object
+            var existingParent = GameObject.Find("EQS_QueryResult_Aggregation");
+            if (existingParent != null)
+            {
+                return existingParent;
+            }
+            
+            // If it doesn't exist, create a new parent object
+            var parentObj = new GameObject("EQS_QueryResult_Aggregation");
+            parentObj.hideFlags = HideFlags.DontSave;
+            
+            return parentObj;
         }
 
 
