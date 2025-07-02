@@ -43,6 +43,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
             public static string NoQueryResults(string queryId)
                 => $"[Error] Query '{queryId}' returned no results.";
 
+            public static string InvalidCustomRegion(string reason)
+                => $"[Error] Invalid custom region configuration: {reason}";
+
             private static string[] GetLoadedSceneNames()
             {
                 var sceneCount = UnityEngine.SceneManagement.SceneManager.sceneCount;
@@ -346,110 +349,6 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
                 // Method 3: Global search
                 return GameObject.Find(objectIdOrName);
-            }
-        }
-
-        /// <summary>
-        /// Material utilities
-        /// </summary>
-        public static class MaterialUtils
-        {
-            private static Shader _cachedShader;
-
-            public static Material CreateMaterial(Color color, bool enableEmission = false)
-            {
-                var shader = GetCompatibleShader();
-                var material = new Material(shader);
-                SetMaterialColor(material, color);
-                SetMaterialProperties(material, enableEmission);
-                material.enableInstancing = true;
-                return material;
-            }
-
-            public static Shader GetCompatibleShader()
-            {
-                if (_cachedShader != null)
-                    return _cachedShader;
-
-                var shaderNames = new[]
-                {
-                    "Universal Render Pipeline/Lit",
-                    "Universal Render Pipeline/Unlit",
-                    "HDRP/Lit",
-                    "Standard",
-                    "Unlit/Color",
-                    "Sprites/Default"
-                };
-
-                foreach (var shaderName in shaderNames)
-                {
-                    var shader = Shader.Find(shaderName);
-                    if (shader != null)
-                    {
-                        _cachedShader = shader;
-                        return shader;
-                    }
-                }
-
-                return Shader.Find("Sprites/Default");
-            }
-
-            public static void SetMaterialColor(Material material, Color color)
-            {
-                var colorProperties = new[] { "_Color", "_BaseColor", "_MainColor" };
-                foreach (var property in colorProperties)
-                {
-                    if (material.HasProperty(property))
-                        material.SetColor(property, color);
-                }
-                material.color = color;
-            }
-
-            public static void SetMaterialProperties(Material material, bool enableEmission)
-            {
-                try
-                {
-                    var shaderName = material.shader.name;
-                    
-                    // Set basic properties
-                    if (shaderName.Contains("Universal Render Pipeline") || shaderName.Contains("HDRP"))
-                    {
-                        if (material.HasProperty("_Metallic"))
-                            material.SetFloat("_Metallic", 0f);
-                        if (material.HasProperty("_Smoothness"))
-                            material.SetFloat("_Smoothness", Constants.DefaultSmoothness);
-                        if (material.HasProperty("_Surface"))
-                            material.SetFloat("_Surface", 0f);
-                    }
-                    else if (shaderName.Contains("Standard"))
-                    {
-                        if (material.HasProperty("_Metallic"))
-                            material.SetFloat("_Metallic", 0f);
-                        if (material.HasProperty("_Glossiness"))
-                            material.SetFloat("_Glossiness", Constants.DefaultSmoothness);
-                        if (material.HasProperty("_Mode"))
-                            material.SetFloat("_Mode", 0f);
-                    }
-
-                    // Set emission properties
-                    if (material.HasProperty("_EmissionColor"))
-                    {
-                        if (enableEmission)
-                        {
-                            material.EnableKeyword("_EMISSION");
-                            material.SetColor("_EmissionColor", material.color * Constants.EmissionIntensity);
-                        }
-                        else
-                        {
-                            material.DisableKeyword("_EMISSION");
-                            material.SetColor("_EmissionColor", Color.black);
-                        }
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    Debug.LogWarning($"[EQS] Warning occurred while setting material properties: {ex.Message}");
-                }
             }
         }
 
