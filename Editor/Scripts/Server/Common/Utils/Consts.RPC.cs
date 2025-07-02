@@ -154,7 +154,7 @@ namespace com.MiAO.Unity.MCP.Common
             Messages = messages;
         }
 
-        // 便利构造函数，用于向后兼容
+        // Convenience constructor for backward compatibility
         public RequestModelUse(string requestId, string modelType, string prompt)
         {
             RequestID = requestId;
@@ -179,7 +179,7 @@ namespace com.MiAO.Unity.MCP.Common
             Messages = messages;
         }
 
-        // 便利构造函数，用于向后兼容
+        // Convenience constructor for backward compatibility
         public ModelUseRequest(string modelType, string prompt)
         {
             ModelType = modelType;
