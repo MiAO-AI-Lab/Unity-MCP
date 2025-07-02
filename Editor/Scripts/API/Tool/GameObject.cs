@@ -85,6 +85,85 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
             public static string InvalidInstanceID(Type holderType, string fieldName)
                 => $"[Error] Invalid instanceID '{fieldName}' for '{holderType.FullName}'. It should be a valid field name.";
+
+            // smart mount IK points
+            public static string PrefabPathIsEmpty()
+                => "[Error] Prefab path cannot be empty. Please provide a valid prefab path starting with 'Assets/'.";
+            
+            public static string MountPointsJsonIsEmpty()
+                => "[Error] Mount point information cannot be empty. Please provide mount point data in JSON format.";
+            
+            public static string MountInstructionsIsEmpty()
+                => "[Error] Mount instructions cannot be empty. Please provide detailed description of mount point requirements.";
+            
+            public static string AIAnalysisPromptIsEmpty()
+                => "[Error] AI analysis prompt cannot be empty. Please provide analysis requirements.";
+            
+            public static string PrefabFileNotFound(string prefabPath)
+                => $"[Error] Prefab file does not exist: '{prefabPath}'. Please check if the file exists and the path is correct.";
+            
+            public static string PrefabLoadFailed(string prefabPath)
+                => $"[Error] Unable to load prefab: '{prefabPath}'. Please check if the file is a valid prefab asset.";
+            
+            public static string PrefabInstantiateFailed(string prefabPath)
+                => $"[Error] Unable to instantiate prefab: '{prefabPath}'. The prefab may be corrupted or invalid.";
+            
+            public static string MountPointsJsonParseFailed(string error)
+                => $"[Error] Failed to parse mount point information: {error}. Please check the JSON format.";
+            
+            public static string ApplyMountPointsFailed(string error)
+                => $"[Error] Failed to apply mount points: {error}. Check if the scene instance is valid.";
+            
+            public static string ScreenshotCaptureFailed(string error)
+                => $"[Error] Screenshot failed: {error}. Check camera settings and render target.";
+            
+            public static string NoImagesForAIAnalysis()
+                => "[Error] No valid images available for AI analysis. Screenshot capture may have failed.";
+            
+            public static string AIAnalysisFailed(string error)
+                => $"[Error] AI analysis failed: {error}. Check image files and AI service connectivity.";
+            
+            public static string MountPointAdjustmentFailed(string error)
+                => $"[Error] Mount point adjustment failed: {error}. Check AI suggestions format.";
+            
+            public static string InvalidBackgroundColor(string colorHex)
+                => $"[Error] Invalid background color format: '{colorHex}'. Please use hexadecimal format like '#E5E5E5'.";
+            
+            public static string InvalidCaptureResolution(int resolution)
+                => $"[Error] Invalid capture resolution: {resolution}. Please use a positive value (recommended: 512-2048).";
+            
+            public static string SerializationFailed(string error)
+                => $"[Error] Failed to serialize result: {error}. Internal serialization error.";
+            
+            public static string SmartMountProcessFailed(string error)
+                => $"[Error] Smart mount point process execution failed: {error}";
+            
+            public static string CameraCreationFailed(string error)
+                => $"[Error] Failed to create capture camera: {error}";
+            
+            public static string VisualizationMarkerFailed(string error)
+                => $"[Error] Failed to create visualization marker: {error}";
+            
+            public static string BoundsCalculationFailed(string error)
+                => $"[Error] Failed to calculate object bounds: {error}";
+            
+            public static string NoValidSuggestionsForAdjustment()
+                => "[Error] No available adjustment suggestions. AI analysis may have failed or provided invalid suggestions.";
+            
+            public static string InvalidMaxIterations(int maxIterations)
+                => $"[Error] Invalid max iterations: {maxIterations}. Please provide a positive value (recommended: 1-5).";
+            
+            public static string TemporaryFileCreationFailed(string fileName, string error)
+                => $"[Error] Failed to create temporary file '{fileName}': {error}";
+                
+            public static string ImageFileVerificationFailed(string filePath)
+                => $"[Error] Image file verification failed: '{filePath}'. File may be empty or corrupted.";
+                
+            public static string NoMountPointsToApply()
+                => "[Error] No mount points provided to apply. Please check the mount points configuration.";
+                
+            public static string SceneInstanceNotFound()
+                => "[Error] Scene instance not found. Please ensure the prefab was instantiated successfully.";
         }
     }
 }
