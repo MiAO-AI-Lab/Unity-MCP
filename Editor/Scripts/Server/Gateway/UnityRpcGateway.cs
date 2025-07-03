@@ -143,7 +143,7 @@ namespace com.MiAO.Unity.MCP.Server.RpcGateway.Unity
                 _cachedTools = rpcToolDescriptors.ToArray();
                 _lastToolsUpdate = DateTime.UtcNow;
 
-                _logger.LogInformation($"[UnityRpcGateway] Discovered {_cachedTools.Length} Unity tools");
+                _logger.LogTrace($"[UnityRpcGateway] Discovered {_cachedTools.Length} Unity tools");
                 return _cachedTools;
             }
             catch (Exception ex)
