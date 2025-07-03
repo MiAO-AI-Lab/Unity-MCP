@@ -38,9 +38,9 @@ Selection.activeTransform: {Selection.activeTransform?.GetInstanceID()}";
         (
             [Description("Operation type: 'get', 'set'")]
             string operation,
-            [Description("The 'instanceID' array of the target GameObjects (for set operation).")]
+            [Description("For set: The 'instanceID' array of the target GameObjects.")]
             int[]? instanceIDs = null,
-            [Description("The 'instanceID' of the target Object (for set operation).")]
+            [Description("For set: The 'instanceID' of the target Object.")]
             int? activeInstanceID = null
         )
         {

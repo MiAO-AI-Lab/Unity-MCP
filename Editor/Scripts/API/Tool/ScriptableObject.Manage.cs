@@ -29,11 +29,11 @@ namespace com.MiAO.Unity.MCP.Editor.API
             string operation,
             [Description("Asset path. Starts with 'Assets/'. Ends with '.asset'.")]
             string assetPath,
-            [Description("Full name of the ScriptableObject type (for create operation). Should include full namespace path and class name.")]
+            [Description("For create: Full name of the ScriptableObject type. Should include full namespace path and class name.")]
             string? typeName = null,
-            [Description("If true, it will print only brief data (for find operation).")]
+            [Description("For find: If true, it will print only brief data.")]
             bool briefData = false,
-            [Description("Asset modification data (for modify operation)")]
+            [Description("For modify: Asset modification data")]
             SerializedMember? assetDiff = null
         )
         {
