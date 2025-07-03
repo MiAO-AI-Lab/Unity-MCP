@@ -37,23 +37,23 @@ namespace com.MiAO.Unity.MCP.Editor.API
             GameObjectRef? gameObjectRef = null,
             [Description("List of GameObject references for operations that support multiple objects")]
             GameObjectRefList? gameObjectRefs = null,
-            [Description("Name of the new GameObject (for create operation)")]
+            [Description("For create: Name of the new GameObject")]
             string? name = null,
-            [Description("Parent GameObject reference (for create and setParent operations)")]
+            [Description("For create/setParent: Parent GameObject reference")]
             GameObjectRef? parentGameObjectRef = null,
-            [Description("Transform position of the GameObject (for create operation)")]
+            [Description("For create: Transform position of the GameObject")]
             Vector3? position = null,
-            [Description("Transform rotation of the GameObject in Euler angles (for create operation)")]
+            [Description("For create: Transform rotation of the GameObject in Euler angles")]
             Vector3? rotation = null,
-            [Description("Transform scale of the GameObject (for create operation)")]
+            [Description("For create: Transform scale of the GameObject")]
             Vector3? scale = null,
-            [Description("World or Local space of transform (for create operation)")]
+            [Description("For create: World or Local space of transform")]
             bool isLocalSpace = false,
-            [Description("-1 - No primitive type; 0 - Cube; 1 - Sphere; 2 - Capsule; 3 - Cylinder; 4 - Plane; 5 - Quad (for create operation)")]
+            [Description("For create: -1 - No primitive type; 0 - Cube; 1 - Sphere; 2 - Capsule; 3 - Cylinder; 4 - Plane; 5 - Quad")]
             int primitiveType = -1,
-            [Description("GameObject modification data (for modify operation)")]
+            [Description("For modify: GameObject modification data")]
             SerializedMemberList? gameObjectDiffs = null,
-            [Description("Whether GameObject's world position should remain unchanged when setting parent (for setParent operation)")]
+            [Description("For setParent: Whether GameObject's world position should remain unchanged when setting parent")]
             bool worldPositionStays = true
         )
         {

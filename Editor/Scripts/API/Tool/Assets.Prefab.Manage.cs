@@ -31,30 +31,31 @@ namespace com.MiAO.Unity.MCP.Editor.API
 - read: Read a prefab content. Use it for get started with prefab editing. There are two options to read prefab:
   1. Read prefab from asset using 'prefabAssetPath'
   2. Read prefab from GameObject in loaded scene using 'instanceID' of the GameObject (the GameObject should be connected to a prefab)
-- instantiate: Instantiates prefab in a scene at the specified GameObject path.")]
+- instantiate: Instantiates prefab in a scene at the specified GameObject path.
+- instantiateInPrefab: Instantiates prefab specifically in the currently opened prefab editing mode.")]
         public string Management
         (
-            [Description("Operation type: 'create', 'open', 'close', 'save', 'read', 'instantiate'")]
+            [Description("Operation type: 'create', 'open', 'close', 'save', 'read', 'instantiate', 'instantiateInPrefab'")]
             string operation,
-            [Description("Prefab asset path. Should be in the format 'Assets/Path/To/Prefab.prefab'. Required for: create, open, read, instantiate")]
+            [Description("For create/open/read/instantiate/instantiateInPrefab: Prefab asset path. Should be in the format 'Assets/Path/To/Prefab.prefab'. Required for: create, open, read, instantiate, instantiateInPrefab")]
             string? prefabAssetPath = null,
-            [Description("GameObject instanceID in scene. Required for: create. Optional for: open, read")]
+            [Description("For create/open/read: GameObject instanceID in scene. Required for: create. Optional for: open, read")]
             int instanceID = 0,
-            [Description("GameObject path in the current active scene. Required for: instantiate")]
+            [Description("For instantiate/instantiateInPrefab: GameObject path in the current active scene or opened prefab. Required for: instantiate, instantiateInPrefab")]
             string? gameObjectPath = null,
-            [Description("Transform position of the GameObject. For: create, instantiate")]
+            [Description("For create/instantiate/instantiateInPrefab: Transform position of the GameObject")]
             Vector3? position = default,
-            [Description("Transform rotation of the GameObject. Euler angles in degrees. For: create, instantiate")]
+            [Description("For create/instantiate/instantiateInPrefab: Transform rotation of the GameObject. Euler angles in degrees")]
             Vector3? rotation = default,
-            [Description("Transform scale of the GameObject. For: create, instantiate")]
+            [Description("For create/instantiate/instantiateInPrefab: Transform scale of the GameObject")]
             Vector3? scale = default,
-            [Description("World or Local space of transform. For: create, instantiate")]
+            [Description("For create/instantiate/instantiateInPrefab: World or Local space of transform")]
             bool isLocalSpace = false,
-            [Description("If true, save prefab when closing. For: close")]
+            [Description("For close: If true, save prefab when closing")]
             bool save = true,
-            [Description("If true, replace GameObject with prefab instance. For: create")]
+            [Description("For create: If true, replace GameObject with prefab instance")]
             bool replaceGameObjectWithPrefab = true,
-            [Description("Hierarchy depth to include in read operation. For: read")]
+            [Description("For read: Hierarchy depth to include in read operation")]
             int includeChildrenDepth = 3
         )
         {
@@ -66,7 +67,8 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 "save" => SavePrefab(),
                 "read" => ReadPrefab(prefabAssetPath, instanceID, includeChildrenDepth),
                 "instantiate" => InstantiatePrefab(prefabAssetPath, gameObjectPath, position, rotation, scale, isLocalSpace),
-                _ => "[Error] Invalid operation. Valid operations: 'create', 'open', 'close', 'save', 'read', 'instantiate'"
+                "instantiateinprefab" => InstantiatePrefabInPrefab(prefabAssetPath, gameObjectPath, position, rotation, scale, isLocalSpace),
+                _ => "[Error] Invalid operation. Valid operations: 'create', 'open', 'close', 'save', 'read', 'instantiate', 'instantiateInPrefab'"
             };
         }
 
@@ -265,6 +267,61 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 EditorApplication.RepaintHierarchyWindow();
 
                 return $"[Success] Prefab successfully instantiated.\n{go.Print()}";
+            });
+        }
+
+        private string InstantiatePrefabInPrefab(string? prefabAssetPath, string? gameObjectPath, Vector3? position, Vector3? rotation, Vector3? scale, bool isLocalSpace)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                // First check if we are in prefab editing mode
+                var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+                if (prefabStage == null)
+                    return "[Error] No prefab is currently opened for editing. Please open a prefab first using the 'open' operation.";
+
+                if (string.IsNullOrEmpty(prefabAssetPath))
+                    return Error.PrefabPathIsEmpty();
+
+                if (string.IsNullOrEmpty(gameObjectPath))
+                    return "[Error] GameObject path is required for instantiateInPrefab operation.";
+
+                // Load the prefab to instantiate
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabAssetPath);
+                if (prefab == null)
+                    return Error.NotFoundPrefabAtPath(prefabAssetPath);
+
+                // Find parent object in the currently opened prefab
+                var parentGo = default(GameObject);
+                var targetName = gameObjectPath;
+                
+                if (StringUtils.Path_ParseParent(gameObjectPath, out var parentPath, out var name))
+                {
+                    // Find parent object in the prefab
+                    parentGo = GameObjectUtils.FindByPath(parentPath, prefabStage.prefabContentsRoot);
+                    if (parentGo == null)
+                        return $"[Error] Parent GameObject not found at path '{parentPath}' in the opened prefab '{prefabStage.assetPath}'.";
+                    targetName = name;
+                }
+                else
+                {
+                    // If no parent path specified, create directly under prefab root
+                    parentGo = prefabStage.prefabContentsRoot;
+                }
+
+                // Instantiate the prefab
+                var go = PrefabUtility.InstantiatePrefab(prefab, parentGo?.transform) as GameObject;
+                if (go == null)
+                    return $"[Error] Failed to instantiate prefab '{prefabAssetPath}' in the opened prefab.";
+
+                // Set name and transform
+                go.name = targetName ?? prefab.name;
+                go.SetTransform(position, rotation, scale, isLocalSpace);
+
+                // Mark the prefab as modified
+                EditorUtility.SetDirty(prefabStage.prefabContentsRoot);
+                EditorApplication.RepaintHierarchyWindow();
+
+                return $"[Success] Prefab '{prefabAssetPath}' successfully instantiated in opened prefab '{prefabStage.assetPath}' at path '{gameObjectPath}'.\n{go.Print()}";
             });
         }
     }

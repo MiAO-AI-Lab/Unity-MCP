@@ -33,19 +33,19 @@ namespace com.MiAO.Unity.MCP.Editor.API
         (
             [Description("Operation type: 'find', 'read', 'copy', 'move', 'delete', 'createFolders', 'refresh'")]
             string operation,
-            [Description("Asset path (for read operation). Starts with 'Assets/'.")]
+            [Description("For read: Asset path. Starts with 'Assets/'.")]
             string? assetPath = null,
-            [Description("Asset GUID (for read operation).")]
+            [Description("For read: Asset GUID.")]
             string? assetGuid = null,
-            [Description("Search filter (for find operation). See documentation for details.")]
+            [Description("For find: Search filter. See documentation for details.")]
             string? filter = null,
-            [Description("Search folders (for find operation). If null, search all folders.")]
+            [Description("For find: Search folders. If null, search all folders.")]
             string[]? searchInFolders = null,
-            [Description("Source paths array (for copy, move, delete, createFolders operations).")]
+            [Description("For copy/move/delete/createFolders: Source paths array.")]
             string[]? sourcePaths = null,
-            [Description("Destination paths array (for copy, move operations).")]
+            [Description("For copy/move: Destination paths array.")]
             string[]? destinationPaths = null,
-            [Description("Folder paths array (for createFolders operation).")]
+            [Description("For createFolders: Folder paths array.")]
             string[]? folderPaths = null
         )
         {

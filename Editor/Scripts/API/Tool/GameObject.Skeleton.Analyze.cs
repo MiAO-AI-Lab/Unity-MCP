@@ -10,6 +10,7 @@ using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Animations;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
@@ -17,16 +18,19 @@ namespace com.MiAO.Unity.MCP.Editor.API
     {
         [McpPluginTool
         (
-            "GameObject_Skeleton_StandardizeNaming",
-            Title = "Analyze and Standardize Bone Naming"
+            "GameObject_Skeleton_Analyze",
+            Title = "Comprehensive Skeleton Analysis Tool"
         )]
-        [Description(@"Intelligent bone naming standardization analyzer that:
-- Automatically detects naming conventions from different DCC software (Mixamo, Blender, 3ds Max, Maya)
-- Maps bones to Unity Humanoid standard structure
-- Provides standardization suggestions without making direct changes
-- Generates detailed analysis report and recommendations")]
-        public string AnalyzeBoneNaming
+        [Description(@"Comprehensive skeleton analysis tool that combines multiple analysis capabilities:
+- getHierarchy: Extract detailed bone hierarchy structure with transform information
+- getReferences: Analyze bone references, dependencies, and usage patterns
+- standardizeNaming: Analyze and standardize bone naming conventions
+- detectNamingSource: Detect the source DCC software from bone naming patterns
+- all: Perform all analyses and generate comprehensive report")]
+        public string AnalyzeSkeleton
         (
+            [Description("Analysis operation type: 'getHierarchy', 'getReferences', 'standardizeNaming', 'detectNamingSource', or 'all'")]
+            string operation = "all",
             [Description("GameObject path in hierarchy (e.g., 'Root/Character/Body')")]
             string? gameObjectPath = null,
             [Description("GameObject name to search for in scene")]
@@ -37,93 +41,204 @@ namespace com.MiAO.Unity.MCP.Editor.API
             string? assetPathOrName = null,
             [Description("Asset GUID (alternative to assetPathOrName)")]
             string? assetGuid = null,
-            [Description("Include detailed mapping suggestions for each bone")]
+            [Description("Include detailed transform information (position, rotation, scale) - for getHierarchy")]
+            bool includeTransformDetails = false,
+            [Description("Maximum depth of bone hierarchy to display (-1 for unlimited) - for getHierarchy")]
+            int maxDepth = -1,
+            [Description("Include detailed reference information for each bone - for getReferences")]
+            bool includeDetailedReferences = true,
+            [Description("Analyze animation clips for bone dependencies - for getReferences")]
+            bool analyzeAnimationClips = true,
+            [Description("Include detailed mapping suggestions for each bone - for standardizeNaming")]
             bool includeDetailedSuggestions = true,
-            [Description("Show only issues and recommendations (skip successful mappings)")]
-            bool showOnlyIssues = false
+            [Description("Show only bones with issues or optimization opportunities - for getReferences and standardizeNaming")]
+            bool showOnlyIssues = false,
+            [Description("Maximum analysis depth (-1 for unlimited) - for getReferences")]
+            int maxAnalysisDepth = -1
         )
         {
             return MainThread.Instance.Run(() =>
             {
                 try
                 {
-                    GameObject targetGameObject = null;
-                    string sourceType = "";
-                    string sourceName = "";
-
-                    // Load target GameObject using same logic as GetHierarchy
+                    // Load target GameObject
                     var loadResult = LoadTargetGameObject(gameObjectPath, gameObjectName, gameObjectInstanceID, 
                         assetPathOrName, assetGuid);
                     if (!loadResult.success)
-                        return loadResult.errorMessage;
-                    
-                    targetGameObject = loadResult.gameObject;
-                    sourceType = loadResult.sourceType;
-                    sourceName = loadResult.sourceName;
+                        return $"[Error] {loadResult.errorMessage}";
 
-                    // Analyze bone naming
-                    var analyzer = new BoneNamingAnalyzer();
-                    var analysisResult = analyzer.AnalyzeBoneNaming(targetGameObject, includeDetailedSuggestions, showOnlyIssues);
-                    
-                    if (analysisResult == null)
+                    var targetGameObject = loadResult.gameObject;
+                    var sourceType = loadResult.sourceType;
+                    var sourceName = loadResult.sourceName;
+
+                    // Check if GameObject has skeleton data
+                    var skinnedMeshRenderers = targetGameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+                    if (skinnedMeshRenderers.Length == 0)
+                    {
                         return $"[Warning] No skeleton data found in {sourceType} '{sourceName}'. Target does not contain SkinnedMeshRenderer components.";
+                    }
 
-                    var report = FormatAnalysisReport(analysisResult, sourceType, sourceName);
-                    return report;
+                    var sb = new StringBuilder();
+                    
+                    switch (operation.ToLower())
+                    {
+                        case "gethierarchy":
+                            return GetSkeletonHierarchyInternal(targetGameObject, sourceType, sourceName, 
+                                includeTransformDetails, maxDepth);
+                        
+                        case "getreferences":
+                            return GetSkeletonReferencesInternal(targetGameObject, sourceType, sourceName, 
+                                includeDetailedReferences, analyzeAnimationClips, showOnlyIssues, maxAnalysisDepth);
+                        
+                        case "standardizenaming":
+                            return AnalyzeBoneNamingInternal(targetGameObject, sourceType, sourceName, 
+                                includeDetailedSuggestions, showOnlyIssues);
+                        
+                        case "detectnamingsource":
+                            return DetectBoneNamingSourceInternal(targetGameObject, sourceType, sourceName);
+                        
+                        case "all":
+                            return PerformComprehensiveAnalysis(targetGameObject, sourceType, sourceName,
+                                includeTransformDetails, maxDepth, includeDetailedReferences, analyzeAnimationClips,
+                                includeDetailedSuggestions, showOnlyIssues, maxAnalysisDepth);
+                        
+                        default:
+                            return $"[Error] Invalid operation '{operation}'. Valid operations: 'getHierarchy', 'getReferences', 'standardizeNaming', 'detectNamingSource', 'all'";
+                    }
                 }
                 catch (Exception ex)
                 {
-                    return $"[Error] Failed to analyze bone naming: {ex.Message}";
+                    return $"[Error] Failed to analyze skeleton: {ex.Message}";
                 }
             });
         }
 
-        [McpPluginTool
-        (
-            "GameObject_Skeleton_DetectNamingSource",
-            Title = "Detect Bone Naming Convention"
-        )]
-        [Description(@"Detect and identify the source of bone naming conventions:
-- Analyzes bone names to determine DCC software origin
-- Provides confidence scores for different naming patterns
-- Suggests the most likely naming convention source")]
-        public string DetectBoneNamingSource
-        (
-            [Description("GameObject path in hierarchy (e.g., 'Root/Character/Body')")]
-            string? gameObjectPath = null,
-            [Description("GameObject name to search for in scene")]
-            string? gameObjectName = null,
-            [Description("GameObject instance ID in scene")]
-            int gameObjectInstanceID = 0,
-            [Description("Asset path starting with 'Assets/' or asset name to search for")]
-            string? assetPathOrName = null,
-            [Description("Asset GUID (alternative to assetPathOrName)")]
-            string? assetGuid = null
-        )
+        private string PerformComprehensiveAnalysis(GameObject gameObject, string sourceType, string sourceName,
+            bool includeTransformDetails, int maxDepth, bool includeDetailedReferences, bool analyzeAnimationClips,
+            bool includeDetailedSuggestions, bool showOnlyIssues, int maxAnalysisDepth)
         {
-            return MainThread.Instance.Run(() =>
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("=== COMPREHENSIVE SKELETON ANALYSIS ===");
+            sb.AppendLine($"Source: {sourceType} - '{sourceName}'");
+            sb.AppendLine($"Target GameObject: '{gameObject.name}'");
+            sb.AppendLine($"Analysis Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine();
+
+            // 1. Hierarchy Analysis
+            sb.AppendLine("🏗️ ===== SKELETON HIERARCHY ANALYSIS =====");
+            var hierarchyResult = GetSkeletonHierarchyInternal(gameObject, sourceType, sourceName, 
+                includeTransformDetails, maxDepth);
+            sb.AppendLine(hierarchyResult.Replace($"[Success] Skeleton hierarchy extracted from {sourceType} '{sourceName}':\n\n", ""));
+            sb.AppendLine();
+
+            // 2. Naming Source Detection
+            sb.AppendLine("🔍 ===== NAMING SOURCE DETECTION =====");
+            var namingSourceResult = DetectBoneNamingSourceInternal(gameObject, sourceType, sourceName);
+            sb.AppendLine(namingSourceResult.Replace("=== BONE NAMING SOURCE DETECTION ===", "")
+                .Replace($"Source: {sourceType} - '{sourceName}'", "")
+                .Replace($"Analysis Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}", "").Trim());
+            sb.AppendLine();
+
+            // 3. Naming Standardization Analysis
+            sb.AppendLine("📏 ===== NAMING STANDARDIZATION ANALYSIS =====");
+            var namingAnalysisResult = AnalyzeBoneNamingInternal(gameObject, sourceType, sourceName, 
+                includeDetailedSuggestions, showOnlyIssues);
+            sb.AppendLine(namingAnalysisResult.Replace("=== BONE NAMING ANALYSIS REPORT ===", "")
+                .Replace($"Source: {sourceType} - '{sourceName}'", "")
+                .Replace($"Analysis Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}", "").Trim());
+            sb.AppendLine();
+
+            // 4. References Analysis
+            sb.AppendLine("🔗 ===== BONE REFERENCES ANALYSIS =====");
+            var referencesResult = GetSkeletonReferencesInternal(gameObject, sourceType, sourceName, 
+                includeDetailedReferences, analyzeAnimationClips, showOnlyIssues, maxAnalysisDepth);
+            sb.AppendLine(referencesResult.Replace("=== BONE REFERENCE ANALYSIS REPORT ===", "")
+                .Replace($"Source: {sourceType} - '{sourceName}'", "")
+                .Replace($"Analysis Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}", "").Trim());
+            sb.AppendLine();
+
+            // 5. Overall Summary and Recommendations
+            sb.AppendLine("📊 ===== OVERALL SUMMARY =====");
+            GenerateOverallSummary(sb, gameObject);
+
+            return sb.ToString();
+        }
+
+        private void GenerateOverallSummary(StringBuilder sb, GameObject gameObject)
+        {
+            var skinnedMeshRenderers = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+            var totalBones = 0;
+            var totalVertices = 0;
+            
+            foreach (var smr in skinnedMeshRenderers)
             {
-                try
-                {
-                    var loadResult = LoadTargetGameObject(gameObjectPath, gameObjectName, gameObjectInstanceID, 
-                        assetPathOrName, assetGuid);
-                    if (!loadResult.success)
-                        return loadResult.errorMessage;
+                if (smr.bones != null)
+                    totalBones += smr.bones.Length;
+                if (smr.sharedMesh != null)
+                    totalVertices += smr.sharedMesh.vertexCount;
+            }
 
-                    var detector = new BoneNamingSourceDetector();
-                    var bones = GetAllBones(loadResult.gameObject);
-                    
-                    if (bones.Length == 0)
-                        return $"[Warning] No bones found in target GameObject.";
+            sb.AppendLine($"├─ Total SkinnedMeshRenderers: {skinnedMeshRenderers.Length}");
+            sb.AppendLine($"├─ Total Bones: {totalBones}");
+            sb.AppendLine($"├─ Total Vertices: {totalVertices}");
+            sb.AppendLine();
 
-                    var detectionResult = detector.DetectNamingSource(bones);
-                    return FormatDetectionReport(detectionResult, loadResult.sourceType, loadResult.sourceName);
-                }
-                catch (Exception ex)
-                {
-                    return $"[Error] Failed to detect naming source: {ex.Message}";
-                }
-            });
+            sb.AppendLine("🎯 FINAL RECOMMENDATIONS:");
+            sb.AppendLine("├─ Review naming standardization suggestions for better Unity Humanoid compatibility");
+            sb.AppendLine("├─ Address any bone reference issues to optimize performance");
+            sb.AppendLine("├─ Consider bone hierarchy optimization if performance is critical");
+            sb.AppendLine("└─ Verify all critical bones are properly mapped for animation systems");
+        }
+
+        private string GetSkeletonHierarchyInternal(GameObject gameObject, string sourceType, string sourceName, 
+            bool includeTransformDetails, int maxDepth)
+        {
+            var skeletonInfo = ExtractSkeletonHierarchy(gameObject, includeTransformDetails, maxDepth, sourceType, sourceName);
+            
+            if (string.IsNullOrEmpty(skeletonInfo))
+                return $"[Warning] No skeleton data found in {sourceType} '{sourceName}'. Target does not contain SkinnedMeshRenderer components with bone hierarchy.";
+
+            return $"[Success] Skeleton hierarchy extracted from {sourceType} '{sourceName}':\n\n{skeletonInfo}";
+        }
+
+        private string GetSkeletonReferencesInternal(GameObject gameObject, string sourceType, string sourceName,
+            bool includeDetailedReferences, bool analyzeAnimationClips, bool showOnlyIssues, int maxAnalysisDepth)
+        {
+            var analyzer = new BoneReferenceAnalyzer();
+            var result = analyzer.AnalyzeBoneReferences(
+                gameObject, 
+                includeDetailedReferences, 
+                analyzeAnimationClips, 
+                showOnlyIssues,
+                maxAnalysisDepth
+            );
+            
+            return FormatReferenceReport(result, sourceType, sourceName);
+        }
+
+        private string AnalyzeBoneNamingInternal(GameObject gameObject, string sourceType, string sourceName,
+            bool includeDetailedSuggestions, bool showOnlyIssues)
+        {
+            var analyzer = new BoneNamingAnalyzer();
+            var analysisResult = analyzer.AnalyzeBoneNaming(gameObject, includeDetailedSuggestions, showOnlyIssues);
+            
+            if (analysisResult == null)
+                return $"[Warning] No skeleton data found in {sourceType} '{sourceName}'. Target does not contain SkinnedMeshRenderer components.";
+
+            return FormatAnalysisReport(analysisResult, sourceType, sourceName);
+        }
+
+        private string DetectBoneNamingSourceInternal(GameObject gameObject, string sourceType, string sourceName)
+        {
+            var detector = new BoneNamingSourceDetector();
+            var bones = GetAllBones(gameObject);
+            
+            if (bones.Length == 0)
+                return $"[Warning] No bones found in target GameObject.";
+
+            var detectionResult = detector.DetectNamingSource(bones);
+            return FormatDetectionReport(detectionResult, sourceType, sourceName);
         }
 
         private (bool success, GameObject gameObject, string sourceType, string sourceName, string errorMessage) LoadTargetGameObject(
@@ -183,6 +298,227 @@ namespace com.MiAO.Unity.MCP.Editor.API
             return (true, targetGameObject, sourceType, sourceName, "");
         }
 
+        private (bool success, GameObject gameObject, string assetPath, string errorMessage) LoadGameObjectFromAsset(string assetPathOrName, string assetGuid)
+        {
+            try
+            {
+                string assetPath = string.Empty;
+                
+                // If GUID is provided, convert to path
+                if (!string.IsNullOrEmpty(assetGuid))
+                {
+                    assetPath = AssetDatabase.GUIDToAssetPath(assetGuid);
+                }
+                // If path is provided directly
+                else if (!string.IsNullOrEmpty(assetPathOrName) && assetPathOrName.StartsWith("Assets/"))
+                {
+                    assetPath = assetPathOrName;
+                }
+                // If it's a name, search for it
+                else if (!string.IsNullOrEmpty(assetPathOrName))
+                {
+                    assetPath = FindAssetByName(assetPathOrName);
+                    if (string.IsNullOrEmpty(assetPath))
+                        return (false, null, "", $"[Error] Asset with name '{assetPathOrName}' not found in project.");
+                }
+
+                if (string.IsNullOrEmpty(assetPath))
+                    return (false, null, "", $"[Error] Asset not found. Path: '{assetPathOrName}'. GUID: '{assetGuid}'.");
+
+                // Load the asset
+                var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+                if (asset == null)
+                    return (false, null, "", $"[Error] Failed to load asset at path '{assetPath}'.");
+
+                // Try to load as GameObject (for prefabs)
+                var gameObject = asset as GameObject;
+                if (gameObject == null)
+                {
+                    // Try to load main asset if it's a model file
+                    gameObject = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+                }
+
+                if (gameObject == null)
+                    return (false, null, "", $"[Error] Asset at path '{assetPath}' is not a GameObject or does not contain skeleton data.");
+
+                return (true, gameObject, assetPath, "");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, "", $"[Error] Failed to load asset: {ex.Message}");
+            }
+        }
+
+        private string FindAssetByName(string assetName)
+        {
+            // Search for assets with the given name
+            var guids = AssetDatabase.FindAssets($"{assetName} t:GameObject");
+            if (guids.Length == 0)
+            {
+                // Also search for model files
+                guids = AssetDatabase.FindAssets($"{assetName} t:Model");
+            }
+
+            if (guids.Length > 0)
+            {
+                // Return first match
+                return AssetDatabase.GUIDToAssetPath(guids[0]);
+            }
+
+            return string.Empty;
+        }
+
+        private string ExtractSkeletonHierarchy(GameObject gameObject, bool includeTransformDetails, int maxDepth, string sourceType, string sourceName)
+        {
+            var stringBuilder = new StringBuilder();
+            var skinnedMeshRenderers = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+
+            if (skinnedMeshRenderers.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            stringBuilder.AppendLine("=== SKELETON HIERARCHY ===");
+            stringBuilder.AppendLine($"Source: {sourceType} - '{sourceName}'");
+            stringBuilder.AppendLine($"Target GameObject: '{gameObject.name}'");
+            stringBuilder.AppendLine($"Found {skinnedMeshRenderers.Length} SkinnedMeshRenderer(s)");
+            stringBuilder.AppendLine();
+
+            for (int i = 0; i < skinnedMeshRenderers.Length; i++)
+            {
+                var smr = skinnedMeshRenderers[i];
+                stringBuilder.AppendLine($"[{i + 1}] SkinnedMeshRenderer: '{smr.name}'");
+                stringBuilder.AppendLine($"    GameObject Path: '{GetGameObjectPath(smr.gameObject)}'");
+                
+                if (smr.bones != null && smr.bones.Length > 0)
+                {
+                    stringBuilder.AppendLine($"    Root Bone: {(smr.rootBone != null ? smr.rootBone.name : "None")}");
+                    stringBuilder.AppendLine($"    Total Bones: {smr.bones.Length}");
+                    stringBuilder.AppendLine();
+
+                    // Build bone hierarchy
+                    var boneHierarchy = BuildBoneHierarchy(smr.bones, smr.rootBone);
+                    var formattedHierarchy = FormatBoneHierarchy(boneHierarchy, includeTransformDetails, maxDepth);
+                    stringBuilder.AppendLine(formattedHierarchy);
+                }
+                else
+                {
+                    stringBuilder.AppendLine("    No bones found.");
+                }
+                
+                if (i < skinnedMeshRenderers.Length - 1)
+                    stringBuilder.AppendLine();
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        private string GetGameObjectPath(GameObject gameObject)
+        {
+            if (gameObject == null) return "";
+            
+            var path = gameObject.name;
+            var parent = gameObject.transform.parent;
+            
+            while (parent != null)
+            {
+                path = parent.name + "/" + path;
+                parent = parent.parent;
+            }
+            
+            return path;
+        }
+
+        private Dictionary<Transform, List<Transform>> BuildBoneHierarchy(Transform[] bones, Transform rootBone)
+        {
+            var hierarchy = new Dictionary<Transform, List<Transform>>();
+            var boneSet = new HashSet<Transform>(bones);
+
+            // Initialize hierarchy dictionary
+            foreach (var bone in bones)
+            {
+                if (bone != null)
+                    hierarchy[bone] = new List<Transform>();
+            }
+
+            // Build parent-child relationships
+            foreach (var bone in bones)
+            {
+                if (bone != null && bone.parent != null && boneSet.Contains(bone.parent))
+                {
+                    if (hierarchy.ContainsKey(bone.parent))
+                        hierarchy[bone.parent].Add(bone);
+                }
+            }
+
+            return hierarchy;
+        }
+
+        private string FormatBoneHierarchy(Dictionary<Transform, List<Transform>> hierarchy, bool includeTransformDetails, int maxDepth)
+        {
+            var stringBuilder = new StringBuilder();
+            var visited = new HashSet<Transform>();
+
+            // Find root bones (bones without parents in the bone set)
+            var rootBones = new List<Transform>();
+            foreach (var bone in hierarchy.Keys)
+            {
+                if (bone.parent == null || !hierarchy.ContainsKey(bone.parent))
+                    rootBones.Add(bone);
+            }
+
+            // Sort root bones by name for consistent output
+            rootBones.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
+
+            // Format each root bone and its children
+            foreach (var rootBone in rootBones)
+            {
+                FormatBoneRecursive(rootBone, hierarchy, stringBuilder, visited, 0, includeTransformDetails, maxDepth);
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        private void FormatBoneRecursive(Transform bone, Dictionary<Transform, List<Transform>> hierarchy, 
+            StringBuilder stringBuilder, HashSet<Transform> visited, int depth, bool includeTransformDetails, int maxDepth)
+        {
+            if (bone == null || visited.Contains(bone) || (maxDepth >= 0 && depth > maxDepth))
+                return;
+
+            visited.Add(bone);
+
+            // Create indentation based on depth
+            var indent = new string(' ', depth * 2);
+            var connector = depth > 0 ? "├─ " : "";
+
+            stringBuilder.Append($"{indent}{connector}{bone.name}");
+
+            if (includeTransformDetails)
+            {
+                var pos = bone.localPosition;
+                var rot = bone.localEulerAngles;
+                var scale = bone.localScale;
+                stringBuilder.Append($" [Pos: ({pos.x:F2}, {pos.y:F2}, {pos.z:F2}), ");
+                stringBuilder.Append($"Rot: ({rot.x:F1}, {rot.y:F1}, {rot.z:F1}), ");
+                stringBuilder.Append($"Scale: ({scale.x:F2}, {scale.y:F2}, {scale.z:F2})]");
+            }
+
+            stringBuilder.AppendLine();
+
+            // Recursively format children
+            if (hierarchy.ContainsKey(bone))
+            {
+                var children = hierarchy[bone];
+                // Sort children by name for consistent output
+                children.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
+                
+                foreach (var child in children)
+                {
+                    FormatBoneRecursive(child, hierarchy, stringBuilder, visited, depth + 1, includeTransformDetails, maxDepth);
+                }
+            }
+        }
+
         private Transform[] GetAllBones(GameObject gameObject)
         {
             var bones = new List<Transform>();
@@ -197,6 +533,84 @@ namespace com.MiAO.Unity.MCP.Editor.API
             }
             
             return bones.Distinct().ToArray();
+        }
+
+        private string FormatReferenceReport(BoneReferenceAnalysisResult result, string sourceType, string sourceName)
+        {
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("=== BONE REFERENCE ANALYSIS REPORT ===");
+            sb.AppendLine($"Source: {sourceType} - '{sourceName}'");
+            sb.AppendLine($"Analysis Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine();
+            
+            // Summary
+            sb.AppendLine("📊 ANALYSIS SUMMARY");
+            sb.AppendLine($"├─ Total Bones Found: {result.TotalBonesCount}");
+            sb.AppendLine($"├─ Referenced Bones: {result.ReferencedBonesCount}");
+            sb.AppendLine($"├─ Unused Bones: {result.UnusedBonesCount}");
+            sb.AppendLine($"├─ SkinnedMeshRenderers: {result.SkinnedMeshRenderersCount}");
+            sb.AppendLine($"└─ Issues Found: {result.IssuesCount}");
+            sb.AppendLine();
+            
+            // SkinnedMeshRenderer Analysis
+            if (result.SkinnedMeshAnalysis.Count > 0)
+            {
+                sb.AppendLine("🎭 SKINNEDMESHRENDERER ANALYSIS");
+                foreach (var smr in result.SkinnedMeshAnalysis)
+                {
+                    sb.AppendLine($"├─ {smr.RendererName}");
+                    sb.AppendLine($"│  ├─ Bones Used: {smr.BonesUsed}");
+                    sb.AppendLine($"│  ├─ Null Bones: {smr.NullBones}");
+                    sb.AppendLine($"│  └─ Mesh Vertices: {smr.VertexCount}");
+                }
+                sb.AppendLine();
+            }
+            
+            // Bone Reference Details
+            if (result.BoneReferences.Count > 0 && !result.ShowOnlyIssues)
+            {
+                sb.AppendLine("🔗 BONE REFERENCE DETAILS");
+                foreach (var bone in result.BoneReferences.OrderBy(b => b.BoneName))
+                {
+                    sb.AppendLine($"├─ {bone.BoneName}");
+                    sb.AppendLine($"│  ├─ References: {bone.ReferenceCount}");
+                    sb.AppendLine($"│  ├─ Used in SMR: {bone.UsedInSkinnedMeshRenderer}");
+                    sb.AppendLine($"│  └─ Has Children: {bone.HasChildren}");
+                }
+                sb.AppendLine();
+            }
+            
+            // Issues and Unused Bones
+            if (result.Issues.Count > 0)
+            {
+                sb.AppendLine("⚠️ ISSUES AND UNUSED BONES");
+                foreach (var issue in result.Issues)
+                {
+                    sb.AppendLine($"├─ {issue.Type}: {issue.Description}");
+                    if (issue.AffectedBones.Count > 0)
+                    {
+                        foreach (var bone in issue.AffectedBones.Take(5))
+                        {
+                            sb.AppendLine($"│  └─ {bone}");
+                        }
+                        if (issue.AffectedBones.Count > 5)
+                        {
+                            sb.AppendLine($"│  └─ ... and {issue.AffectedBones.Count - 5} more");
+                        }
+                    }
+                    sb.AppendLine();
+                }
+            }
+            
+            // Optimization Recommendations
+            sb.AppendLine("💡 OPTIMIZATION RECOMMENDATIONS");
+            foreach (var recommendation in result.OptimizationRecommendations)
+            {
+                sb.AppendLine($"├─ {recommendation}");
+            }
+            
+            return sb.ToString();
         }
 
         private string FormatAnalysisReport(BoneNamingAnalysisResult result, string sourceType, string sourceName)
@@ -320,6 +734,229 @@ namespace com.MiAO.Unity.MCP.Editor.API
             }
             
             return sb.ToString();
+        }
+    }
+
+    // Data structures for bone reference analysis
+    public class BoneReferenceAnalysisResult
+    {
+        public int TotalBonesCount { get; set; }
+        public int ReferencedBonesCount { get; set; }
+        public int UnusedBonesCount { get; set; }
+        public int SkinnedMeshRenderersCount { get; set; }
+        public int IssuesCount { get; set; }
+        public bool ShowOnlyIssues { get; set; }
+        
+        public List<BoneReferenceInfo> BoneReferences { get; set; } = new List<BoneReferenceInfo>();
+        public List<SkinnedMeshRendererInfo> SkinnedMeshAnalysis { get; set; } = new List<SkinnedMeshRendererInfo>();
+        public List<BoneIssue> Issues { get; set; } = new List<BoneIssue>();
+        public List<string> OptimizationRecommendations { get; set; } = new List<string>();
+    }
+
+    public class BoneReferenceInfo
+    {
+        public string BoneName { get; set; } = "";
+        public Transform BoneTransform { get; set; }
+        public int ReferenceCount { get; set; }
+        public bool UsedInSkinnedMeshRenderer { get; set; }
+        public bool HasChildren { get; set; }
+    }
+
+    public class SkinnedMeshRendererInfo
+    {
+        public string RendererName { get; set; } = "";
+        public int BonesUsed { get; set; }
+        public int NullBones { get; set; }
+        public int VertexCount { get; set; }
+        public List<string> BoneNames { get; set; } = new List<string>();
+    }
+
+    public class BoneIssue
+    {
+        public string Type { get; set; } = "";
+        public string Description { get; set; } = "";
+        public List<string> AffectedBones { get; set; } = new List<string>();
+        public string Severity { get; set; } = "Medium";
+    }
+
+    public class BoneReferenceAnalyzer
+    {
+        public BoneReferenceAnalysisResult AnalyzeBoneReferences(
+            GameObject gameObject, 
+            bool includeDetailedReferences, 
+            bool analyzeAnimationClips, 
+            bool showOnlyIssues,
+            int maxDepth)
+        {
+            var result = new BoneReferenceAnalysisResult
+            {
+                ShowOnlyIssues = showOnlyIssues
+            };
+
+            // Get all bones in the hierarchy
+            var allBones = GetAllBonesInHierarchy(gameObject, maxDepth);
+            result.TotalBonesCount = allBones.Count;
+
+            // Analyze SkinnedMeshRenderers
+            var skinnedMeshRenderers = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+            result.SkinnedMeshRenderersCount = skinnedMeshRenderers.Length;
+            
+            var referencedBones = new HashSet<Transform>();
+            
+            foreach (var smr in skinnedMeshRenderers)
+            {
+                var smrInfo = AnalyzeSkinnedMeshRenderer(smr);
+                result.SkinnedMeshAnalysis.Add(smrInfo);
+                
+                if (smr.bones != null)
+                {
+                    foreach (var bone in smr.bones)
+                    {
+                        if (bone != null)
+                            referencedBones.Add(bone);
+                    }
+                }
+            }
+
+            // Analyze bone references
+            foreach (var bone in allBones)
+            {
+                var boneInfo = new BoneReferenceInfo
+                {
+                    BoneName = bone.name,
+                    BoneTransform = bone,
+                    UsedInSkinnedMeshRenderer = referencedBones.Contains(bone),
+                    HasChildren = bone.childCount > 0,
+                    ReferenceCount = referencedBones.Contains(bone) ? 1 : 0
+                };
+
+                result.BoneReferences.Add(boneInfo);
+            }
+
+            // Calculate statistics
+            result.ReferencedBonesCount = result.BoneReferences.Count(b => b.ReferenceCount > 0 || b.UsedInSkinnedMeshRenderer);
+            result.UnusedBonesCount = result.TotalBonesCount - result.ReferencedBonesCount;
+
+            // Identify issues
+            result.Issues = IdentifyBoneIssues(result);
+            result.IssuesCount = result.Issues.Count;
+
+            // Generate optimization recommendations
+            result.OptimizationRecommendations = GenerateOptimizationRecommendations(result);
+
+            return result;
+        }
+
+        private List<Transform> GetAllBonesInHierarchy(GameObject gameObject, int maxDepth)
+        {
+            var bones = new List<Transform>();
+            var skinnedMeshRenderers = gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+            
+            foreach (var smr in skinnedMeshRenderers)
+            {
+                if (smr.bones != null)
+                {
+                    bones.AddRange(smr.bones.Where(b => b != null));
+                }
+            }
+            
+            // Also include Transform hierarchy if no SkinnedMeshRenderer bones found
+            if (bones.Count == 0)
+            {
+                GetTransformHierarchy(gameObject.transform, bones, 0, maxDepth);
+            }
+            
+            return bones.Distinct().ToList();
+        }
+
+        private void GetTransformHierarchy(Transform transform, List<Transform> bones, int currentDepth, int maxDepth)
+        {
+            if (maxDepth >= 0 && currentDepth > maxDepth)
+                return;
+                
+            bones.Add(transform);
+            
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                GetTransformHierarchy(transform.GetChild(i), bones, currentDepth + 1, maxDepth);
+            }
+        }
+
+        private SkinnedMeshRendererInfo AnalyzeSkinnedMeshRenderer(SkinnedMeshRenderer smr)
+        {
+            var info = new SkinnedMeshRendererInfo
+            {
+                RendererName = smr.name,
+                VertexCount = smr.sharedMesh?.vertexCount ?? 0
+            };
+
+            if (smr.bones != null)
+            {
+                info.BonesUsed = smr.bones.Count(b => b != null);
+                info.NullBones = smr.bones.Count(b => b == null);
+                info.BoneNames = smr.bones.Where(b => b != null).Select(b => b.name).ToList();
+            }
+
+            return info;
+        }
+
+        private List<BoneIssue> IdentifyBoneIssues(BoneReferenceAnalysisResult result)
+        {
+            var issues = new List<BoneIssue>();
+            
+            // Find unused bones
+            var unusedBones = result.BoneReferences
+                .Where(b => !b.UsedInSkinnedMeshRenderer && b.ReferenceCount == 0)
+                .Select(b => b.BoneName)
+                .ToList();
+            
+            if (unusedBones.Count > 0)
+            {
+                issues.Add(new BoneIssue
+                {
+                    Type = "Unused Bones",
+                    Description = $"Found {unusedBones.Count} bones that are not referenced by any component",
+                    AffectedBones = unusedBones,
+                    Severity = "Low"
+                });
+            }
+
+            // Find null bone references in SkinnedMeshRenderers
+            var nullBoneCount = result.SkinnedMeshAnalysis.Sum(smr => smr.NullBones);
+            if (nullBoneCount > 0)
+            {
+                issues.Add(new BoneIssue
+                {
+                    Type = "Null Bone References",
+                    Description = $"Found {nullBoneCount} null bone references in SkinnedMeshRenderers",
+                    Severity = "High"
+                });
+            }
+
+            return issues;
+        }
+
+        private List<string> GenerateOptimizationRecommendations(BoneReferenceAnalysisResult result)
+        {
+            var recommendations = new List<string>();
+            
+            if (result.UnusedBonesCount > 0)
+            {
+                recommendations.Add($"🗑️ Consider removing {result.UnusedBonesCount} unused bones to optimize performance");
+            }
+            
+            var nullBoneCount = result.SkinnedMeshAnalysis.Sum(smr => smr.NullBones);
+            if (nullBoneCount > 0)
+            {
+                recommendations.Add($"⚠️ Fix {nullBoneCount} null bone references in SkinnedMeshRenderers");
+            }
+            
+            if (result.BoneReferences.Count > 100)
+            {
+                recommendations.Add("📊 Consider bone hierarchy optimization for better performance");
+            }
+            
+            return recommendations;
         }
     }
 

@@ -27,9 +27,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
             string operation,
             [Description("Timeline asset path. Starts with 'Assets/'. Ends with '.playable'.")]
             string timelineAssetPath,
-            [Description("GameObject name (for attach operation, optional if instanceID provided)")]
+            [Description("For attach: GameObject name (optional if instanceID provided)")]
             string? gameObjectName = null,
-            [Description("GameObject instanceID (for attach operation, takes priority over name)")]
+            [Description("For attach: GameObject instanceID (takes priority over name)")]
             int? gameObjectInstanceID = null
         )
         {
