@@ -1,4 +1,5 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -126,7 +127,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 if (error != null)
                     return error;
 
-                Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(go);
                 return $"[Success] Destroy GameObject.";
             });
         }
@@ -186,31 +187,87 @@ Duplicated instanceIDs:
                         $"gameObjectDiffs: {gameObjectDiffs.Count}, gameObjectRefs: {gameObjectRefs.Count}";
 
                 var stringBuilder = new StringBuilder();
+                var successCount = 0;
+                var errorCount = 0;
 
                 for (int i = 0; i < gameObjectRefs.Count; i++)
                 {
                     var go = GameObjectUtils.FindBy(gameObjectRefs[i], out var error);
                     if (error != null)
                     {
-                        stringBuilder.AppendLine(error);
+                        stringBuilder.AppendLine($"[Error] GameObject {i}: {error}");
+                        errorCount++;
                         continue;
                     }
-                    var objToModify = (object)go;
-                    var type = TypeUtils.GetType(gameObjectDiffs[i].typeName);
-                    if (typeof(UnityEngine.Component).IsAssignableFrom(type))
+
+                    try
                     {
-                        var component = go.GetComponent(type);
-                        if (component == null)
+                        var objToModify = (object)go;
+                        var type = TypeUtils.GetType(gameObjectDiffs[i].typeName);
+                        if (typeof(UnityEngine.Component).IsAssignableFrom(type))
                         {
-                            stringBuilder.AppendLine($"[Error] Component '{type.FullName}' not found on GameObject '{go.name}'.");
-                            continue;
+                            var component = go.GetComponent(type);
+                            if (component == null)
+                            {
+                                stringBuilder.AppendLine($"[Error] GameObject {i}: Component '{type.FullName}' not found on GameObject '{go.name}'.");
+                                errorCount++;
+                                continue;
+                            }
+                            objToModify = component;
                         }
-                        objToModify = component;
+
+                        var populateResult = Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i]);
+                        var populateResultString = populateResult.ToString().Trim();
+
+                        // 检查结果是否包含错误信息
+                        if (string.IsNullOrEmpty(populateResultString))
+                        {
+                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' modified successfully (no detailed feedback).");
+                            successCount++;
+                        }
+                        else if (populateResultString.Contains("[Error]") || populateResultString.Contains("error", StringComparison.OrdinalIgnoreCase))
+                        {
+                            stringBuilder.AppendLine($"[Error] GameObject {i}: '{go.name}' - {populateResultString}");
+                            errorCount++;
+                        }
+                        else
+                        {
+                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {populateResultString}");
+                            successCount++;
+                        }
+
+                        // 标记对象为已修改
+                        if (objToModify is UnityEngine.Object unityObj)
+                        {
+                            EditorUtility.SetDirty(unityObj);
+                        }
                     }
-                    Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i], stringBuilder);
+                    catch (Exception ex)
+                    {
+                        stringBuilder.AppendLine($"[Error] GameObject {i}: Exception occurred - {ex.Message}");
+                        errorCount++;
+                    }
                 }
 
-                return stringBuilder.ToString();
+                // 生成总结
+                var summary = new StringBuilder();
+                if (successCount > 0 && errorCount == 0)
+                {
+                    summary.AppendLine($"[Success] All {successCount} GameObject(s) modified successfully.");
+                }
+                else if (successCount > 0 && errorCount > 0)
+                {
+                    summary.AppendLine($"[Partial Success] {successCount} GameObject(s) modified successfully, {errorCount} failed.");
+                }
+                else if (errorCount > 0)
+                {
+                    summary.AppendLine($"[Error] All {errorCount} GameObject(s) failed to modify.");
+                }
+
+                summary.AppendLine();
+                summary.Append(stringBuilder);
+
+                return summary.ToString();
             });
         }
 
