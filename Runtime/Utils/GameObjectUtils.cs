@@ -177,9 +177,9 @@ namespace com.MiAO.Unity.MCP.Utils
 
             return path.ToString();
         }
-        public static string Print(this GameObject go) => go == null
+        public static string Print(this GameObject go, bool includeBounds = true) => go == null
             ? null
-            : $"instanceID: {go.GetInstanceID()}, path: {go.GetPath()}, bounds: {JsonUtils.Serialize(go.CalculateBounds())}";
+            : $"instanceID: {go.GetInstanceID()}, path: {go.GetPath()}{(includeBounds ? $", bounds: {JsonUtils.Serialize(go.CalculateBounds())}" : "")}";
 
         public static string Print(this IEnumerable<GameObject> gos)
         {
