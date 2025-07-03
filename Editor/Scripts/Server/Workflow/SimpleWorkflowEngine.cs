@@ -36,7 +36,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
         public void RegisterGateway(IRpcGateway gateway)
         {
             _gateways[gateway.GatewayId] = gateway;
-            _logger.LogInformation($"[SimpleWorkflowEngine] Registered gateway: {gateway.GatewayId}");
+            _logger.LogTrace($"[SimpleWorkflowEngine] Registered gateway: {gateway.GatewayId}");
         }
 
         public async Task<WorkflowResult> ExecuteWorkflowAsync(WorkflowDefinition workflow, IDataFlowContext context)
@@ -46,7 +46,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
 
             try
             {
-                _logger.LogInformation($"[SimpleWorkflowEngine] Starting workflow: {workflow.Name} ({workflow.Id})");
+                _logger.LogTrace($"[SimpleWorkflowEngine] Starting workflow: {workflow.Name} ({workflow.Id})");
 
                 // Execute steps in sequential order
                 foreach (var step in workflow.Steps)
@@ -75,7 +75,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
                 result.Metadata["workflowId"] = workflow.Id;
                 result.Metadata["stepCount"] = workflow.Steps.Count;
 
-                _logger.LogInformation($"[SimpleWorkflowEngine] Completed workflow: {workflow.Name}, Success: {result.IsSuccess}, Time: {result.ExecutionTime}");
+                _logger.LogTrace($"[SimpleWorkflowEngine] Completed workflow: {workflow.Name}, Success: {result.IsSuccess}, Time: {result.ExecutionTime}");
                 return result;
             }
             catch (Exception ex)
@@ -319,7 +319,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
         public async Task RegisterWorkflowAsync(WorkflowDefinition workflow)
         {
             _workflows[workflow.Id] = workflow;
-            _logger.LogInformation($"[SimpleWorkflowEngine] Registered workflow: {workflow.Name} ({workflow.Id})");
+            _logger.LogTrace($"[SimpleWorkflowEngine] Registered workflow: {workflow.Name} ({workflow.Id})");
             await Task.CompletedTask;
         }
 
