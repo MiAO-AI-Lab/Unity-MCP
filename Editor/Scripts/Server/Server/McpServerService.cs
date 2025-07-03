@@ -69,6 +69,9 @@ namespace com.MiAO.Unity.MCP.Server
             _logger.LogTrace("{0} OnListToolUpdated", GetType().Name);
             try
             {
+                // Notify cache manager that tools have changed
+                ToolRouter.NotifyUnityToolsChanged();
+
                 await _mcpServer.SendNotificationAsync(NotificationMethods.ToolListChangedNotification, cancellationToken);
             }
             catch (Exception ex)
