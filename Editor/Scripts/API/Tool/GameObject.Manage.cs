@@ -61,10 +61,20 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 "create" => CreateGameObject(name, parentGameObjectRef, position, rotation, scale, isLocalSpace, primitiveType),
                 "destroy" => DestroyGameObject(gameObjectRef),
                 "duplicate" => DuplicateGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList())),
-                "modify" => ModifyGameObjects(gameObjectDiffs, gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList())),
+                "modify" => ModifyGameObjects(gameObjectDiffs, gameObjectRefs ?? (gameObjectRef != null ? GenerateGameObjectRefListFromSingleGameObjectRef(gameObjectRef, gameObjectDiffs?.Count ?? 0) : new GameObjectRefList())),
                 "setparent" => SetParentGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), parentGameObjectRef, worldPositionStays),
                 _ => "[Error] Invalid operation. Valid operations: 'create', 'destroy', 'duplicate', 'modify', 'setParent'"
             };
+        }
+
+        private GameObjectRefList GenerateGameObjectRefListFromSingleGameObjectRef(GameObjectRef gameObjectRef, int copiesCount)
+        {
+            var list = new GameObjectRefList();
+            for (int i = 0; i < copiesCount; i++)
+            {
+                list.Add(gameObjectRef);
+            }
+            return list;
         }
 
         private string CreateGameObject(string? name, GameObjectRef? parentGameObjectRef, Vector3? position, Vector3? rotation, Vector3? scale, bool isLocalSpace, int primitiveType)
