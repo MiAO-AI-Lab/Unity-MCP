@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core;
 using com.IvanMurzak.ReflectorNet.Utils;
+using com.MiAO.Unity.MCP.Server.Utils;
 
 namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
 {
@@ -24,26 +25,23 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         private readonly IWorkflowEngine _workflowEngine;
         private readonly Dictionary<string, Guid> _sessionMapping = new();
 
-        // Cache management for workflow loading optimization
-        private DateTime _lastLoadTime = DateTime.MinValue;
-        private int _callsSinceLastLoad = 0;
+        // Use multi-level cache manager for workflow tools
+        private readonly MultiLevelCacheManager<List<Tool>> _workflowToolsCacheManager;
         private readonly Dictionary<string, DateTime> _fileModificationTimes = new();
-
-        // Configuration constants for cache management
-        private static readonly TimeSpan MinReloadInterval = TimeSpan.FromMinutes(5);
-        private static readonly int MaxCallsBeforeReload = 100;
-        private static readonly TimeSpan FileCheckInterval = TimeSpan.FromMinutes(1);
-        private DateTime _lastFileCheckTime = DateTime.MinValue;
-
-        // Configuration properties for runtime adjustment
-        public TimeSpan MinReloadIntervalOverride { get; set; } = TimeSpan.Zero;
-        public int MaxCallsBeforeReloadOverride { get; set; } = 0;
-        public TimeSpan FileCheckIntervalOverride { get; set; } = TimeSpan.Zero;
 
         public WorkflowToolAdapter(ILogger<WorkflowToolAdapter> logger, IWorkflowEngine workflowEngine)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _workflowEngine = workflowEngine ?? throw new ArgumentNullException(nameof(workflowEngine));
+
+            // Initialize workflow tools cache manager
+            _workflowToolsCacheManager = new MultiLevelCacheManager<List<Tool>>(
+                logger,
+                "WorkflowTools",
+                LoadWorkflowToolsFromEngineAsync,
+                MultiLevelCacheConfig.Default,
+                HasWorkflowFilesChangedAsync
+            );
         }
 
         /// <summary>
@@ -54,7 +52,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         public async Task InitializeAsync()
         {
             await LoadBuiltinWorkflowsAsync();
-            _logger.Trace("[WorkflowToolAdapter] Initialized");
+            _logger.LogTrace("[WorkflowToolAdapter] Initialized");
         }
 
         /// <summary>
@@ -68,29 +66,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         {
             try
             {
-                // Increment call counter
-                _callsSinceLastLoad++;
-
-                // Check if we need to reload workflows based on various criteria
-                if (await ShouldReloadWorkflowsAsync())
-                {
-                    await LoadBuiltinWorkflowsAsync();
-                    _lastLoadTime = DateTime.Now;
-                    _callsSinceLastLoad = 0;
-                    _logger.LogTrace($"[WorkflowToolAdapter] Reloaded workflows from disk");
-                }
-
-                var workflows = await _workflowEngine.GetAvailableWorkflowsAsync();
-                var tools = new List<Tool>();
-
-                foreach (var workflow in workflows)
-                {
-                    var tool = CreateWorkflowTool(workflow);
-                    tools.Add(tool);
-                }
-
-                _logger.LogDebug($"[WorkflowToolAdapter] Generated {tools.Count} workflow tools (calls since last load: {_callsSinceLastLoad})");
-                return tools;
+                return await _workflowToolsCacheManager.GetDataAsync();
             }
             catch (Exception ex)
             {
@@ -367,54 +343,25 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         }
 
         /// <summary>
-        /// Determine if workflows should be reloaded based on multiple criteria
-        /// Checks time elapsed, call count, and file modification times to make an intelligent decision
-        /// about whether to perform potentially expensive file I/O operations.
+        /// Load workflow tools from engine - data loader for cache manager
         /// </summary>
-        private async Task<bool> ShouldReloadWorkflowsAsync()
+        private async Task<List<Tool>> LoadWorkflowToolsFromEngineAsync()
         {
-            var now = DateTime.Now;
+            // Load built-in workflow definitions first
+            await LoadBuiltinWorkflowsAsync();
 
-            // Get effective configuration values (allow runtime overrides)
-            var minReloadInterval = MinReloadIntervalOverride > TimeSpan.Zero ? MinReloadIntervalOverride : MinReloadInterval;
-            var maxCallsBeforeReload = MaxCallsBeforeReloadOverride > 0 ? MaxCallsBeforeReloadOverride : MaxCallsBeforeReload;
-            var fileCheckInterval = FileCheckIntervalOverride > TimeSpan.Zero ? FileCheckIntervalOverride : FileCheckInterval;
+            // Get workflow definitions from engine and convert to tools
+            var workflows = await _workflowEngine.GetAvailableWorkflowsAsync();
+            var tools = new List<Tool>();
 
-            // First load - always reload
-            if (_lastLoadTime == DateTime.MinValue)
+            foreach (var workflow in workflows)
             {
-                _logger.LogDebug($"[WorkflowToolAdapter] First load - reloading workflows");
-                return true;
+                var tool = CreateWorkflowTool(workflow);
+                tools.Add(tool);
             }
 
-            // Force reload if too many calls have occurred
-            if (_callsSinceLastLoad >= maxCallsBeforeReload)
-            {
-                _logger.LogDebug($"[WorkflowToolAdapter] Max calls ({maxCallsBeforeReload}) reached - forcing reload");
-                return true;
-            }
-
-            // Don't reload if minimum time interval hasn't passed
-            if (now - _lastLoadTime < minReloadInterval)
-            {
-                _logger.LogDebug($"[WorkflowToolAdapter] Min reload interval ({minReloadInterval}) not reached - skipping reload");
-                return false;
-            }
-
-            // Check file modifications only if enough time has passed since last check
-            if (now - _lastFileCheckTime >= fileCheckInterval)
-            {
-                _lastFileCheckTime = now;
-
-                var hasFileChanges = await HasWorkflowFilesChangedAsync();
-                if (hasFileChanges)
-                {
-                    _logger.LogDebug($"[WorkflowToolAdapter] File changes detected - reloading workflows");
-                    return true;
-                }
-            }
-
-            return false;
+            _logger.LogTrace($"[WorkflowToolAdapter] Generated {tools.Count} workflow tools from engine");
+            return tools;
         }
 
         /// <summary>
@@ -481,9 +428,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         public async Task ForceReloadWorkflowsAsync()
         {
             _logger.LogTrace($"[WorkflowToolAdapter] Force reloading workflows");
-            await LoadBuiltinWorkflowsAsync();
-            _lastLoadTime = DateTime.Now;
-            _callsSinceLastLoad = 0;
+            await _workflowToolsCacheManager.ForceReloadAsync();
         }
 
         /// <summary>
@@ -492,33 +437,16 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         /// </summary>
         public string GetCacheStatus()
         {
-            var now = DateTime.Now;
-            var minReloadInterval = MinReloadIntervalOverride > TimeSpan.Zero ? MinReloadIntervalOverride : MinReloadInterval;
-            var maxCallsBeforeReload = MaxCallsBeforeReloadOverride > 0 ? MaxCallsBeforeReloadOverride : MaxCallsBeforeReload;
-            var fileCheckInterval = FileCheckIntervalOverride > TimeSpan.Zero ? FileCheckIntervalOverride : FileCheckInterval;
+            var stats = _workflowToolsCacheManager.GetStats();
+            return stats.ToJson();
+        }
 
-            var status = new
-            {
-                lastLoadTime = _lastLoadTime == DateTime.MinValue ? "Never" : _lastLoadTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                callsSinceLastLoad = _callsSinceLastLoad,
-                timeSinceLastLoad = _lastLoadTime == DateTime.MinValue ? "N/A" : (now - _lastLoadTime).ToString(@"hh\:mm\:ss"),
-                lastFileCheckTime = _lastFileCheckTime == DateTime.MinValue ? "Never" : _lastFileCheckTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                trackedFiles = _fileModificationTimes.Count,
-                configuration = new
-                {
-                    minReloadInterval = minReloadInterval.ToString(@"hh\:mm\:ss"),
-                    maxCallsBeforeReload = maxCallsBeforeReload,
-                    fileCheckInterval = fileCheckInterval.ToString(@"hh\:mm\:ss")
-                },
-                nextReloadTriggers = new
-                {
-                    callsRemaining = Math.Max(0, maxCallsBeforeReload - _callsSinceLastLoad),
-                    timeUntilNextCheck = _lastLoadTime == DateTime.MinValue ? "On next call" :
-                        Math.Max(0, (minReloadInterval - (now - _lastLoadTime)).TotalSeconds).ToString("F1") + " seconds"
-                }
-            };
-
-            return JsonSerializer.Serialize(status, new JsonSerializerOptions { WriteIndented = true });
+        /// <summary>
+        /// Update cache configuration at runtime
+        /// </summary>
+        public void UpdateCacheConfig(Action<MultiLevelCacheConfig> configUpdater)
+        {
+            _workflowToolsCacheManager.UpdateConfig(configUpdater);
         }
 
         /// <summary>
