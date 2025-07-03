@@ -36,7 +36,7 @@ Returns detailed collision information including hit points, normals, distances,
             [Description("Ray type. Valid values: 'ray'(standard raycast), 'sphere'(sphere cast), 'box'(box cast), 'capsule'(capsule cast), 'checkSphere'(sphere overlap check), 'lineOfSight'(line of sight check), 'multiRay'(multi-ray fan detection)")]
             string rayType = "ray",
             
-            [Description("Ray start point coordinates [x,y,z]. For checkSphere type, this is the detection center; for lineOfSight type, this is the observer position")]
+            [Description("For checkSphere: detection center coordinates [x,y,z]. For lineOfSight: observer position coordinates [x,y,z]. For others: ray start point coordinates [x,y,z]")]
             Vector3 startPoint = default,
             
             [Description("Ray end point coordinates [x,y,z]. Used for ray/sphere types (optional, lower priority than direction); target position for lineOfSight type; capsule end point for capsule type")]

@@ -50,21 +50,21 @@ namespace com.MiAO.Unity.MCP.Editor.API
             string operation,
             [Description("Timeline asset path. Starts with 'Assets/'. Ends with '.playable'.")]
             string timelineAssetPath,
-            [Description("Track name (required for addTrack, addClip, addMarkerTrack, addSignalMarker operations)")]
+            [Description("For addTrack/addClip/addMarkerTrack/addSignalMarker: Track name (required)")]
             string? trackName = null,
-            [Description("Track type (for addTrack operation). Valid types: AnimationTrack, AudioTrack, ActivationTrack, GroupTrack, PlayableTrack")]
+            [Description("For addTrack: Track type. Valid types: AnimationTrack, AudioTrack, ActivationTrack, GroupTrack, PlayableTrack")]
             string? trackType = null,
-            [Description("Clip name (for addClip operation)")]
+            [Description("For addClip: Clip name")]
             string? clipName = null,
-            [Description("Start time of the clip in seconds (for addClip operation). Leave empty to auto-append")]
+            [Description("For addClip: Start time of the clip in seconds. Leave empty to auto-append")]
             double? startTime = null,
-            [Description("Animation Clip asset path (for addClip on AnimationTrack)")]
+            [Description("For addClip on AnimationTrack: Animation Clip asset path")]
             string? animationClipPath = null,
-            [Description("Audio Clip asset path (for addClip on AudioTrack)")]
+            [Description("For addClip on AudioTrack: Audio Clip asset path")]
             string? audioClipPath = null,
-            [Description("Time in seconds where to add the signal marker (for addSignalMarker operation)")]
+            [Description("For addSignalMarker: Time in seconds where to add the signal marker")]
             float? time = null,
-            [Description("Name for the new signal asset (for addSignalMarker operation)")]
+            [Description("For addSignalMarker: Name for the new signal asset")]
             string? signalAssetName = null
         )
         {

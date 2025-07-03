@@ -20,9 +20,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
         (
             [Description("Operation type: 'getInformation', 'setState'")]
             string operation,
-            [Description("If true, the 'playmode' will be started. If false, the 'playmode' will be stopped (for setState operation).")]
+            [Description("For setState: If true, the 'playmode' will be started. If false, the 'playmode' will be stopped.")]
             bool? isPlaying = null,
-            [Description("If true, the 'playmode' will be paused. If false, the 'playmode' will be resumed (for setState operation).")]
+            [Description("For setState: If true, the 'playmode' will be paused. If false, the 'playmode' will be resumed.")]
             bool? isPaused = null
         )
         {
