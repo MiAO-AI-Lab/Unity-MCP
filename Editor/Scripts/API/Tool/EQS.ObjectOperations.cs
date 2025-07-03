@@ -159,15 +159,26 @@ Use cases: Place health packs/ammo based on EQS results, spawn enemies/NPCs at o
                 // Find prefab
                 GameObject prefab = null;
                 
-                // Method 1: Load through Resources
-                prefab = Resources.Load<GameObject>(objectPrefabIdOrName);
+                // Method 1: Direct path loading (if it looks like a full path)
+                if (objectPrefabIdOrName.StartsWith("Assets/") && objectPrefabIdOrName.EndsWith(".prefab"))
+                {
+                    prefab = AssetDatabase.LoadAssetAtPath<GameObject>(objectPrefabIdOrName);
+                }
                 
-                // Method 2: Find through AssetDatabase
+                // Method 2: Load through Resources
                 if (prefab == null)
                 {
-                    var prefabPath = AssetDatabase.FindAssets($"t:GameObject {objectPrefabIdOrName}")
+                    prefab = Resources.Load<GameObject>(objectPrefabIdOrName);
+                }
+                
+                // Method 3: Find through AssetDatabase by name
+                if (prefab == null)
+                {
+                    // Extract just the file name for searching
+                    var searchName = System.IO.Path.GetFileNameWithoutExtension(objectPrefabIdOrName);
+                    var prefabPath = AssetDatabase.FindAssets($"t:GameObject {searchName}")
                         .Select(AssetDatabase.GUIDToAssetPath)
-                        .FirstOrDefault(path => path.Contains(objectPrefabIdOrName));
+                        .FirstOrDefault(path => path.Contains(searchName));
                     
                     if (!string.IsNullOrEmpty(prefabPath))
                     {
@@ -175,7 +186,7 @@ Use cases: Place health packs/ammo based on EQS results, spawn enemies/NPCs at o
                     }
                 }
                 
-                // Method 3: Find existing objects in scene (for moving)
+                // Method 4: Find existing objects in scene (for moving)
                 GameObject existingObject = null;
                 if (prefab == null)
                 {
