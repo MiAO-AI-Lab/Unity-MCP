@@ -97,16 +97,16 @@ namespace com.MiAO.Unity.MCP.Editor.API
                         return error;
                 }
 
-                // 确定是否为批量创建
+                // Determine if this is batch creation
                 bool isBatchCreate = (positions != null && positions.Length > 0) || (rotations != null && rotations.Length > 0);
                 
                 if (isBatchCreate)
                 {
-                    // 批量创建逻辑
+                    // Batch creation logic
                     var createdObjects = new List<GameObject>();
                     var stringBuilder = new StringBuilder();
 
-                    // 如果使用的是 positions + rotation, 并且 rotations 为 null, 那么 rotations = [rotation * positions.Length]
+                    // If using positions + rotation, and rotations is null, then rotations = [rotation * positions.Length]
                     if (rotation != null && rotations == null)
                     {
                         rotations = new Vector3[positions.Length];
@@ -116,7 +116,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                         }
                     }
 
-                    // 如果使用的是 position + rotations, 并且 positions 为 null, 那么 positions = [position * rotations.Length]
+                    // If using position + rotations, and positions is null, then positions = [position * rotations.Length]
                     if (positions == null && rotations != null)
                     {
                         positions = new Vector3[rotations.Length];
@@ -126,7 +126,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                         }
                     }
                     
-                    // 检查rotations数组长度是否与positions匹配
+                    // Check if rotations array length matches positions
                     if (rotations != null && positions != null && rotations.Length != positions.Length)
                     {
                         return $"[Error] The number of rotations ({rotations.Length}) must match the number of positions ({positions.Length}) or be null.";
@@ -167,7 +167,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 }
                 else
                 {
-                    // 单个创建逻辑（保持原有逻辑）
+                    // Single object creation
                     var go = primitiveType switch
                     {
                         0 => GameObject.CreatePrimitive(PrimitiveType.Cube),
@@ -295,7 +295,7 @@ Duplicated instanceIDs:
                         var populateResult = Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i]);
                         var populateResultString = populateResult.ToString().Trim();
 
-                        // 检查结果是否包含错误信息
+                        // Check if the result contains error information
                         if (string.IsNullOrEmpty(populateResultString))
                         {
                             stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' modified successfully (no detailed feedback).");
@@ -312,7 +312,7 @@ Duplicated instanceIDs:
                             successCount++;
                         }
 
-                        // 标记对象为已修改
+                        // Mark the object as modified
                         if (objToModify is UnityEngine.Object unityObj)
                         {
                             EditorUtility.SetDirty(unityObj);
@@ -325,7 +325,7 @@ Duplicated instanceIDs:
                     }
                 }
 
-                // 生成总结
+                // Generate summary
                 var summary = new StringBuilder();
                 if (successCount > 0 && errorCount == 0)
                 {
