@@ -111,11 +111,15 @@ namespace com.MiAO.Unity.MCP.Editor
                 output.Contains("MSBUILD : error") ||
                 output.Contains("error MSB");
 
+            // Format the build output
+            var formattedOutput = FormatBuildOutput(output);
+            var formattedError = FormatBuildOutput(error);
+
             if (isError)
             {
                 if (force)
                 {
-                    Debug.LogWarning($"{Consts.Log.Tag} <color=red>Build failed</color>. Check the output for details:\n{output}\n{error}\n");
+                    Debug.LogWarning($"{Consts.Log.Tag} <color=red>Build failed</color>. Check the output for details:\n{formattedOutput}\n{formattedError}\n");
                     if (ErrorUtils.ExtractProcessId(output, out var processId))
                     {
                         Debug.Log($"{Consts.Log.Tag} Detected another process which locks the file. Killing the process with ID: {processId}");
@@ -140,13 +144,79 @@ namespace com.MiAO.Unity.MCP.Editor
                 }
                 else
                 {
-                    Debug.LogError($"{Consts.Log.Tag} <color=red>Build failed</color>. Check the output for details:\n{output}\n{error}\n");
+                    Debug.LogError($"{Consts.Log.Tag} <color=red>Build failed</color>. Check the output for details:\n{formattedOutput}\n{formattedError}\n");
                 }
             }
             else
             {
-                Debug.Log($"{Consts.Log.Tag} <color=green>Build succeeded</color>. Check the output for details:\n{output}");
+                Debug.Log($"{Consts.Log.Tag} <color=green>Build succeeded</color>. Check the output for details:\n{formattedOutput}");
             }
+        }
+
+        private static string FormatBuildOutput(string output)
+        {
+            if (string.IsNullOrEmpty(output))
+                return string.Empty;
+
+            // Use Environment.NewLine to ensure correct line break handling
+            var lines = output.Split(new[] { Environment.NewLine, "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            
+            Debug.Log($"{Consts.Log.Tag} FormatBuildOutput: Original length: {output.Length}, Lines count: {lines.Length}");
+            
+            var formattedLines = new string[lines.Length];
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i];
+                var trimmedLine = line.Trim();
+                
+                // Keep empty lines unchanged
+                if (string.IsNullOrEmpty(trimmedLine))
+                {
+                    formattedLines[i] = line;
+                }
+                else if (IsErrorLine(trimmedLine))
+                {
+                    formattedLines[i] = $"<color=red>[ERROR]</color> {line}";
+                }
+                else if (IsWarningLine(trimmedLine))
+                {
+                    formattedLines[i] = $"<color=orange>[WARNING]</color> {line}";
+                }
+                else
+                {
+                    formattedLines[i] = line;
+                }
+            }
+            Debug.Log($"{Consts.Log.Tag} FormatBuildOutput: lines count: {formattedLines.Length}");
+            var result = string.Join("\n", formattedLines);
+
+            
+            return result;
+        }
+
+        private static bool IsErrorLine(string line)
+        {
+            if (string.IsNullOrEmpty(line))
+                return false;
+
+            var lowerLine = line.ToLowerInvariant();
+            return lowerLine.Contains("error") ||
+                   lowerLine.Contains("fatal") ||
+                   lowerLine.Contains("failed") ||
+                   lowerLine.Contains("exception") ||
+                   lowerLine.Contains("msbuild : error") ||
+                   lowerLine.Contains("build failed");
+        }
+
+        private static bool IsWarningLine(string line)
+        {
+            if (string.IsNullOrEmpty(line))
+                return false;
+
+            var lowerLine = line.ToLowerInvariant();
+            return lowerLine.Contains("warning") ||
+                   lowerLine.Contains("warn:");
         }
 
         public static void CopyServerSources()
