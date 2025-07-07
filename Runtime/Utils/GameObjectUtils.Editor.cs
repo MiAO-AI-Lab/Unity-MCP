@@ -3,6 +3,7 @@
 using com.MiAO.Unity.MCP.Common;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEditor;
 
 namespace com.MiAO.Unity.MCP.Utils
 {
@@ -42,6 +43,51 @@ namespace com.MiAO.Unity.MCP.Utils
                 return null;
 
             return go;
+        }
+
+        /// <summary>
+        /// Get detailed information about a missing component/script
+        /// </summary>
+        /// <param name="gameObject">The GameObject containing the missing component</param>
+        /// <param name="componentIndex">Index of the missing component</param>
+        /// <returns>Detailed information about the missing component</returns>
+        public static string GetMissingComponentInfo(GameObject gameObject, int componentIndex)
+        {
+            try
+            {
+                var serializedObject = new SerializedObject(gameObject);
+                var serializedProperty = serializedObject.FindProperty("m_Component");
+                
+                if (serializedProperty != null && componentIndex < serializedProperty.arraySize)
+                {
+                    var componentProperty = serializedProperty.GetArrayElementAtIndex(componentIndex);
+                    var componentRef = componentProperty.FindPropertyRelative("component");
+                    
+                    if (componentRef != null)
+                    {
+                        var fileID = componentRef.FindPropertyRelative("m_FileID");
+                        var pathID = componentRef.FindPropertyRelative("m_PathID");
+                        
+                        // Try to get script reference information
+                        var scriptProperty = componentRef.FindPropertyRelative("m_Script");
+                        if (scriptProperty != null)
+                        {
+                            var scriptFileID = scriptProperty.FindPropertyRelative("m_FileID");
+                            var scriptPathID = scriptProperty.FindPropertyRelative("m_PathID");
+                            
+                            return $"Component index {componentIndex}, FileID: {fileID?.longValue ?? 0}, PathID: {pathID?.longValue ?? 0}, Script FileID: {scriptFileID?.longValue ?? 0}, Script PathID: {scriptPathID?.longValue ?? 0}";
+                        }
+                        
+                        return $"Component index {componentIndex}, FileID: {fileID?.longValue ?? 0}, PathID: {pathID?.longValue ?? 0}";
+                    }
+                }
+                
+                return $"Component index {componentIndex} - Unable to retrieve detailed information";
+            }
+            catch (System.Exception ex)
+            {
+                return $"Component index {componentIndex} - Error getting info: {ex.Message}";
+            }
         }
     }
 }
