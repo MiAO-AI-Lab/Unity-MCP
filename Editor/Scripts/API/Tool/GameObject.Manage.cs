@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
@@ -21,19 +22,21 @@ namespace com.MiAO.Unity.MCP.Editor.API
         [McpPluginTool
         (
             "GameObject_Manage",
-            Title = "Manage GameObjects - Create, Destroy, Duplicate, Modify, SetParent"
+            Title = "Manage GameObjects - Create, Destroy, Duplicate, Modify, SetParent, SetComponentActive"
         )]
         [Description(@"Manage comprehensive GameObject operations including:
 - create: Create a new GameObject at specific path
 - destroy: Remove a GameObject and all nested GameObjects recursively
 - duplicate: Clone GameObjects in opened Prefab or in a Scene
 - modify: Update GameObjects and/or attached component's field and properties
-- setParent: Assign parent GameObject for target GameObjects")]
+- setParent: Assign parent GameObject for target GameObjects
+- setActive: Set active state of GameObjects
+- setComponentActive: Enable/disable specific components on GameObjects")]
         public string Operations
         (
-            [Description("Operation type: 'create', 'destroy', 'duplicate', 'modify', 'setParent'")]
+            [Description("Operation type: 'create', 'destroy', 'duplicate', 'modify', 'setParent', 'setActive', 'setComponentActive'")]
             string operation,
-            [Description("GameObject reference for operations (required for destroy, duplicate, modify, setParent)")]
+            [Description("GameObject reference for operations (required for destroy, duplicate, modify, setParent, setActive, setComponentActive)")]
             GameObjectRef? gameObjectRef = null,
             [Description("List of GameObject references for operations that support multiple objects")]
             GameObjectRefList? gameObjectRefs = null,
@@ -58,7 +61,13 @@ namespace com.MiAO.Unity.MCP.Editor.API
             [Description("For modify: GameObject modification data")]
             SerializedMemberList? gameObjectDiffs = null,
             [Description("For setParent: Whether GameObject's world position should remain unchanged when setting parent")]
-            bool worldPositionStays = true
+            bool worldPositionStays = true,
+            [Description("For setActive: Whether to set GameObject active (true) or inactive (false)")]
+            bool active = true,
+            [Description("For setComponentActive: Full component type name to enable/disable (e.g., 'UnityEngine.MeshRenderer')")]
+            string? componentTypeName = null,
+            [Description("For setComponentActive: Whether to enable (true) or disable (false) the component")]
+            bool? componentActive = true
         )
         {
             return operation.ToLower() switch
@@ -68,7 +77,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 "duplicate" => DuplicateGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList())),
                 "modify" => ModifyGameObjects(gameObjectDiffs, gameObjectRefs ?? (gameObjectRef != null ? GenerateGameObjectRefListFromSingleGameObjectRef(gameObjectRef, gameObjectDiffs?.Count ?? 0) : new GameObjectRefList())),
                 "setparent" => SetParentGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), parentGameObjectRef, worldPositionStays),
-                _ => "[Error] Invalid operation. Valid operations: 'create', 'destroy', 'duplicate', 'modify', 'setParent'"
+                "setactive" => SetActiveGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), active),
+                "setcomponentactive" => SetComponentActiveGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), componentTypeName, componentActive),
+                _ => "[Error] Invalid operation. Valid operations: 'create', 'destroy', 'duplicate', 'modify', 'setParent', 'setActive', 'setComponentActive'"
             };
         }
 
@@ -385,8 +396,116 @@ Duplicated instanceIDs:
                 if (changedCount > 0)
                     EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
-                return stringBuilder.ToString();
-            });
-        }
+                            return stringBuilder.ToString();
+        });
     }
+
+    private string SetActiveGameObjects(GameObjectRefList gameObjectRefs, bool active)
+    {
+        return MainThread.Instance.Run(() =>
+        {
+            if (gameObjectRefs.Count == 0)
+                return "[Error] No GameObject references provided for setActive operation.";
+
+            var stringBuilder = new StringBuilder();
+            int changedCount = 0;
+
+            for (var i = 0; i < gameObjectRefs.Count; i++)
+            {
+                var targetGo = GameObjectUtils.FindBy(gameObjectRefs[i], out var error);
+                if (error != null)
+                {
+                    stringBuilder.AppendLine(error);
+                    continue;
+                }
+
+                targetGo.SetActive(active);
+                changedCount++;
+
+                stringBuilder.AppendLine($"[Success] Set active state of '{targetGo.name}' to {active}.");
+            }
+
+            if (changedCount > 0)
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
+            return stringBuilder.ToString();
+        });
+    }
+
+    private string SetComponentActiveGameObjects(GameObjectRefList gameObjectRefs, string? componentTypeName, bool? componentActive)
+    {
+        return MainThread.Instance.Run(() =>
+        {
+            if (gameObjectRefs.Count == 0)
+                return "[Error] No GameObject references provided for setComponentActive operation.";
+
+            if (string.IsNullOrEmpty(componentTypeName))
+                return "[Error] Component type name is required for setComponentActive operation.";
+
+            bool activeState = componentActive ?? true;
+
+            var stringBuilder = new StringBuilder();
+            int changedCount = 0;
+
+            for (var i = 0; i < gameObjectRefs.Count; i++)
+            {
+                var targetGo = GameObjectUtils.FindBy(gameObjectRefs[i], out var error);
+                if (error != null)
+                {
+                    stringBuilder.AppendLine(error);
+                    continue;
+                }
+
+                var componentType = TypeUtils.GetType(componentTypeName);
+                if (componentType == null)
+                {
+                    stringBuilder.AppendLine($"[Error] GameObject {i}: Component type '{componentTypeName}' not found.");
+                    continue;
+                }
+
+                var component = targetGo.GetComponent(componentType);
+                if (component == null)
+                {
+                    stringBuilder.AppendLine($"[Error] GameObject {i}: Component '{componentType.FullName}' not found on GameObject '{targetGo.name}'.");
+                    continue;
+                }
+
+                try
+                {
+                    // First try to get the enabled property
+                    var enabledProperty = componentType.GetProperty("enabled");
+                    if (enabledProperty != null && enabledProperty.CanWrite)
+                    {
+                        enabledProperty.SetValue(component, activeState);
+                        changedCount++;
+                        stringBuilder.AppendLine($"[Success] Set component '{componentType.FullName}' active state of '{targetGo.name}' to {activeState}.");
+                    }
+                    else
+                    {
+                        // If no enabled property, try to use the component as a Behaviour
+                        if (component is Behaviour behaviour)
+                        {
+                            behaviour.enabled = activeState;
+                            changedCount++;
+                            stringBuilder.AppendLine($"[Success] Set component '{componentType.FullName}' active state of '{targetGo.name}' to {activeState}.");
+                        }
+                        else
+                        {
+                            stringBuilder.AppendLine($"[Error] GameObject {i}: Component '{componentType.FullName}' does not support enabling/disabling.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    stringBuilder.AppendLine($"[Error] GameObject {i}: Exception occurred - {ex.Message}");
+                }
+            }
+
+            if (changedCount > 0)
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
+            return stringBuilder.ToString();
+        });
+    }
+}
 } 
