@@ -1,4 +1,5 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using com.IvanMurzak.ReflectorNet;
@@ -212,16 +213,42 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     return Error.NotFoundPrefabAtPath(prefabAssetPath);
 
                 var components = prefab.GetComponents<UnityEngine.Component>();
-                var componentsPreview = components
-                    .Select((c, i) => Reflector.Instance.Serialize(
-                        c,
-                        name: $"[{i}]",
-                        recursive: false,
-                        logger: McpPlugin.Instance.Logger
-                    ))
-                    .ToList();
+                var componentsPreview = new List<object>();
+                var missingScripts = new List<string>();
 
-                return @$"[Success] Found Prefab at '{prefabAssetPath}'.
+                // Check each component and detect missing scripts
+                for (int i = 0; i < components.Length; i++)
+                {
+                    var component = components[i];
+                    if (component == null)
+                    {
+                        // This is a missing script - use GameObjectUtils public method
+                        var missingInfo = GameObjectUtils.GetMissingComponentInfo(prefab, i);
+                        missingScripts.Add($"[{i}] Missing Script: {missingInfo}");
+                        componentsPreview.Add(new { Name = $"[{i}]", Status = "Missing", Info = missingInfo });
+                    }
+                    else
+                    {
+                        // Normal component - serialize it
+                        var serialized = Reflector.Instance.Serialize(
+                            component,
+                            name: $"[{i}]",
+                            recursive: false,
+                            logger: McpPlugin.Instance.Logger
+                        );
+                        componentsPreview.Add(serialized);
+                    }
+                }
+
+                var result = @$"[Success] Found Prefab at '{prefabAssetPath}'.";
+                
+                if (missingScripts.Count > 0)
+                {
+                    result += $"\n\n# ⚠️ Missing Scripts Detected ({missingScripts.Count}):\n" + string.Join("\n", missingScripts);
+                }
+
+                result += @$"
+
 # Components preview:
 {JsonUtils.Serialize(componentsPreview)}
 
@@ -230,6 +257,8 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
 # GameObject information:
 {prefab.ToMetadata(includeChildrenDepth).Print()}";
+
+                return result;
             });
         }
 

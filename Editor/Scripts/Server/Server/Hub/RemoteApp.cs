@@ -53,14 +53,9 @@ namespace com.MiAO.Unity.MCP.Server
                 var parameters = new System.Collections.Generic.Dictionary<string, object>
                 {
                     ["ModelType"] = request.ModelType,
-                    ["Prompt"] = request.Prompt,
+                    ["Messages"] = request.Messages,
                     ["Parameters"] = request.Parameters
                 };
-                
-                if (request.ImageData != null)
-                {
-                    parameters["ImageData"] = request.ImageData;
-                }
 
                 var result = await modelUseGateway.CallAsync<string>("ModelUse", parameters);
                 
@@ -70,18 +65,18 @@ namespace com.MiAO.Unity.MCP.Server
                     
                     if (response != null)
                     {
-                        var r = ResponseData<ModelUseResponse>.Success(request.RequestID, "Successfully processed the model request");
+                        var r = ResponseData<ModelUseResponse>.Success(request.RequestID ?? "", "Successfully processed the model request");
                         r.Value = response;
                         return r;
                     }
                 }
 
-                return ResponseData<ModelUseResponse>.Error(request.RequestID, "Failed to process model request");
+                return ResponseData<ModelUseResponse>.Error(request.RequestID ?? "", "Failed to process model request");
             }
             catch (Exception ex)
             {
                 _logger.LogError($"RemoteApp RequestModelUse error: {ex.Message}");
-                return ResponseData<ModelUseResponse>.Error(request.RequestID, $"ModelUse request failed: {ex.Message}");
+                return ResponseData<ModelUseResponse>.Error(request.RequestID ?? "", $"ModelUse request failed: {ex.Message}");
             }
         }
     }

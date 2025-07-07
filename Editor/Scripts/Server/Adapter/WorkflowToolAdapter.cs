@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core;
 using com.IvanMurzak.ReflectorNet.Utils;
+using com.MiAO.Unity.MCP.Server.Utils;
 
 namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
 {
@@ -24,10 +25,23 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         private readonly IWorkflowEngine _workflowEngine;
         private readonly Dictionary<string, Guid> _sessionMapping = new();
 
+        // Use multi-level cache manager for workflow tools
+        private readonly MultiLevelCacheManager<List<Tool>> _workflowToolsCacheManager;
+        private readonly Dictionary<string, DateTime> _fileModificationTimes = new();
+
         public WorkflowToolAdapter(ILogger<WorkflowToolAdapter> logger, IWorkflowEngine workflowEngine)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _workflowEngine = workflowEngine ?? throw new ArgumentNullException(nameof(workflowEngine));
+
+            // Initialize workflow tools cache manager
+            _workflowToolsCacheManager = new MultiLevelCacheManager<List<Tool>>(
+                logger,
+                "WorkflowTools",
+                LoadWorkflowToolsFromEngineAsync,
+                MultiLevelCacheConfig.Default,
+                HasWorkflowFilesChangedAsync
+            );
         }
 
         /// <summary>
@@ -38,7 +52,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         public async Task InitializeAsync()
         {
             await LoadBuiltinWorkflowsAsync();
-            _logger.LogInformation("[WorkflowToolAdapter] Initialized");
+            _logger.LogTrace("[WorkflowToolAdapter] Initialized");
         }
 
         /// <summary>
@@ -46,26 +60,13 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         /// Converts workflow definitions into MCP Tool objects that can be discovered
         /// and invoked through the MCP protocol. Each workflow becomes a callable tool
         /// with appropriate parameter schemas and descriptions.
-        /// Automatically reloads built-in workflow definitions to ensure latest changes are reflected.
+        /// Uses intelligent caching to avoid excessive file I/O operations.
         /// </summary>
         public async Task<List<Tool>> GetAvailableWorkflowToolsAsync()
         {
             try
             {
-                // Auto-reload built-in workflows to ensure latest changes are reflected
-                await LoadBuiltinWorkflowsAsync();
-
-                var workflows = await _workflowEngine.GetAvailableWorkflowsAsync();
-                var tools = new List<Tool>();
-
-                foreach (var workflow in workflows)
-                {
-                    var tool = CreateWorkflowTool(workflow);
-                    tools.Add(tool);
-                }
-
-                _logger.LogInformation($"[WorkflowToolAdapter] Generated {tools.Count} workflow tools (auto-reloaded from disk)");
-                return tools;
+                return await _workflowToolsCacheManager.GetDataAsync();
             }
             catch (Exception ex)
             {
@@ -83,7 +84,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         {
             try
             {
-                _logger.LogInformation($"[WorkflowToolAdapter] Executing workflow: {workflowId}");
+                _logger.LogTrace($"[WorkflowToolAdapter] Executing workflow: {workflowId}");
 
                 // Retrieve the workflow definition from the engine
                 var workflow = await _workflowEngine.GetWorkflowAsync(workflowId);
@@ -342,10 +343,118 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         }
 
         /// <summary>
+        /// Load workflow tools from engine - data loader for cache manager
+        /// </summary>
+        private async Task<List<Tool>> LoadWorkflowToolsFromEngineAsync()
+        {
+            // Load built-in workflow definitions first
+            await LoadBuiltinWorkflowsAsync();
+
+            // Get workflow definitions from engine and convert to tools
+            var workflows = await _workflowEngine.GetAvailableWorkflowsAsync();
+            var tools = new List<Tool>();
+
+            foreach (var workflow in workflows)
+            {
+                var tool = CreateWorkflowTool(workflow);
+                tools.Add(tool);
+            }
+
+            _logger.LogTrace($"[WorkflowToolAdapter] Generated {tools.Count} workflow tools from engine");
+            return tools;
+        }
+
+        /// <summary>
+        /// Check if workflow definition files have been modified since last load
+        /// Compares file modification times to detect changes without reading file contents.
+        /// </summary>
+        private Task<bool> HasWorkflowFilesChangedAsync()
+        {
+            try
+            {
+                var configDir = Path.Combine(AppContext.BaseDirectory, "Config", "WorkflowDefinitions");
+
+                if (!Directory.Exists(configDir))
+                {
+                    return Task.FromResult(false);
+                }
+
+                var jsonFiles = Directory.GetFiles(configDir, "*.json");
+                var currentFileSet = new HashSet<string>(jsonFiles);
+                var cachedFileSet = new HashSet<string>(_fileModificationTimes.Keys);
+
+                // Check if files were added or removed
+                if (!currentFileSet.SetEquals(cachedFileSet))
+                {
+                    _logger.LogDebug($"[WorkflowToolAdapter] Workflow file list changed");
+                    return Task.FromResult(true);
+                }
+
+                // Check if existing files were modified
+                foreach (var jsonFile in jsonFiles)
+                {
+                    var lastWriteTime = File.GetLastWriteTime(jsonFile);
+
+                    if (_fileModificationTimes.TryGetValue(jsonFile, out var cachedTime))
+                    {
+                        if (lastWriteTime > cachedTime)
+                        {
+                            _logger.LogDebug($"[WorkflowToolAdapter] File modified: {Path.GetFileName(jsonFile)}");
+                            return Task.FromResult(true);
+                        }
+                    }
+                    else
+                    {
+                        // New file
+                        _logger.LogDebug($"[WorkflowToolAdapter] New file detected: {Path.GetFileName(jsonFile)}");
+                        return Task.FromResult(true);
+                    }
+                }
+
+                return Task.FromResult(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[WorkflowToolAdapter] Error checking file changes: {ex.Message}");
+                // If we can't check file changes, err on the side of caution and reload
+                return Task.FromResult(true);
+            }
+        }
+
+        /// <summary>
+        /// Force reload of workflows - useful for development or when files are known to have changed
+        /// Bypasses all caching mechanisms and immediately reloads workflow definitions from disk.
+        /// </summary>
+        public async Task ForceReloadWorkflowsAsync()
+        {
+            _logger.LogTrace($"[WorkflowToolAdapter] Force reloading workflows");
+            await _workflowToolsCacheManager.ForceReloadAsync();
+        }
+
+        /// <summary>
+        /// Get current cache status for monitoring and debugging
+        /// Returns information about cache performance and current state.
+        /// </summary>
+        public string GetCacheStatus()
+        {
+            var stats = _workflowToolsCacheManager.GetStats();
+            return stats.ToJson();
+        }
+
+        /// <summary>
+        /// Update cache configuration at runtime
+        /// </summary>
+        public void UpdateCacheConfig(Action<MultiLevelCacheConfig> configUpdater)
+        {
+            _workflowToolsCacheManager.UpdateConfig(configUpdater);
+        }
+
+        /// <summary>
         /// Load built-in workflows from the configuration directory
         /// Scans the configuration directory for workflow JSON files and registers them
         /// with the workflow engine for execution. Each valid workflow file is loaded
         /// and made available for MCP tool discovery and execution.
+        /// Also updates file modification time cache for change detection.
         /// </summary>
         private async Task LoadBuiltinWorkflowsAsync()
         {
@@ -360,7 +469,10 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
                 }
 
                 var jsonFiles = Directory.GetFiles(configDir, "*.json");
-                _logger.LogInformation($"[WorkflowToolAdapter] Found {jsonFiles.Length} workflow definition files");
+                _logger.LogTrace($"[WorkflowToolAdapter] Found {jsonFiles.Length} workflow definition files");
+
+                // Clear and rebuild file modification time cache
+                _fileModificationTimes.Clear();
 
                 foreach (var jsonFile in jsonFiles)
                 {
@@ -372,8 +484,11 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
                         if (workflow != null)
                         {
                             await _workflowEngine.RegisterWorkflowAsync(workflow);
-                            _logger.LogInformation($"[WorkflowToolAdapter] Loaded workflow: {workflow.Name} ({workflow.Id})");
+                            _logger.LogTrace($"[WorkflowToolAdapter] Loaded workflow: {workflow.Name} ({workflow.Id})");
                         }
+
+                        // Update file modification time cache
+                        _fileModificationTimes[jsonFile] = File.GetLastWriteTime(jsonFile);
                     }
                     catch (Exception ex)
                     {

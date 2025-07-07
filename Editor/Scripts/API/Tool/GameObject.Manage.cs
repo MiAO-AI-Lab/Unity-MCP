@@ -1,4 +1,5 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -49,6 +50,10 @@ namespace com.MiAO.Unity.MCP.Editor.API
             Vector3? rotation = null,
             [Description("For create: Transform scale of the GameObject")]
             Vector3? scale = null,
+            [Description("For create: Array of positions for batch creation")]
+            Vector3[]? positions = null,
+            [Description("For create: Array of rotations for batch creation")]
+            Vector3[]? rotations = null,
             [Description("For create: World or Local space of transform")]
             bool isLocalSpace = false,
             [Description("For create: -1 - No primitive type; 0 - Cube; 1 - Sphere; 2 - Capsule; 3 - Cylinder; 4 - Plane; 5 - Quad")]
@@ -67,10 +72,10 @@ namespace com.MiAO.Unity.MCP.Editor.API
         {
             return operation.ToLower() switch
             {
-                "create" => CreateGameObject(name, parentGameObjectRef, position, rotation, scale, isLocalSpace, primitiveType),
+                "create" => CreateGameObject(name, parentGameObjectRef, position, rotation, scale, positions, rotations, isLocalSpace, primitiveType),
                 "destroy" => DestroyGameObject(gameObjectRef),
                 "duplicate" => DuplicateGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList())),
-                "modify" => ModifyGameObjects(gameObjectDiffs, gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList())),
+                "modify" => ModifyGameObjects(gameObjectDiffs, gameObjectRefs ?? (gameObjectRef != null ? GenerateGameObjectRefListFromSingleGameObjectRef(gameObjectRef, gameObjectDiffs?.Count ?? 0) : new GameObjectRefList())),
                 "setparent" => SetParentGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), parentGameObjectRef, worldPositionStays),
                 "setactive" => SetActiveGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), active),
                 "setcomponentactive" => SetComponentActiveGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), componentTypeName, componentActive),
@@ -78,7 +83,17 @@ namespace com.MiAO.Unity.MCP.Editor.API
             };
         }
 
-        private string CreateGameObject(string? name, GameObjectRef? parentGameObjectRef, Vector3? position, Vector3? rotation, Vector3? scale, bool isLocalSpace, int primitiveType)
+        private GameObjectRefList GenerateGameObjectRefListFromSingleGameObjectRef(GameObjectRef gameObjectRef, int copiesCount)
+        {
+            var list = new GameObjectRefList();
+            for (int i = 0; i < copiesCount; i++)
+            {
+                list.Add(gameObjectRef);
+            }
+            return list;
+        }
+
+        private string CreateGameObject(string? name, GameObjectRef? parentGameObjectRef, Vector3? position, Vector3? rotation, Vector3? scale, Vector3[]? positions, Vector3[]? rotations, bool isLocalSpace, int primitiveType)
         {
             return MainThread.Instance.Run(() =>
             {
@@ -93,26 +108,98 @@ namespace com.MiAO.Unity.MCP.Editor.API
                         return error;
                 }
 
-                var go = primitiveType switch
+                // Determine if this is batch creation
+                bool isBatchCreate = (positions != null && positions.Length > 0) || (rotations != null && rotations.Length > 0);
+                
+                if (isBatchCreate)
                 {
-                    0 => GameObject.CreatePrimitive(PrimitiveType.Cube),
-                    1 => GameObject.CreatePrimitive(PrimitiveType.Sphere),
-                    2 => GameObject.CreatePrimitive(PrimitiveType.Capsule),
-                    3 => GameObject.CreatePrimitive(PrimitiveType.Cylinder),
-                    4 => GameObject.CreatePrimitive(PrimitiveType.Plane),
-                    5 => GameObject.CreatePrimitive(PrimitiveType.Quad),
-                    _ => new GameObject(name)
-                };
-                go.name = name;
-                go.SetTransform(position, rotation, scale, isLocalSpace);
+                    // Batch creation logic
+                    var createdObjects = new List<GameObject>();
+                    var stringBuilder = new StringBuilder();
 
-                if (parentGo != null)
-                    go.transform.SetParent(parentGo.transform, false);
+                    // If using positions + rotation, and rotations is null, then rotations = [rotation * positions.Length]
+                    if (rotation != null && rotations == null)
+                    {
+                        rotations = new Vector3[positions.Length];
+                        for (int i = 0; i < positions.Length; i++)
+                        {
+                            rotations[i] = rotation ?? Vector3.zero;
+                        }
+                    }
 
-                EditorUtility.SetDirty(go);
-                EditorApplication.RepaintHierarchyWindow();
+                    // If using position + rotations, and positions is null, then positions = [position * rotations.Length]
+                    if (positions == null && rotations != null)
+                    {
+                        positions = new Vector3[rotations.Length];
+                        for (int i = 0; i < rotations.Length; i++)
+                        {
+                            positions[i] = position ?? Vector3.zero;
+                        }
+                    }
+                    
+                    // Check if rotations array length matches positions
+                    if (rotations != null && positions != null && rotations.Length != positions.Length)
+                    {
+                        return $"[Error] The number of rotations ({rotations.Length}) must match the number of positions ({positions.Length}) or be null.";
+                    }
+                    
+                    for (int i = 0; i < positions.Length; i++)
+                    {
+                        var objectName = positions.Length > 1 ? $"{name}_{i + 1}" : name;
+                        var objectPosition = positions[i];
+                        var objectRotation = rotations?[i] ?? Vector3.zero;
+                        
+                        var go = primitiveType switch
+                        {
+                            0 => GameObject.CreatePrimitive(PrimitiveType.Cube),
+                            1 => GameObject.CreatePrimitive(PrimitiveType.Sphere),
+                            2 => GameObject.CreatePrimitive(PrimitiveType.Capsule),
+                            3 => GameObject.CreatePrimitive(PrimitiveType.Cylinder),
+                            4 => GameObject.CreatePrimitive(PrimitiveType.Plane),
+                            5 => GameObject.CreatePrimitive(PrimitiveType.Quad),
+                            _ => new GameObject(objectName)
+                        };
+                        
+                        go.name = objectName;
+                        go.SetTransform(objectPosition, objectRotation, scale, isLocalSpace);
+                        
+                        if (parentGo != null)
+                            go.transform.SetParent(parentGo.transform, false);
+                        
+                        EditorUtility.SetDirty(go);
+                        createdObjects.Add(go);
+                        
+                        stringBuilder.AppendLine($"Created: {go.name} (ID: {go.GetInstanceID()})");
+                    }
+                    
+                    EditorApplication.RepaintHierarchyWindow();
+                    
+                    return $"[Success] Created {createdObjects.Count} GameObjects in batch.\n{stringBuilder}";
+                }
+                else
+                {
+                    // Single object creation
+                    var go = primitiveType switch
+                    {
+                        0 => GameObject.CreatePrimitive(PrimitiveType.Cube),
+                        1 => GameObject.CreatePrimitive(PrimitiveType.Sphere),
+                        2 => GameObject.CreatePrimitive(PrimitiveType.Capsule),
+                        3 => GameObject.CreatePrimitive(PrimitiveType.Cylinder),
+                        4 => GameObject.CreatePrimitive(PrimitiveType.Plane),
+                        5 => GameObject.CreatePrimitive(PrimitiveType.Quad),
+                        _ => new GameObject(name)
+                    };
+                    go.name = name;
+                    go.SetTransform(position, rotation, scale, isLocalSpace);
 
-                return $"[Success] Created GameObject.\n{go.Print()}";
+                    if (parentGo != null)
+                        go.transform.SetParent(parentGo.transform, false);
+
+                    EditorUtility.SetDirty(go);
+                    EditorApplication.RepaintHierarchyWindow();
+
+                    return $"[Success] Created GameObject.\n{go.Print()}";
+                }
             });
         }
 
@@ -127,7 +214,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 if (error != null)
                     return error;
 
-                Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(go);
                 return $"[Success] Destroy GameObject.";
             });
         }
@@ -187,31 +274,87 @@ Duplicated instanceIDs:
                         $"gameObjectDiffs: {gameObjectDiffs.Count}, gameObjectRefs: {gameObjectRefs.Count}";
 
                 var stringBuilder = new StringBuilder();
+                var successCount = 0;
+                var errorCount = 0;
 
                 for (int i = 0; i < gameObjectRefs.Count; i++)
                 {
                     var go = GameObjectUtils.FindBy(gameObjectRefs[i], out var error);
                     if (error != null)
                     {
-                        stringBuilder.AppendLine(error);
+                        stringBuilder.AppendLine($"[Error] GameObject {i}: {error}");
+                        errorCount++;
                         continue;
                     }
-                    var objToModify = (object)go;
-                    var type = TypeUtils.GetType(gameObjectDiffs[i].typeName);
-                    if (typeof(UnityEngine.Component).IsAssignableFrom(type))
+
+                    try
                     {
-                        var component = go.GetComponent(type);
-                        if (component == null)
+                        var objToModify = (object)go;
+                        var type = TypeUtils.GetType(gameObjectDiffs[i].typeName);
+                        if (typeof(UnityEngine.Component).IsAssignableFrom(type))
                         {
-                            stringBuilder.AppendLine($"[Error] Component '{type.FullName}' not found on GameObject '{go.name}'.");
-                            continue;
+                            var component = go.GetComponent(type);
+                            if (component == null)
+                            {
+                                stringBuilder.AppendLine($"[Error] GameObject {i}: Component '{type.FullName}' not found on GameObject '{go.name}'.");
+                                errorCount++;
+                                continue;
+                            }
+                            objToModify = component;
                         }
-                        objToModify = component;
+
+                        var populateResult = Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i]);
+                        var populateResultString = populateResult.ToString().Trim();
+
+                        // Check if the result contains error information
+                        if (string.IsNullOrEmpty(populateResultString))
+                        {
+                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' modified successfully (no detailed feedback).");
+                            successCount++;
+                        }
+                        else if (populateResultString.Contains("[Error]") || populateResultString.Contains("error", StringComparison.OrdinalIgnoreCase))
+                        {
+                            stringBuilder.AppendLine($"[Error] GameObject {i}: '{go.name}' - {populateResultString}");
+                            errorCount++;
+                        }
+                        else
+                        {
+                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {populateResultString}");
+                            successCount++;
+                        }
+
+                        // Mark the object as modified
+                        if (objToModify is UnityEngine.Object unityObj)
+                        {
+                            EditorUtility.SetDirty(unityObj);
+                        }
                     }
-                    Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i], stringBuilder);
+                    catch (Exception ex)
+                    {
+                        stringBuilder.AppendLine($"[Error] GameObject {i}: Exception occurred - {ex.Message}");
+                        errorCount++;
+                    }
                 }
 
-                return stringBuilder.ToString();
+                // Generate summary
+                var summary = new StringBuilder();
+                if (successCount > 0 && errorCount == 0)
+                {
+                    summary.AppendLine($"[Success] All {successCount} GameObject(s) modified successfully.");
+                }
+                else if (successCount > 0 && errorCount > 0)
+                {
+                    summary.AppendLine($"[Partial Success] {successCount} GameObject(s) modified successfully, {errorCount} failed.");
+                }
+                else if (errorCount > 0)
+                {
+                    summary.AppendLine($"[Error] All {errorCount} GameObject(s) failed to modify.");
+                }
+
+                summary.AppendLine();
+                summary.Append(stringBuilder);
+
+                return summary.ToString();
             });
         }
 

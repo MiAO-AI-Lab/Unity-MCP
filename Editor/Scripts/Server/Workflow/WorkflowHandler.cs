@@ -57,7 +57,7 @@ namespace com.MiAO.Unity.MCP.Server.Handlers
 
             try
             {
-                _logger.LogInformation("[WorkflowHandler] Initializing...");
+                _logger.LogTrace("[WorkflowHandler] Initializing...");
 
                 // Initialize all RPC gateways for communication with external systems
                 await InitializeGatewaysAsync();
@@ -66,7 +66,7 @@ namespace com.MiAO.Unity.MCP.Server.Handlers
                 await _toolAdapter.InitializeAsync();
 
                 _isInitialized = true;
-                _logger.LogInformation("[WorkflowHandler] Initialization complete");
+                _logger.LogTrace("[WorkflowHandler] Initialization complete");
             }
             catch (Exception ex)
             {
@@ -229,13 +229,13 @@ namespace com.MiAO.Unity.MCP.Server.Handlers
                 _gateways["model_use"] = modelUseGateway;
                 _workflowEngine.RegisterGateway(modelUseGateway);
 
-                _logger.LogInformation("[WorkflowHandler] RPC gateways initialized");
+                _logger.LogTrace("[WorkflowHandler] RPC gateways initialized");
 
                 // Test connectivity status of all gateways
                 foreach (var kvp in _gateways)
                 {
                     var isConnected = await kvp.Value.IsConnectedAsync();
-                    _logger.LogInformation($"[WorkflowHandler] Gateway '{kvp.Key}' connection status: {isConnected}");
+                    _logger.LogTrace($"[WorkflowHandler] Gateway '{kvp.Key}' connection status: {isConnected}");
                 }
             }
             catch (Exception ex)
@@ -263,7 +263,7 @@ namespace com.MiAO.Unity.MCP.Server.Handlers
         /// </summary>
         public async Task DisposeAsync()
         {
-            _logger.LogInformation("[WorkflowHandler] Disposing...");
+            _logger.LogTrace("[WorkflowHandler] Disposing...");
             _gateways.Clear();
             _isInitialized = false;
             await Task.CompletedTask;
