@@ -20,7 +20,7 @@ namespace com.MiAO.Unity.MCP.Server.Utils
             _nLogger = nLogger ?? throw new ArgumentNullException(nameof(nLogger));
         }
 
-        public IDisposable BeginScope<TState>(TState state)
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         {
             return new NoOpDisposable();
         }

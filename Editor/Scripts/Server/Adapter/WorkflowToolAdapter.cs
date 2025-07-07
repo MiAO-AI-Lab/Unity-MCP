@@ -368,7 +368,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
         /// Check if workflow definition files have been modified since last load
         /// Compares file modification times to detect changes without reading file contents.
         /// </summary>
-        private async Task<bool> HasWorkflowFilesChangedAsync()
+        private Task<bool> HasWorkflowFilesChangedAsync()
         {
             try
             {
@@ -376,7 +376,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
 
                 if (!Directory.Exists(configDir))
                 {
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 var jsonFiles = Directory.GetFiles(configDir, "*.json");
@@ -387,7 +387,7 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
                 if (!currentFileSet.SetEquals(cachedFileSet))
                 {
                     _logger.LogDebug($"[WorkflowToolAdapter] Workflow file list changed");
-                    return true;
+                    return Task.FromResult(true);
                 }
 
                 // Check if existing files were modified
@@ -400,24 +400,24 @@ namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
                         if (lastWriteTime > cachedTime)
                         {
                             _logger.LogDebug($"[WorkflowToolAdapter] File modified: {Path.GetFileName(jsonFile)}");
-                            return true;
+                            return Task.FromResult(true);
                         }
                     }
                     else
                     {
                         // New file
                         _logger.LogDebug($"[WorkflowToolAdapter] New file detected: {Path.GetFileName(jsonFile)}");
-                        return true;
+                        return Task.FromResult(true);
                     }
                 }
 
-                return false;
+                return Task.FromResult(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"[WorkflowToolAdapter] Error checking file changes: {ex.Message}");
                 // If we can't check file changes, err on the side of caution and reload
-                return true;
+                return Task.FromResult(true);
             }
         }
 

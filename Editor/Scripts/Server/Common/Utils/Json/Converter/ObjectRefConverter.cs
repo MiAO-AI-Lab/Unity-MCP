@@ -10,7 +10,7 @@ namespace com.MiAO.Unity.MCP.Common.Json
 {
     public class ObjectRefConverter : JsonConverter<ObjectRef>, IJsonSchemaConverter
     {
-        public string Id => typeof(ObjectRef).FullName;
+        public string Id => typeof(ObjectRef).FullName ?? "DefaultObjectRef";
         public JsonNode GetScheme() => new JsonObject
         {
             ["id"] = Id,
@@ -51,10 +51,10 @@ namespace com.MiAO.Unity.MCP.Common.Json
                             instanceID.instanceID = reader.GetInt32();
                             break;
                         case nameof(ObjectRef.assetPath):
-                            instanceID.assetPath = reader.GetString();
+                            instanceID.assetPath = reader.GetString() ?? "";
                             break;
                         case nameof(ObjectRef.assetGuid):
-                            instanceID.assetGuid = reader.GetString();
+                            instanceID.assetGuid = reader.GetString() ?? "";
                             break;
                         default:
                             throw new JsonException($"Unexpected property name: {propertyName}. "

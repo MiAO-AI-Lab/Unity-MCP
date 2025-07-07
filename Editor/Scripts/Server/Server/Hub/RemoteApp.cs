@@ -65,18 +65,18 @@ namespace com.MiAO.Unity.MCP.Server
                     
                     if (response != null)
                     {
-                        var r = ResponseData<ModelUseResponse>.Success(request.RequestID, "Successfully processed the model request");
+                        var r = ResponseData<ModelUseResponse>.Success(request.RequestID ?? "", "Successfully processed the model request");
                         r.Value = response;
                         return r;
                     }
                 }
 
-                return ResponseData<ModelUseResponse>.Error(request.RequestID, "Failed to process model request");
+                return ResponseData<ModelUseResponse>.Error(request.RequestID ?? "", "Failed to process model request");
             }
             catch (Exception ex)
             {
                 _logger.LogError($"RemoteApp RequestModelUse error: {ex.Message}");
-                return ResponseData<ModelUseResponse>.Error(request.RequestID, $"ModelUse request failed: {ex.Message}");
+                return ResponseData<ModelUseResponse>.Error(request.RequestID ?? "", $"ModelUse request failed: {ex.Message}");
             }
         }
     }
