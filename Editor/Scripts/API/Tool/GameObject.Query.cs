@@ -5,6 +5,9 @@ using com.IvanMurzak.ReflectorNet.Model.Unity;
 using com.MiAO.Unity.MCP.Utils;
 using com.IvanMurzak.ReflectorNet.Utils;
 using com.IvanMurzak.ReflectorNet;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
@@ -35,17 +38,92 @@ Also, it returns Components preview just for the target GameObject.")]
                 if (error != null)
                     return error;
 
-                var serializedGo = Reflector.Instance.Serialize(
-                    go,
-                    name: go.name,
-                    recursive: !briefData,
-                    logger: McpPlugin.Instance.Logger
-                );
-                var json = JsonUtils.Serialize(serializedGo);
-                return @$"[Success] Found GameObject.
+                // Check for missing components
+                var components = go.GetComponents<UnityEngine.Component>();
+                var componentsPreview = new List<object>();
+                var missingComponents = new List<string>();
+
+                // Check each component and detect missing scripts
+                for (int i = 0; i < components.Length; i++)
+                {
+                    var component = components[i];
+                    if (component == null)
+                    {
+                        // This is a missing component - use GameObjectUtils public method
+                        var missingInfo = GameObjectUtils.GetMissingComponentInfo(go, i);
+                        missingComponents.Add($"[{i}] Missing Component: {missingInfo}");
+                        componentsPreview.Add(new { Name = $"[{i}]", Status = "Missing", Info = missingInfo });
+                    }
+                    else
+                    {
+                        // Normal component - serialize it (only if not briefData)
+                        if (!briefData)
+                        {
+                            try
+                            {
+                                var serialized = Reflector.Instance.Serialize(
+                                    component,
+                                    name: $"[{i}]",
+                                    recursive: false,
+                                    logger: McpPlugin.Instance.Logger
+                                );
+                                componentsPreview.Add(serialized);
+                            }
+                            catch (System.Exception ex)
+                            {
+                                // If serialization fails, add basic info
+                                componentsPreview.Add(new { Name = $"[{i}]", Type = component.GetType().Name, Status = "SerializationError", Error = ex.Message });
+                            }
+                        }
+                        else
+                        {
+                            // Brief data - just add basic info
+                            componentsPreview.Add(new { Name = $"[{i}]", Type = component.GetType().Name, Status = "OK" });
+                        }
+                    }
+                }
+
+                var result = @$"[Success] Found GameObject.";
+                
+                if (missingComponents.Count > 0)
+                {
+                    result += $"\n\n# ⚠️ Missing Components Detected ({missingComponents.Count}):\n" + string.Join("\n", missingComponents);
+                }
+
+                if (!briefData)
+                {
+                    try
+                    {
+                        var serializedGo = Reflector.Instance.Serialize(
+                            go,
+                            name: go.name,
+                            recursive: true,
+                            logger: McpPlugin.Instance.Logger
+                        );
+                        
+                        result += @$"
+
 # Data:
 ```json
 {JsonUtils.Serialize(serializedGo)}
+```";
+                    }
+                    catch (System.Exception ex)
+                    {
+                        result += @$"
+
+# Data:
+⚠️ GameObject serialization failed due to missing components: {ex.Message}
+Basic GameObject info: instanceID={go.GetInstanceID()}, name={go.name}, active={go.activeInHierarchy}
+";
+                    }
+                }
+
+                result += @$"
+
+# Components Preview:
+```json
+{JsonUtils.Serialize(componentsPreview)}
 ```
 
 # Bounds:
@@ -56,6 +134,7 @@ Also, it returns Components preview just for the target GameObject.")]
 # Hierarchy:
 {go.ToMetadata(includeChildrenDepth).Print()}
 ";
+                return result;
             });
         }
     }
