@@ -174,25 +174,22 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
             return await gateway.CallAsync<string>(step.Operation, parameters);
         }
 
-        private async Task<object> ExecuteDataTransformStepAsync(WorkflowStep step, Dictionary<string, object> parameters)
+        private Task<object> ExecuteDataTransformStepAsync(WorkflowStep step, Dictionary<string, object> parameters)
         {
             // Simple data transformation implementation
             var data = parameters.GetValueOrDefault("data", "");
-            var transform = parameters.GetValueOrDefault("transform", "").ToString();
+            var transform = parameters.GetValueOrDefault("transform", "")?.ToString();
 
-            switch (transform?.ToLower())
+            var result = transform?.ToLower() switch
             {
-                case "json_parse":
-                    return JsonSerializer.Deserialize<object>(data.ToString() ?? "{}");
-                case "json_stringify":
-                    return JsonSerializer.Serialize(data);
-                case "to_upper":
-                    return data.ToString()?.ToUpper() ?? "";
-                case "to_lower":
-                    return data.ToString()?.ToLower() ?? "";
-                default:
-                    return data;
-            }
+                "json_parse" => JsonSerializer.Deserialize<object>(data?.ToString() ?? "{}"),
+                "json_stringify" => JsonSerializer.Serialize(data),
+                "to_upper" => data?.ToString()?.ToUpper() ?? "",
+                "to_lower" => data?.ToString()?.ToLower() ?? "",
+                _ => data
+            };
+
+            return Task.FromResult(result ?? "");
         }
 
         private async Task<Dictionary<string, object>> ResolveParametersAsync(Dictionary<string, object> parameters, IDataFlowContext context)
@@ -210,7 +207,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
         private async Task<object> ResolveParameterValueAsync(object value, IDataFlowContext context)
         {
             if (value == null)
-                return null;
+                return "";
 
             // Handle JsonElement type
             if (value is JsonElement jsonElement)
@@ -255,7 +252,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
             switch (jsonElement.ValueKind)
             {
                 case JsonValueKind.String:
-                    var stringValue = jsonElement.GetString();
+                    var stringValue = jsonElement.GetString() ?? "";
                     return await ResolveStringExpressionAsync(stringValue, context);
 
                 case JsonValueKind.Number:
@@ -268,7 +265,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
                     return false;
 
                 case JsonValueKind.Null:
-                    return null;
+                    return "";
 
                 case JsonValueKind.Object:
                     var dictResult = new Dictionary<string, object>();
@@ -311,19 +308,19 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
             }
         }
 
-        public async Task<List<WorkflowDefinition>> GetAvailableWorkflowsAsync()
+        public Task<List<WorkflowDefinition>> GetAvailableWorkflowsAsync()
         {
-            return await Task.FromResult(_workflows.Values.ToList());
+            return Task.FromResult(_workflows.Values.ToList());
         }
 
-        public async Task RegisterWorkflowAsync(WorkflowDefinition workflow)
+        public Task RegisterWorkflowAsync(WorkflowDefinition workflow)
         {
             _workflows[workflow.Id] = workflow;
             _logger.LogTrace($"[SimpleWorkflowEngine] Registered workflow: {workflow.Name} ({workflow.Id})");
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
-        public async Task<WorkflowDefinition?> GetWorkflowAsync(string workflowId)
+        public Task<WorkflowDefinition?> GetWorkflowAsync(string workflowId)
         {
             _workflows.TryGetValue(workflowId, out var workflow);
             // FIXME: To support "workflow_" prefix which may called from mcp client
@@ -332,7 +329,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
                 workflowId = workflowId.Substring(9);
                 _workflows.TryGetValue(workflowId, out workflow);
             }
-            return await Task.FromResult(workflow);
+            return Task.FromResult(workflow);
         }
 
         private Task<object?> ExecuteUnityToolStep(WorkflowStep step, Dictionary<string, object> context)
@@ -384,25 +381,25 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
             InputParameters = inputParameters;
         }
 
-        public async Task<T?> GetVariableAsync<T>(string variablePath)
+        public Task<T?> GetVariableAsync<T>(string variablePath)
         {
             if (GlobalVariables.TryGetValue(variablePath, out var value))
             {
-                return (T?)value;
+                return Task.FromResult((T?)value);
             }
-            return default;
+            return Task.FromResult(default(T));
         }
 
-        public async Task SetVariableAsync<T>(string key, T value)
+        public Task SetVariableAsync<T>(string key, T value)
         {
-            GlobalVariables[key] = value!;
-            await Task.CompletedTask;
+            GlobalVariables[key] = value ?? (object)"";
+            return Task.CompletedTask;
         }
 
-        public async Task<T?> ResolveExpressionAsync<T>(string expression)
+        public Task<T?> ResolveExpressionAsync<T>(string expression)
         {
             if (string.IsNullOrEmpty(expression))
-                return default;
+                return Task.FromResult(default(T));
 
             // Support ${input.param} syntax
             if (expression.StartsWith("${input.") && expression.EndsWith("}"))
@@ -410,7 +407,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
                 var paramName = expression.Substring(8, expression.Length - 9);
                 if (InputParameters.TryGetValue(paramName, out var value))
                 {
-                    return (T?)value;
+                    return Task.FromResult((T?)value);
                 }
             }
 
@@ -421,7 +418,7 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
                 var stepId = stepMatch.Groups[1].Value;
                 if (StepResults.TryGetValue(stepId, out var stepResult))
                 {
-                    return (T?)stepResult.Result;
+                    return Task.FromResult((T?)stepResult.Result);
                 }
             }
 
@@ -432,12 +429,12 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
                 var stepId = successMatch.Groups[1].Value;
                 if (StepResults.TryGetValue(stepId, out var stepResult))
                 {
-                    return (T?)(object)stepResult.IsSuccess;
+                    return Task.FromResult((T?)(object)stepResult.IsSuccess);
                 }
             }
 
             // If no expression found, return original value directly
-            return (T?)(object)expression;
+            return Task.FromResult((T?)(object)expression);
         }
 
         public async Task<bool> EvaluateConditionAsync(string? condition)
@@ -457,27 +454,27 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
             return result != null;
         }
 
-        public async Task<T?> GetSessionDataAsync<T>(string key)
+        public Task<T?> GetSessionDataAsync<T>(string key)
         {
             if (_sessionData.TryGetValue(key, out var value))
             {
-                return (T?)value;
+                return Task.FromResult((T?)value);
             }
-            return default;
+            return Task.FromResult(default(T));
         }
 
-        public async Task SetSessionDataAsync<T>(string key, T value)
+        public Task SetSessionDataAsync<T>(string key, T value)
         {
-            _sessionData[key] = value!;
-            await Task.CompletedTask;
+            _sessionData[key] = value ?? (object)"";
+            return Task.CompletedTask;
         }
 
-        public async Task ClearSessionAsync()
+        public Task ClearSessionAsync()
         {
             _sessionData.Clear();
             GlobalVariables.Clear();
             StepResults.Clear();
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
     }
 }

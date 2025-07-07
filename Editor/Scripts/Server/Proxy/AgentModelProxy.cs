@@ -9,7 +9,6 @@ using System.Text;
 using System.IO;
 using com.MiAO.Unity.MCP.Server.Protocol;
 using com.MiAO.Unity.MCP.Common;
-using System.Linq;
 
 namespace com.MiAO.Unity.MCP.Server.Proxy
 {
@@ -177,10 +176,10 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
 
             return provider switch
             {
-                "openai" => await CallOpenAIAPI(mode, messages),
-                "gemini" => await CallGeminiAPI(mode, messages),
-                "claude" => await CallClaudeAPI(mode, messages),
-                "local" => await CallLocalAPI(mode, messages),
+                "openai" => await CallOpenAIAPI(mode, messages ?? new List<Message>()),
+                "gemini" => await CallGeminiAPI(mode, messages ?? new List<Message>()),
+                "claude" => await CallClaudeAPI(mode, messages ?? new List<Message>()),
+                "local" => await CallLocalAPI(mode, messages ?? new List<Message>()),
                 _ => throw new Exception($"Unsupported model provider: {provider}")
             };
         }
@@ -939,8 +938,8 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
                     Console.WriteLine($"[AgentModelProxy] Copying config from Unity package: {unityConfigPath}");
                     
                     // Create Server configuration directory
-                    string serverConfigDir = Path.GetDirectoryName(serverConfigPath);
-                    if (!Directory.Exists(serverConfigDir))
+                    string? serverConfigDir = Path.GetDirectoryName(serverConfigPath);
+                    if (!string.IsNullOrEmpty(serverConfigDir) && !Directory.Exists(serverConfigDir))
                         Directory.CreateDirectory(serverConfigDir);
                     
                     // Copy configuration file
@@ -1021,8 +1020,8 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         {
             try
             {
-                string configDir = Path.GetDirectoryName(configPath);
-                if (!Directory.Exists(configDir))
+                string? configDir = Path.GetDirectoryName(configPath);
+                if (!string.IsNullOrEmpty(configDir) && !Directory.Exists(configDir))
                     Directory.CreateDirectory(configDir);
 
                 string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });

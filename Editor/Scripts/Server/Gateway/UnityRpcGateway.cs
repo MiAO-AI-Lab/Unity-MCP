@@ -184,16 +184,16 @@ namespace com.MiAO.Unity.MCP.Server.RpcGateway.Unity
         /// Determines if the gateway can communicate with Unity Runtime
         /// by checking the availability of the McpServerService and its ToolRunner.
         /// </summary>
-        public async Task<bool> IsConnectedAsync()
+        public Task<bool> IsConnectedAsync()
         {
             try
             {
                 var mcpServerService = McpServerService.Instance;
-                return mcpServerService?.ToolRunner != null;
+                return Task.FromResult(mcpServerService?.ToolRunner != null);
             }
             catch
             {
-                return false;
+                return Task.FromResult(false);
             }
         }
 
