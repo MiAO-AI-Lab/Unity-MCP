@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
@@ -261,19 +262,21 @@ namespace com.MiAO.Unity.MCP.Editor.API
         [McpPluginTool
         (
             "GameObject_Manage",
-            Title = "Manage GameObjects - Create, Destroy, Duplicate, Modify, SetParent"
+            Title = "Manage GameObjects - Create, Destroy, Duplicate, Modify, SetParent, SetComponentActive"
         )]
         [Description(@"Manage comprehensive GameObject operations including:
 - create: Create a new GameObject at specific path
 - destroy: Remove a GameObject and all nested GameObjects recursively
 - duplicate: Clone GameObjects in opened Prefab or in a Scene
 - modify: Update GameObjects and/or attached component's field and properties
-- setParent: Assign parent GameObject for target GameObjects")]
+- setParent: Assign parent GameObject for target GameObjects
+- setActive: Set active state of GameObjects
+- setComponentActive: Enable/disable specific components on GameObjects")]
         public string Operations
         (
-            [Description("Operation type: 'create', 'destroy', 'duplicate', 'modify', 'setParent'")]
+            [Description("Operation type: 'create', 'destroy', 'duplicate', 'modify', 'setParent', 'setActive', 'setComponentActive'")]
             string operation,
-            [Description("GameObject reference for operations (required for destroy, duplicate, modify, setParent)")]
+            [Description("GameObject reference for operations (required for destroy, duplicate, modify, setParent, setActive, setComponentActive)")]
             GameObjectRef? gameObjectRef = null,
             [Description("List of GameObject references for operations that support multiple objects")]
             GameObjectRefList? gameObjectRefs = null,
@@ -298,7 +301,13 @@ namespace com.MiAO.Unity.MCP.Editor.API
             [Description("For modify: GameObject modification data")]
             SerializedMemberList? gameObjectDiffs = null,
             [Description("For setParent: Whether GameObject's world position should remain unchanged when setting parent")]
-            bool worldPositionStays = true
+            bool worldPositionStays = true,
+            [Description("For setActive: Whether to set GameObject active (true) or inactive (false)")]
+            bool active = true,
+            [Description("For setComponentActive: Full component type name to enable/disable (e.g., 'UnityEngine.MeshRenderer')")]
+            string? componentTypeName = null,
+            [Description("For setComponentActive: Whether to enable (true) or disable (false) the component")]
+            bool? componentActive = true
         )
         {
             return operation.ToLower() switch
@@ -308,7 +317,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 "duplicate" => DuplicateGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList())),
                 "modify" => ModifyGameObjects(gameObjectDiffs, gameObjectRefs ?? (gameObjectRef != null ? GenerateGameObjectRefListFromSingleGameObjectRef(gameObjectRef, gameObjectDiffs?.Count ?? 0) : new GameObjectRefList())),
                 "setparent" => SetParentGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), parentGameObjectRef, worldPositionStays),
-                _ => "[Error] Invalid operation. Valid operations: 'create', 'destroy', 'duplicate', 'modify', 'setParent'"
+                "setactive" => SetActiveGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), active),
+                "setcomponentactive" => SetComponentActiveGameObjects(gameObjectRefs ?? (gameObjectRef != null ? new GameObjectRefList { gameObjectRef } : new GameObjectRefList()), componentTypeName, componentActive),
+                _ => "[Error] Invalid operation. Valid operations: 'create', 'destroy', 'duplicate', 'modify', 'setParent', 'setActive', 'setComponentActive'"
             };
         }
 
@@ -1129,6 +1140,7 @@ Duplicated instanceIDs:
                 
                 return result;
             });
-        }
+        }                   
     }
+}
 } 
