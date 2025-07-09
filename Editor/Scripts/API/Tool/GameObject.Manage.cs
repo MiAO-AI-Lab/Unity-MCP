@@ -268,7 +268,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
 - create: Create a new GameObject at specific path
 - destroy: Remove a GameObject and all nested GameObjects recursively
 - duplicate: Clone GameObjects in opened Prefab or in a Scene
-- modify: Update GameObjects and/or attached component's field and properties
+- modify: Update GameObjects and/or attached component's field and properties (IMPORTANT: For GameObject properties like name/tag/layer, use ""props"" array: [{""typeName"": ""UnityEngine.GameObject"", ""props"": [{""name"": ""name"", ""typeName"": ""System.String"", ""value"": ""NewName""}]}]. For Transform position/rotation, use: [{""typeName"": ""UnityEngine.Transform"", ""props"": [{""name"": ""position"", ""typeName"": ""UnityEngine.Vector3"", ""value"": {""x"": 1, ""y"": 2, ""z"": 3}}]}]. Always use ""props"" for properties, ""fields"" for public variables.)
 - setParent: Assign parent GameObject for target GameObjects
 - setActive: Set active state of GameObjects
 - setComponentActive: Enable/disable specific components on GameObjects")]
