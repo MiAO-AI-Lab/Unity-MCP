@@ -162,9 +162,9 @@
             
             <!-- Operations tab content -->
             <ui:ScrollView name="UndoContent" style="flex-grow: 1; display: none;">
-                <ui:VisualElement class="container" style="min-width: 320px; padding: 10px;">
+                <ui:VisualElement class="container" style="min-width: 350px; padding: 15px;">
                     <!-- Title area -->
-                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 15px;">
+                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 20px;">
                         <ui:Label text="Operations Panel" style="font-size: 18px; -unity-font-style: bold; flex-grow: 1; color: rgba(220, 220, 220, 0.95);" />
                     </ui:VisualElement>
                     
@@ -172,32 +172,32 @@
                     <ui:VisualElement class="config-group">
                         <ui:Foldout text="Undo Stack" value="true" class="config-group-foldout">
                             <!-- Refresh button -->
-                            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-bottom: 10px;">
-                                <ui:Button name="btnRefreshUndoStack" text="Refresh" class="undo-operation-button" style="width: 70px; height: 28px; font-size: 12px;" />
+                            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-bottom: 12px;">
+                                <ui:Button name="btnRefreshUndoStack" text="Refresh" class="undo-operation-button" style="width: 80px; height: 30px; font-size: 12px;" />
                             </ui:VisualElement>
                             
                             <!-- Status information -->
-                            <ui:VisualElement name="undoStackStatus" class="undo-stack-status">
+                            <ui:VisualElement name="undoStackStatus" class="undo-stack-status" style="margin-bottom: 15px;">
                                 <ui:Label name="undoStackStatusText" text="Stack Status: 0 operations" class="undo-stack-status-text" />
                             </ui:VisualElement>
                             
                             <!-- Quick operation buttons -->
-                            <ui:VisualElement style="flex-direction: row; margin-bottom: 15px;">
-                                <ui:Button name="btnUndoLast" text="&lt; Undo" class="undo-operation-button" style="flex-grow: 1; height: 35px; margin-right: 6px;" />
-                                <ui:Button name="btnRedoLast" text="Redo &gt;" class="undo-operation-button" style="flex-grow: 1; height: 35px; margin-left: 6px;" />
+                            <ui:VisualElement style="flex-direction: row; margin-bottom: 20px; gap: 10px;">
+                                <ui:Button name="btnUndoLast" text="&lt; Undo" class="undo-operation-button" style="flex-grow: 1; height: 38px; font-size: 13px;" />
+                                <ui:Button name="btnRedoLast" text="Redo &gt;" class="undo-operation-button" style="flex-grow: 1; height: 38px; font-size: 13px;" />
                             </ui:VisualElement>
                             
                             <!-- Undo stack history list -->
-                            <ui:Label text="Operation History" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 8px; color: rgba(200, 200, 200, 0.9);" />
-                            <ui:ScrollView name="undoStackList" class="undo-stack-scroll" style="max-height: 400px;">
-                                <ui:VisualElement name="undoStackContainer" style="padding: 6px;">
+                            <ui:Label text="Operation History" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 10px; color: rgba(200, 200, 200, 0.9);" />
+                            <ui:ScrollView name="undoStackList" class="undo-stack-scroll" style="max-height: 400px; margin-bottom: 15px;">
+                                <ui:VisualElement name="undoStackContainer" style="padding: 8px;">
                                     <ui:Label name="emptyUndoStackLabel" text="No operation history" class="empty-state" />
                                 </ui:VisualElement>
                             </ui:ScrollView>
                             
                             <!-- Stack management operations -->
-                            <ui:VisualElement name="undoStackControls" style="margin-top: 12px; flex-direction: row;">
-                                <ui:Button name="btnClearUndoStack" text="Clear Stack" class="undo-operation-button danger-button" style="flex-grow: 1; height: 32px;" />
+                            <ui:VisualElement name="undoStackControls" style="margin-top: 15px; flex-direction: row;">
+                                <ui:Button name="btnClearUndoStack" text="Clear Stack" class="undo-operation-button danger-button" style="flex-grow: 1; height: 35px; font-size: 13px;" />
                             </ui:VisualElement>
                         </ui:Foldout>
                     </ui:VisualElement>

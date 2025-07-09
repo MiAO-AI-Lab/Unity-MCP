@@ -5,13 +5,18 @@
 
 .row {
     flex-direction: row;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     align-items: center;
     justify-content: space-between;
+    padding: 4px 0px;
 }
 
 .row > * {
-    margin-right: 8px;
+    margin-right: 10px;
+}
+
+.row > *:last-child {
+    margin-right: 0px;
 }
 
 .logo-img {
@@ -122,20 +127,28 @@
 .ContentItem {
     padding-left: 0px;
     padding-right: 0px;
+    margin-bottom: 8px;
 }
 .ContentItem .unity-label {
-    width: 80px; /* Set your desired width */
-    min-width: 65px;
-    max-width: 100px;
+    width: 100px;
+    min-width: 85px;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-left: -10px;
+    padding-left: 0px;
+    padding-right: 8px;
+    white-space: nowrap;
 }
 .ContentItem .unity-enum-field {
-    width: 80px;
+    width: auto;
+    min-width: 120px;
 }
 .ContentItem .unity-integer-field__input {
-    width: 10px;
+    width: auto;
+    min-width: 80px;
+}
+.ContentItem .unity-text-field__input {
+    min-width: 120px;
 }
 
 .Divider {
@@ -462,15 +475,16 @@
     color: rgb(175, 232, 230);
 }
 
-/* Special undo stack styles */
+/* Improved undo stack item styles - Fixed overlapping issues */
 .undo-stack-item {
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
-    padding: 8px;
+    padding: 8px 12px;
     margin-bottom: 4px;
     border-left-width: 3px;
     border-left-color: rgba(100, 150, 255, 0.8);
     transition-duration: 200ms;
+    min-height: 50px;
 }
 
 .undo-stack-item:hover {
@@ -481,36 +495,74 @@
 .undo-stack-item-header {
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 5px;
+    width: 100%;
 }
 
 .undo-stack-item-icon {
-    width: 16px;
+    width: 65px;
+    min-width: 65px;
+    max-width: 65px;
     height: 16px;
     margin-right: 8px;
-    font-size: 14px;
+    font-size: 11px;
+    color: rgba(120, 180, 255, 0.9);
+    -unity-font-style: bold;
+    text-align: middle-left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .undo-stack-item-title {
     flex-grow: 1;
-    font-size: 13px;
+    flex-shrink: 1;
+    font-size: 12px;
     -unity-font-style: bold;
+    color: rgba(220, 220, 220, 0.9);
+    margin-right: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .undo-stack-item-time {
-    font-size: 11px;
+    font-size: 10px;
     color: rgba(200, 200, 200, 0.7);
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
+    margin-right: 8px;
+    text-align: middle-right;
+    white-space: nowrap;
+}
+
+.undo-stack-item-index {
+    font-size: 10px;
+    color: rgba(150, 200, 255, 0.8);
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    text-align: middle-right;
+    white-space: nowrap;
+    -unity-font-style: italic;
 }
 
 .undo-stack-item-details {
-    font-size: 11px;
-    color: rgba(200, 200, 200, 0.8);
-    margin-left: 24px;
+    font-size: 10px;
+    color: rgba(200, 200, 200, 0.6);
+    margin-left: 73px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .undo-stack-item-button {
     height: 24px;
-    font-size: 11px;
+    font-size: 10px;
     margin-left: 5px;
     padding: 2px 8px;
     background-color: rgba(175, 232, 230, 0.8);
