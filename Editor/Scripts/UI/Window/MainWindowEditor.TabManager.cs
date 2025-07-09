@@ -4,6 +4,7 @@ using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
 using com.MiAO.Unity.MCP.Editor.API;
 using com.MiAO.Unity.MCP.Editor.Common;
+using Unity.MCP;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -147,9 +148,10 @@ namespace com.MiAO.Unity.MCP.Editor
             {
                 SetAllButtonsEnabled(false);
                 
-                var success = SimpleUndoStack.Undo();
-                if (success)
+                // Use our UnityUndoMonitor system for proper stack management
+                if (UnityUndoMonitor.GetUndoCount() > 0)
                 {
+                    UnityUndoMonitor.PerformUndo();
                     EditorApplication.delayCall += () =>
                     {
                         RefreshUndoStackUI();
@@ -176,9 +178,10 @@ namespace com.MiAO.Unity.MCP.Editor
             {
                 SetAllButtonsEnabled(false);
                 
-                var success = SimpleUndoStack.Redo();
-                if (success)
+                // Use our UnityUndoMonitor system for proper stack management
+                if (UnityUndoMonitor.GetRedoCount() > 0)
                 {
+                    UnityUndoMonitor.PerformRedo();
                     EditorApplication.delayCall += () =>
                     {
                         RefreshUndoStackUI();
@@ -210,7 +213,9 @@ namespace com.MiAO.Unity.MCP.Editor
                 
             if (EditorUtility.DisplayDialog(title, message, clearButton, cancelButton))
             {
-                SimpleUndoStack.Clear();
+                // Use Unity's native undo clear + monitor clear
+                Undo.ClearAll();
+                UnityUndoMonitor.ClearHistory();
                 RefreshUndoStackUI();
                 Debug.Log("[√] Undo stack cleared");
             }
@@ -218,9 +223,9 @@ namespace com.MiAO.Unity.MCP.Editor
 
         private void RefreshUndoStackUI()
         {
-            // Update status text
-            var undoCount = SimpleUndoStack.GetUndoCount();
-            var redoCount = SimpleUndoStack.GetRedoCount();
+            // Update status text using UnityUndoMonitor
+            var undoCount = UnityUndoMonitor.GetUndoCount();
+            var redoCount = UnityUndoMonitor.GetRedoCount();
             var totalCount = undoCount + redoCount;
             _undoStackStatusText.text = LocalizationManager.GetText("operations.stack_status", totalCount);
             
@@ -236,8 +241,8 @@ namespace com.MiAO.Unity.MCP.Editor
             // Clear existing content
             _undoStackContainer.Clear();
             
-            var undoCount = SimpleUndoStack.GetUndoCount();
-            var redoCount = SimpleUndoStack.GetRedoCount();
+            var undoCount = UnityUndoMonitor.GetUndoCount();
+            var redoCount = UnityUndoMonitor.GetRedoCount();
             
             if (undoCount == 0 && redoCount == 0)
             {
@@ -253,7 +258,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 _undoStackContainer.Add(undoHeader);
                 
                 // Add undo stack operations (display in order, newest at the top)
-                var undoHistory = SimpleUndoStack.GetUndoHistory();
+                var undoHistory = UnityUndoMonitor.GetUndoHistory();
                 for (int i = 0; i < undoHistory.Count; i++)
                 {
                     var operation = undoHistory[i];
@@ -270,7 +275,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 _undoStackContainer.Add(redoHeader);
                 
                 // Add redo stack operations (display in order, newest at the top)
-                var redoHistory = SimpleUndoStack.GetRedoHistory();
+                var redoHistory = UnityUndoMonitor.GetRedoHistory();
                 for (int i = 0; i < redoHistory.Count; i++)
                 {
                     var operation = redoHistory[i];
@@ -280,7 +285,7 @@ namespace com.MiAO.Unity.MCP.Editor
             }
         }
 
-        private VisualElement CreateUndoStackItemElement(SimpleUndoItem operation, int index, bool isUndoStack)
+        private VisualElement CreateUndoStackItemElement(UnityUndoMonitor.UndoOperation operation, int index, bool isUndoStack)
         {
             var itemElement = new VisualElement();
             itemElement.AddToClassList("undo-stack-item");
@@ -294,10 +299,10 @@ namespace com.MiAO.Unity.MCP.Editor
             iconElement.AddToClassList("undo-stack-item-icon");
             iconElement.text = GetOperationIcon(operation.operationName);
             
-            // Operation name
+            // Operation name with source indicator
             var titleElement = new Label();
             titleElement.AddToClassList("undo-stack-item-title");
-            titleElement.text = operation.operationName;
+            titleElement.text = operation.DisplayName; // Use DisplayName to show MCP/Manual indicator
             
             // Timestamp
             var timeElement = new Label();
@@ -368,8 +373,8 @@ namespace com.MiAO.Unity.MCP.Editor
 
         private void RefreshButtonStates()
         {
-            var undoCount = SimpleUndoStack.GetUndoCount();
-            var redoCount = SimpleUndoStack.GetRedoCount();
+            var undoCount = UnityUndoMonitor.GetUndoCount();
+            var redoCount = UnityUndoMonitor.GetRedoCount();
             
             // Set main buttons based on stack state
             _btnUndoLast?.SetEnabled(undoCount > 0);
@@ -734,7 +739,7 @@ namespace com.MiAO.Unity.MCP.Editor
             // Update status text
             if (_undoStackStatusText != null)
             {
-                var count = SimpleUndoStack.GetUndoCount() + SimpleUndoStack.GetRedoCount();
+                var count = UnityUndoMonitor.GetUndoCount() + UnityUndoMonitor.GetRedoCount();
                 _undoStackStatusText.text = LocalizationManager.GetText("operations.stack_status", count);
             }
         }
