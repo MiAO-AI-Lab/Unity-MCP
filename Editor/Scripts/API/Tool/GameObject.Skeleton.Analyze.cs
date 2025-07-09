@@ -2152,7 +2152,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
         {
             if (targetGameObject == null)
             {
-                EditorGUILayout.HelpBox("No skeleton data loaded.", MessageType.Info);
+                EditorGUILayout.HelpBox("No skeleton data loaded.", UnityEditor.MessageType.Info);
                 return;
             }
             

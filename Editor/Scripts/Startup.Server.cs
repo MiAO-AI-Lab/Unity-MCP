@@ -13,7 +13,7 @@ using com.IvanMurzak.ReflectorNet.Utils;
 
 namespace com.MiAO.Unity.MCP.Editor
 {
-    using Consts = Common.Consts;
+    using Consts = com.MiAO.Unity.MCP.Common.Consts;
     public static partial class Startup
     {
         public const string PackageName = "com.miao.Unity.MCP";

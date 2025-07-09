@@ -9,7 +9,7 @@ using com.IvanMurzak.ReflectorNet;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
-    using Consts = Common.Consts;
+    using Consts = com.MiAO.Unity.MCP.Common.Consts;
 
     [McpPluginResourceType]
     public partial class Resource_GameObject
