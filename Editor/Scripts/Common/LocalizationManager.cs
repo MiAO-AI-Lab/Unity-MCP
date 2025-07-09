@@ -424,6 +424,53 @@ namespace com.MiAO.Unity.MCP.Editor.Common
                 [Language.ChineseSimplified] = "[未知]"
             },
 
+            // User Input tab
+            ["tab.userinput"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "User Input",
+                [Language.ChineseSimplified] = "用户输入"
+            },
+            ["userinput.title"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "User Input Panel",
+                [Language.ChineseSimplified] = "用户输入面板"
+            },
+            ["userinput.prompt_message"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "Prompt Message:",
+                [Language.ChineseSimplified] = "提示消息："
+            },
+            ["userinput.user_input"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "User Input:",
+                [Language.ChineseSimplified] = "用户输入："
+            },
+            ["userinput.selected_objects"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "Currently Selected Objects:",
+                [Language.ChineseSimplified] = "当前选中的对象："
+            },
+            ["userinput.no_objects"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "No objects selected",
+                [Language.ChineseSimplified] = "没有选中对象"
+            },
+            ["userinput.confirm"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "Confirm",
+                [Language.ChineseSimplified] = "确认"
+            },
+            ["userinput.cancel"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "Cancel",
+                [Language.ChineseSimplified] = "取消"
+            },
+            ["userinput.waiting"] = new Dictionary<Language, string>
+            {
+                [Language.English] = "Waiting for user input request...",
+                [Language.ChineseSimplified] = "等待用户输入请求..."
+            },
+
             // Common text
             ["language.english"] = new Dictionary<Language, string>
             {

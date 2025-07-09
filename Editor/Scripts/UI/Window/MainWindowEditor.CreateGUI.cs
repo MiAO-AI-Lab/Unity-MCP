@@ -538,6 +538,7 @@ namespace com.MiAO.Unity.MCP.Editor
             // Apply tab page text
             root.Query<Button>("TabConnector").First().text = LocalizationManager.GetText("tab.connector");
             root.Query<Button>("TabModelConfig").First().text = LocalizationManager.GetText("tab.modelconfig");
+            root.Query<Button>("TabUserInput").First().text = LocalizationManager.GetText("tab.userinput");
             root.Query<Button>("TabUndoHistory").First().text = LocalizationManager.GetText("tab.operations");
             root.Query<Button>("TabSettings").First().text = LocalizationManager.GetText("tab.settings");
 
