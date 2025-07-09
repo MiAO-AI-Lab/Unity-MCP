@@ -107,10 +107,17 @@
             "connector": "model_use",
             "operation": "text",
             "parameters": {
-                "prompt": "用户输入: '${ask_add_components.result}'\n请将用户输入转换为Unity组件类型名称数组。规则如下：\n1->UnityEngine.Rigidbody\n2->UnityEngine.BoxCollider\n3->UnityEngine.Animator\n4->UnityEngine.CharacterController\n5->UnityEngine.AudioSource\n\n如果用户输入'no'或为空，返回空数组[]。\n如果用户输入数字，返回对应组件名称的JSON数组。\n只返回JSON数组，不要其他文字。",
+                "Messages": [
+                    {
+                        "Role": 0,
+                        "Type": 0,
+                        "Content": "用户输入: '${ask_add_components.result}'\n请将用户输入转换为Unity组件类型名称数组。规则如下：\n1->UnityEngine.Rigidbody\n2->UnityEngine.BoxCollider\n3->UnityEngine.Animator\n4->UnityEngine.CharacterController\n5->UnityEngine.AudioSource\n\n如果用户输入'no'或为空，返回空数组[]。\n如果用户输入数字，返回对应组件名称的JSON数组。\n只返回JSON数组，不要其他文字。"
+                    }
+                ],
                 "parameters": {
                     "max_tokens": 200
-                }
+                },
+                "ModelType": "text"
             },
             "condition": "${ask_add_components.success}",
             "timeoutSeconds": 30
@@ -153,10 +160,17 @@
             "connector": "model_use",
             "operation": "text",
             "parameters": {
-                "prompt": "用户输入的位置: '${ask_final_position.result}'\n请将其转换为Unity Vector3格式的JSON对象。\n如果输入为空或无效，使用默认值 {\"x\":0,\"y\":0,\"z\":0}。\n如果输入格式为 'x,y,z'，解析为对应的坐标值。\n只返回JSON对象，不要其他文字。",
+                "Messages": [
+                    {
+                        "Role": 0,
+                        "Type": 0,
+                        "Content": "用户输入的位置: '${ask_final_position.result}'\n请将其转换为Unity Vector3格式的JSON对象。\n如果输入为空或无效，使用默认值 {\"x\":0,\"y\":0,\"z\":0}。\n如果输入格式为 'x,y,z'，解析为对应的坐标值。\n只返回JSON对象，不要其他文字。"
+                    }
+                ],
                 "parameters": {
                     "max_tokens": 50
-                }
+                },
+                "ModelType": "text"
             },
             "condition": "${ask_final_position.success}",
             "timeoutSeconds": 30
