@@ -343,7 +343,7 @@ Added numerous tool features
 > - ✅ `C:/MyProjects/Project`
 > - ❌ `C:/My Projects/Project`
 
-2. Open Unity project, go 👉 `Window/MCP Hub`.
+2. Open Unity project, go 👉 `Window/AI Connector (Unity-MCP)`.
 
 ![Unity_WaSRb5FIAR](https://github.com/user-attachments/assets/e8049620-6614-45f1-92d7-cc5d00a6b074)
 
