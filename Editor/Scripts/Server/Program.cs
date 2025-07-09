@@ -16,7 +16,7 @@ using com.MiAO.Unity.MCP.Server.Handlers;
 
 namespace com.MiAO.Unity.MCP.Server
 {
-    using Consts = com.MiAO.Unity.MCP.Common.Consts;
+    using Consts = Common.Consts;
 
     public class Program
     {

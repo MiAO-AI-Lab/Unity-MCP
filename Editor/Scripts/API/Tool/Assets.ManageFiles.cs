@@ -12,7 +12,7 @@ using UnityEditor;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
-    using Consts = com.MiAO.Unity.MCP.Common.Consts;
+    using Consts = Common.Consts;
     
     public partial class Tool_Assets
     {

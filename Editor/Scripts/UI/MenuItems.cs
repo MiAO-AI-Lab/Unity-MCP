@@ -9,25 +9,25 @@ namespace com.MiAO.Unity.MCP.Editor
 {
     public static class MenuItems
     {
-        [MenuItem("Window/MCP Hub", priority = 1006)]
+        [MenuItem("Window/AI Connector (Unity-MCP)", priority = 1006)]
         public static void ShowWindow() => MainWindowEditor.ShowWindow();
 
-        [MenuItem("Tools/MCP Hub/DotNet/Get Version", priority = 1007)]
+        [MenuItem("Tools/AI Connector (Unity-MCP)/DotNet/Get Version", priority = 1007)]
         public static async void GetDotNetVersion() => await Startup.IsDotNetInstalled();
 
-        [MenuItem("Tools/MCP Hub/DotNet/Install", priority = 1008)]
+        [MenuItem("Tools/AI Connector (Unity-MCP)/DotNet/Install", priority = 1008)]
         public static async void InstallDotNet() => await Startup.InstallDotNetIfNeeded(force: true);
 
-        [MenuItem("Tools/MCP Hub/MCP Plugin/Build and Start", priority = 1009)]
+        [MenuItem("Tools/AI Connector (Unity-MCP)/MCP Plugin/Build and Start", priority = 1009)]
         public static void BuildAndStart() => McpPluginUnity.BuildAndStart();
 
-        [MenuItem("Tools/MCP Hub/MCP Server/Build", priority = 1010)]
+        [MenuItem("Tools/AI Connector (Unity-MCP)/MCP Server/Build", priority = 1010)]
         public static Task BuildMcpServer() => Startup.BuildServer();
 
-        [MenuItem("Tools/MCP Hub/MCP Server/Logs/Open Logs", priority = 1011)]
+        [MenuItem("Tools/AI Connector (Unity-MCP)/MCP Server/Logs/Open Logs", priority = 1011)]
         public static void OpenLogs() => OpenFile(Startup.ServerLogsPath);
 
-        [MenuItem("Tools/MCP Hub/MCP Server/Open Error Logs", priority = 1012)]
+        [MenuItem("Tools/AI Connector (Unity-MCP)/MCP Server/Open Error Logs", priority = 1012)]
         public static void OpenErrorLogs() => OpenFile(Startup.ServerErrorLogsPath);
         static void OpenFile(string filePath)
         {

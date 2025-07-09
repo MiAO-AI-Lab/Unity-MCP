@@ -1,20 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.MiAO.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss" />
-    
-    <!-- Tab container -->
-    <ui:VisualElement name="TabContainer" style="flex-grow: 1;">
-        <!-- Tab header -->
-        <ui:VisualElement name="TabHeader" style="flex-direction: row; height: 30px; background-color: rgba(128, 128, 128, 0.1); border-bottom-width: 1px; border-bottom-color: rgba(128, 128, 128, 0.5);">
-            <ui:Button name="TabConnector" text="MCP Connector" class="tab-button tab-button-active" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
-            <ui:Button name="TabModelConfig" text="Model Config" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
-            <ui:Button name="TabUndoHistory" text="Operations" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
-            <ui:Button name="TabSettings" text="Settings" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
-        </ui:VisualElement>
-        
-        <!-- Tab content -->
-        <ui:VisualElement name="TabContent" style="flex-grow: 1;">
-            <!-- AI Connector tab content -->
-            <ui:ScrollView name="ConnectorContent" style="flex-grow: 1;">
+    <ui:ScrollView>
         <ui:VisualElement class="container" style="min-width: 320px;">
             <ui:Box name="contHeader" style="background-color: rgba(222, 222, 222, 0); flex-direction: row; flex-shrink: 0;">
                 <ui:VisualElement style="flex-grow: 1; background-color: rgba(0, 0, 0, 0);">
@@ -69,140 +55,60 @@
                 <ui:TextField name="rawJsonConfiguration" multiline="true" readonly="true" selectOnFocus="true" value="This is a multi-line, read-only, selectable text box.&#10;You can copy from here." style="margin-top: 4px; margin-right: 0; margin-left: 0; margin-bottom: 4px;" />
             </ui:VisualElement>
             <ui:VisualElement name="divider" class="Divider" style="flex-grow: 1;" />
+            <ui:Label text="AI Configuration" class="Header" />
+            <ui:Foldout text="AI Provider Settings" name="configFoldout" value="true" class="ai-config-section">
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="OpenAI Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API Key" name="openaiApiKey" password="true" class="config-item" />
+                        <ui:TextField label="Model" name="openaiModel" class="config-item" />
+                        <ui:TextField label="Base URL" name="openaiBaseUrl" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Gemini Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API Key" name="geminiApiKey" password="true" class="config-item" />
+                        <ui:TextField label="Model" name="geminiModel" class="config-item" />
+                        <ui:TextField label="Base URL" name="geminiBaseUrl" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Claude Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API Key" name="claudeApiKey" password="true" class="config-item" />
+                        <ui:TextField label="Model" name="claudeModel" class="config-item" />
+                        <ui:TextField label="Base URL" name="claudeBaseUrl" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Local Settings" value="true" class="config-group-foldout">
+                        <ui:TextField label="API URL" name="localApiUrl" class="config-item" />
+                        <ui:TextField label="Model" name="localModel" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="Model Provider Selection" value="true" class="config-group-foldout">
+                        <ui:DropdownField label="Vision Provider" name="visionModelProvider" class="config-item" />
+                        <ui:DropdownField label="Text Provider" name="textModelProvider" class="config-item" />
+                        <ui:DropdownField label="Code Provider" name="codeModelProvider" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="config-group">
+                    <ui:Foldout text="General Settings" value="true" class="config-group-foldout">
+                        <ui:IntegerField label="Timeout (seconds)" name="timeoutSeconds" class="config-item" />
+                        <ui:IntegerField label="Max Tokens" name="maxTokens" class="config-item" />
+                    </ui:Foldout>
+                </ui:VisualElement>
+                
+                <ui:Button name="btnSaveConfig" text="Save Configuration" class="Button-Primary save-config-btn" />
+            </ui:Foldout>
+            
+            <ui:VisualElement name="divider" class="Divider" style="flex-grow: 1;" />
             <ui:Button name="btnRebuildServer" text="Rebuild MCP Server" class="Button-Primary" />
             <ui:Label text="Please check the logs to see the operation result." class="section-desc" />
         </ui:VisualElement>
     </ui:ScrollView>
-            
-            <!-- Model Configuration tab content -->
-            <ui:ScrollView name="ModelConfigContent" style="flex-grow: 1; display: none;">
-                <ui:VisualElement class="container" style="min-width: 320px;">
-                    <ui:Label text="AI Model Configuration" class="Header" />
-                    <ui:Foldout text="AI Provider Settings" name="configFoldout" value="true" class="ai-config-section">
-                        <ui:VisualElement class="config-group">
-                            <ui:Foldout text="OpenAI Settings" value="true" class="config-group-foldout">
-                                <ui:TextField label="API Key" name="openaiApiKey" password="true" class="config-item" />
-                                <ui:TextField label="Model" name="openaiModel" class="config-item" />
-                                <ui:TextField label="Base URL" name="openaiBaseUrl" class="config-item" />
-                            </ui:Foldout>
-                        </ui:VisualElement>
-                        
-                        <ui:VisualElement class="config-group">
-                            <ui:Foldout text="Gemini Settings" value="true" class="config-group-foldout">
-                                <ui:TextField label="API Key" name="geminiApiKey" password="true" class="config-item" />
-                                <ui:TextField label="Model" name="geminiModel" class="config-item" />
-                                <ui:TextField label="Base URL" name="geminiBaseUrl" class="config-item" />
-                            </ui:Foldout>
-                        </ui:VisualElement>
-                        
-                        <ui:VisualElement class="config-group">
-                            <ui:Foldout text="Claude Settings" value="true" class="config-group-foldout">
-                                <ui:TextField label="API Key" name="claudeApiKey" password="true" class="config-item" />
-                                <ui:TextField label="Model" name="claudeModel" class="config-item" />
-                                <ui:TextField label="Base URL" name="claudeBaseUrl" class="config-item" />
-                            </ui:Foldout>
-                        </ui:VisualElement>
-                        
-                        <ui:VisualElement class="config-group">
-                            <ui:Foldout text="Local Settings" value="true" class="config-group-foldout">
-                                <ui:TextField label="API URL" name="localApiUrl" class="config-item" />
-                                <ui:TextField label="Model" name="localModel" class="config-item" />
-                            </ui:Foldout>
-                        </ui:VisualElement>
-                        
-                        <ui:VisualElement class="config-group">
-                            <ui:Foldout text="Model Provider Selection" value="true" class="config-group-foldout">
-                                <ui:DropdownField label="Vision Provider" name="visionModelProvider" class="config-item" />
-                                <ui:DropdownField label="Text Provider" name="textModelProvider" class="config-item" />
-                                <ui:DropdownField label="Code Provider" name="codeModelProvider" class="config-item" />
-                            </ui:Foldout>
-                        </ui:VisualElement>
-                        
-                        <ui:VisualElement class="config-group">
-                            <ui:Foldout text="General Settings" value="true" class="config-group-foldout">
-                                <ui:IntegerField label="Timeout (seconds)" name="timeoutSeconds" class="config-item" />
-                                <ui:IntegerField label="Max Tokens" name="maxTokens" class="config-item" />
-                            </ui:Foldout>
-                        </ui:VisualElement>
-                        
-                        <ui:Button name="btnSaveConfig" text="Save Configuration" class="Button-Primary save-config-btn" />
-                    </ui:Foldout>
-                </ui:VisualElement>
-            </ui:ScrollView>
-            
-            <!-- Settings tab content -->
-            <ui:ScrollView name="SettingsContent" style="flex-grow: 1; display: none;">
-                <ui:VisualElement class="container" style="min-width: 320px;">
-                    <ui:Label text="User Preferences" class="Header" />
-                    
-                    <!-- Language settings -->
-                    <ui:VisualElement class="config-group">
-                        <ui:Foldout text="Language Settings" value="true" class="config-group-foldout">
-                            <ui:DropdownField label="Interface Language" name="languageSelector" class="config-item" />
-                            <ui:Label text="Select your preferred language for the user interface." class="section-desc" />
-                        </ui:Foldout>
-                    </ui:VisualElement>
-                    
-                    <!-- Theme settings -->
-                    <ui:VisualElement class="config-group">
-                        <ui:Foldout text="Theme Settings" value="true" class="config-group-foldout">
-                            <ui:DropdownField label="UI Theme" name="themeSelector" class="config-item" />
-                            <ui:Toggle label="Auto-refresh UI" name="autoRefreshToggle" class="config-item" />
-                            <ui:Label text="Configure the appearance and behavior of the user interface." class="section-desc" />
-                        </ui:Foldout>
-                    </ui:VisualElement>
-                    
-                    <!-- Save button -->
-                    <ui:Button name="btnSaveSettings" text="Save Settings" class="Button-Primary save-config-btn" />
-                    
-                    <!-- Reset button -->
-                    <ui:Button name="btnResetSettings" text="Reset to Defaults" class="Button-Secondary" style="margin-top: 10px;" />
-                </ui:VisualElement>
-            </ui:ScrollView>
-            
-            <!-- Operations tab content -->
-            <ui:ScrollView name="UndoContent" style="flex-grow: 1; display: none;">
-                <ui:VisualElement class="container" style="min-width: 320px; padding: 10px;">
-                    <!-- Title area -->
-                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 15px;">
-                        <ui:Label text="Operations Panel" style="font-size: 18px; -unity-font-style: bold; flex-grow: 1; color: rgba(220, 220, 220, 0.95);" />
-                    </ui:VisualElement>
-                    
-                    <!-- Undo stack submodule -->
-                    <ui:VisualElement class="config-group">
-                        <ui:Foldout text="Undo Stack" value="true" class="config-group-foldout">
-                            <!-- Refresh button -->
-                            <ui:VisualElement style="flex-direction: row; justify-content: flex-end; margin-bottom: 10px;">
-                                <ui:Button name="btnRefreshUndoStack" text="Refresh" class="undo-operation-button" style="width: 70px; height: 28px; font-size: 12px;" />
-                            </ui:VisualElement>
-                            
-                            <!-- Status information -->
-                            <ui:VisualElement name="undoStackStatus" class="undo-stack-status">
-                                <ui:Label name="undoStackStatusText" text="Stack Status: 0 operations" class="undo-stack-status-text" />
-                            </ui:VisualElement>
-                            
-                            <!-- Quick operation buttons -->
-                            <ui:VisualElement style="flex-direction: row; margin-bottom: 15px;">
-                                <ui:Button name="btnUndoLast" text="&lt; Undo" class="undo-operation-button" style="flex-grow: 1; height: 35px; margin-right: 6px;" />
-                                <ui:Button name="btnRedoLast" text="Redo &gt;" class="undo-operation-button" style="flex-grow: 1; height: 35px; margin-left: 6px;" />
-                            </ui:VisualElement>
-                            
-                            <!-- Undo stack history list -->
-                            <ui:Label text="Operation History" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 8px; color: rgba(200, 200, 200, 0.9);" />
-                            <ui:ScrollView name="undoStackList" class="undo-stack-scroll" style="max-height: 400px;">
-                                <ui:VisualElement name="undoStackContainer" style="padding: 6px;">
-                                    <ui:Label name="emptyUndoStackLabel" text="No operation history" class="empty-state" />
-                                </ui:VisualElement>
-                            </ui:ScrollView>
-                            
-                            <!-- Stack management operations -->
-                            <ui:VisualElement name="undoStackControls" style="margin-top: 12px; flex-direction: row;">
-                                <ui:Button name="btnClearUndoStack" text="Clear Stack" class="undo-operation-button danger-button" style="flex-grow: 1; height: 32px;" />
-                            </ui:VisualElement>
-                        </ui:Foldout>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:ScrollView>
-        </ui:VisualElement>
-    </ui:VisualElement>
 </ui:UXML>
