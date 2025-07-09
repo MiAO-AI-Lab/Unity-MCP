@@ -1,3 +1,4 @@
+using com.MiAO.Unity.MCP.Editor.Common;
 using com.MiAO.Unity.MCP.Utils;
 using R3;
 using UnityEditor;
@@ -12,7 +13,7 @@ namespace com.MiAO.Unity.MCP.Editor
         public static MainWindowEditor ShowWindow()
         {
             var window = GetWindow<MainWindowEditor>();
-            window.titleContent = new GUIContent(text: "AI Connector");
+            window.UpdateWindowTitle();
             window.Focus();
 
             return window;
@@ -41,11 +42,28 @@ namespace com.MiAO.Unity.MCP.Editor
         private void OnEnable()
         {
             McpPluginUnity.SubscribeOnChanged(OnChanged);
+            
+            // Update window title
+            UpdateWindowTitle();
+            
+            // Subscribe to language change events to update window title
+            LocalizationManager.OnLanguageChanged += OnLanguageChanged;
         }
         private void OnDisable()
         {
             McpPluginUnity.UnsubscribeOnChanged(OnChanged);
+            LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
             _disposables.Clear();
         }
+
+        /// <summary>
+        /// Update window title
+        /// </summary>
+        private void UpdateWindowTitle()
+        {
+            titleContent = new GUIContent(text: LocalizationManager.GetText("window.title"));
+        }
+
+
     }
 }

@@ -15,7 +15,7 @@ namespace com.MiAO.Unity.MCP
 {
     using LogLevelMicrosoft = Microsoft.Extensions.Logging.LogLevel;
     using LogLevel = Utils.LogLevel;
-    using Consts = Common.Consts;
+    using Consts = com.MiAO.Unity.MCP.Common.Consts;
 
     public partial class McpPluginUnity
     {
