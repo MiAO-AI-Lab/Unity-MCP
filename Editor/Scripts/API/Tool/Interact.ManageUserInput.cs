@@ -21,19 +21,21 @@ namespace com.MiAO.Unity.MCP.Editor.API
             [Description("Prompt message displayed to user (only for ask operation)")]
             string promptMessage = "",
             [Description("Unique identifier for window, used to manage multiple windows")]
-            string windowId = "default"
+            string windowId = "default",
+            [Description("Mode: 'full' (return all messages), 'clean' (return only user input), 'json' (return jsonified object)")]
+            string mode = "full"
         )
         {
             switch (operation.ToLower())
             {
                 case "ask":
-                    return AskUserInputWithTimeout(promptMessage, windowId);
+                    return AskUserInputWithTimeout(promptMessage, windowId, mode);
                 default:
                     return $"[Error] Invalid operation type '{operation}'. Supported operation types: 'ask', 'get', 'close'.";
             }
         }
 
-        private string AskUserInputWithTimeout(string promptMessage, string windowId)
+        private string AskUserInputWithTimeout(string promptMessage, string windowId, string mode)
         {
             try
             {
@@ -41,7 +43,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 
                 MainThread.Instance.Run(() =>
                 {
-                    task = AskUserInputAsync(promptMessage, windowId);
+                    task = AskUserInputAsync(promptMessage, windowId, mode);
                 });
                 
                 if (task.Wait(TimeSpan.FromMinutes(5)))
@@ -74,7 +76,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
             }
         }
 
-        private async Task<string> AskUserInputAsync(string promptMessage, string windowId)
+        private async Task<string> AskUserInputAsync(string promptMessage, string windowId, string mode)
         {
             if (string.IsNullOrEmpty(promptMessage))
             {
@@ -105,7 +107,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
             var mainWindow = EditorWindow.GetWindow<MainWindowEditor>();
             if (mainWindow != null)
             {
-                mainWindow.ShowUserInputUI(promptMessage, windowId, result => 
+                mainWindow.ShowUserInputUI(promptMessage, windowId, mode, result => 
                 {
                     tcs.SetResult(result);
                 });

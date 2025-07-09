@@ -35,7 +35,8 @@
             "parameters": {
                 "operation": "ask",
                 "promptMessage": "请输入您想要创建的角色名称：",
-                "windowId": "character_name_input"
+                "windowId": "character_name_input",
+                "mode": "clean"
             },
             "timeoutSeconds": 60
         },
@@ -47,7 +48,8 @@
             "parameters": {
                 "operation": "ask",
                 "promptMessage": "请选择角色类型：\n1. 人形角色 (Humanoid)\n2. 动物角色 (Animal)\n3. 机器人角色 (Robot)\n4. 自定义角色 (Custom)\n\n请输入数字 1-4：",
-                "windowId": "character_type_input"
+                "windowId": "character_type_input",
+                "mode": "clean"
             },
             "condition": "${ask_character_name.success}",
             "timeoutSeconds": 60
@@ -93,7 +95,8 @@
             "parameters": {
                 "operation": "ask",
                 "promptMessage": "是否需要为角色添加组件？\n可选组件:\n1. Rigidbody (刚体)\n2. Collider (碰撞器)\n3. Animator (动画器)\n4. CharacterController (角色控制器)\n5. AudioSource (音频源)\n\n请输入组件编号，用逗号分隔（例如：1,2,3）或输入'no'跳过：",
-                "windowId": "components_input"
+                "windowId": "components_input",
+                "mode": "clean"
             },
             "condition": "${create_character_base.success}",
             "timeoutSeconds": 60
@@ -138,7 +141,8 @@
             "parameters": {
                 "operation": "ask",
                 "promptMessage": "请输入角色的最终位置坐标 (x,y,z)：\n格式：x,y,z （例如：0,0,0）\n或按回车使用默认位置 (0,0,0)：",
-                "windowId": "position_input"
+                "windowId": "position_input",
+                "mode": "clean"
             },
             "condition": "${add_components_to_character.success}",
             "timeoutSeconds": 60

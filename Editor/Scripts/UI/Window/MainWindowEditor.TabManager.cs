@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
 using com.MiAO.Unity.MCP.Editor.API;
@@ -1149,6 +1151,7 @@ namespace com.MiAO.Unity.MCP.Editor
         private bool _userInputActive = false;
         private string _currentWindowId = "";
         private System.Action<string> _userInputCallback;
+        private string _mode = "full";
 
         private void InitializeUserInputUI(VisualElement root)
         {
@@ -1183,7 +1186,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 _userInputSection.style.display = DisplayStyle.Flex;
                 _objectSelectionSection.style.display = DisplayStyle.Flex;
                 _buttonSection.style.display = DisplayStyle.Flex;
-                _statusText.text = "等待用户输入...";
+                _statusText.text = "Waiting for user input...";
                 
                 // Update selected objects display
                 UpdateSelectedObjectsDisplay();
@@ -1194,7 +1197,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 _userInputSection.style.display = DisplayStyle.None;
                 _objectSelectionSection.style.display = DisplayStyle.None;
                 _buttonSection.style.display = DisplayStyle.None;
-                _statusText.text = "等待用户输入请求...";
+                _statusText.text = "Waiting for prompt...";
             }
         }
 
@@ -1202,31 +1205,50 @@ namespace com.MiAO.Unity.MCP.Editor
         {
             var userInputText = _userInputField.value ?? "";
             var selectedObjects = Selection.objects;
-            
-            var result = $"[Success] User input completed.";
-            result += $"\nUser input text: '{userInputText}'";
-            
-            if (selectedObjects.Length > 0)
+
+            var result = "";
+            if (_mode == "full")
             {
-                result += $"\nSelected objects count: {selectedObjects.Length}";
-                result += $"\nSelected objects list:";
-                for (int i = 0; i < selectedObjects.Length; i++)
+                result = $"[Success] User input completed.";
+                result += $"\nUser input text: '{userInputText}'";
+                
+                if (selectedObjects.Length > 0)
                 {
-                    if (selectedObjects[i] != null)
+                    result += $"\nSelected objects count: {selectedObjects.Length}";
+                    result += $"\nSelected objects list:";
+                    for (int i = 0; i < selectedObjects.Length; i++)
                     {
-                        var obj = selectedObjects[i];
-                        var path = "";
-                        if (obj is GameObject go)
+                        if (selectedObjects[i] != null)
                         {
-                            path = GetGameObjectPath(go);
-                        }
-                        result += $"\n  [{i + 1}] {obj.name} ({obj.GetType().Name}) - InstanceID: {obj.GetInstanceID()}";
-                        if (!string.IsNullOrEmpty(path))
-                        {
-                            result += $" - Path: {path}";
+                            var obj = selectedObjects[i];
+                            var path = "";
+                            if (obj is GameObject go)
+                            {
+                                path = GetGameObjectPath(go);
+                            }
+                            result += $"\n  [{i + 1}] {obj.name} ({obj.GetType().Name}) - InstanceID: {obj.GetInstanceID()}";
+                            if (!string.IsNullOrEmpty(path))
+                            {
+                                result += $" - Path: {path}";
+                            }
                         }
                     }
                 }
+            }
+            else if (_mode == "clean")
+            {
+                result = userInputText;
+            }
+            else if (_mode == "json")
+            {
+                result = JsonSerializer.Serialize(new {
+                    userInput = userInputText,
+                    selectedObjects = selectedObjects.Select(obj => new {
+                        name = obj.name,
+                        type = obj.GetType().Name,
+                        instanceId = obj.GetInstanceID()
+                    }).ToArray()
+                });
             }
             
             CompleteUserInput(result);
@@ -1298,12 +1320,13 @@ namespace com.MiAO.Unity.MCP.Editor
         /// <summary>
         /// Show user input UI and switch to UserInput tab
         /// </summary>
-        public void ShowUserInputUI(string promptMessage, string windowId, System.Action<string> callback)
+        public void ShowUserInputUI(string promptMessage, string windowId, string mode, System.Action<string> callback)
         {
             _userInputActive = true;
             _currentWindowId = windowId;
             _userInputCallback = callback;
             _promptMessageText.text = promptMessage;
+            _mode = mode;
             
             // Switch to UserInput tab
             SwitchTab(TabType.UserInput);
