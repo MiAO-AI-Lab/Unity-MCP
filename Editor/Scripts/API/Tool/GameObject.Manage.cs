@@ -332,7 +332,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
             var parts = path.Split('/');
             GameObject current = null;
             
-            // 找到根对象
+            // Find root object
             foreach (var rootGo in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
             {
                 if (rootGo.name == parts[0])
@@ -345,7 +345,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
             if (current == null)
                 return null;
                 
-            // 依次找到子对象
+            // Find child objects in sequence
             for (int i = 1; i < parts.Length; i++)
             {
                 var childTransform = current.transform.Find(parts[i]);
@@ -362,12 +362,12 @@ namespace com.MiAO.Unity.MCP.Editor.API
             if (string.IsNullOrEmpty(name))
                 return null;
                 
-            // 先尝试使用Unity的Find方法（只能找到根级别的对象）
+            // First try Unity's Find method (can only find root-level objects)
             var rootObj = GameObject.Find(name);
             if (rootObj != null)
                 return rootObj;
                 
-            // 如果没找到，遍历场景中的所有对象
+            // If not found, traverse all objects in the scene
             foreach (var rootGo in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
             {
                 var found = FindGameObjectByNameRecursive(rootGo, name);
@@ -666,7 +666,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 if (error != null)
                     return error;
 
-                // 在删除前保存对象状态用于撤回
+                // Save object state before deletion for undo
                 var goName = go.name;
                 var goPosition = go.transform.position;
                 var goRotation = go.transform.rotation;
@@ -674,7 +674,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 var goParentPath = go.transform.parent != null ? GetGameObjectPath(go.transform.parent.gameObject) : null;
                 var goActive = go.activeInHierarchy;
                 
-                // 判断是否是基本体
+                // Determine if it's a primitive
                 var meshFilter = go.GetComponent<MeshFilter>();
                 PrimitiveType? primitiveType = null;
                 if (meshFilter?.sharedMesh != null)
@@ -692,7 +692,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     };
                 }
 
-                // 执行删除
+                // Execute deletion
                 UnityEngine.Object.DestroyImmediate(go);
                 
                 // Add to undo stack
@@ -849,7 +849,7 @@ Duplicated instanceIDs:
                 var successCount = 0;
                 var errorCount = 0;
                 
-                // 保存修改前的状态用于撤回
+                // Save state before modification for undo
                 var originalStates = new List<(GameObject go, object targetObj, SerializedMember originalData)>();
 
                 for (int i = 0; i < gameObjectRefs.Count; i++)
@@ -878,7 +878,7 @@ Duplicated instanceIDs:
                             objToModify = component;
                         }
 
-                        // 保存修改前的状态
+                        // Save state before modification
                         var originalData = Reflector.Instance.Serialize(objToModify);
                         originalStates.Add((go, objToModify, originalData));
 
@@ -1026,7 +1026,7 @@ Duplicated instanceIDs:
                 var stringBuilder = new StringBuilder();
                 int changedCount = 0;
                 
-                // 保存修改前的父级状态
+                // Save parent state before modification
                 var originalParents = new List<(GameObject go, string originalParentPath)>();
 
                 for (var i = 0; i < gameObjectRefs.Count; i++)
@@ -1045,7 +1045,7 @@ Duplicated instanceIDs:
                         continue;
                     }
 
-                    // 保存原始父级路径
+                    // Save original parent path
                     var originalParentPath = targetGo.transform.parent != null ? GetGameObjectPath(targetGo.transform.parent.gameObject) : null;
                     originalParents.Add((targetGo, originalParentPath));
 
