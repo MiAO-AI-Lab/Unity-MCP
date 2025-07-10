@@ -148,7 +148,7 @@
             "operation": "Interact_ManageUserInput",
             "parameters": {
                 "operation": "ask",
-                "promptMessage": "Please enter the final position coordinates (x,y,z) for the character:\nFormat: x,y,z (e.g., 0,0,0)\nOr press Enter to use default position (0,0,0):",
+                "promptMessage": "Please enter the final position coordinates (x,y,z) for the character:\nFormat: x,y,z (e.g., 0,0,0)\nOr press Confirm to use default position (0,0,0):",
                 "windowId": "position_input",
                 "mode": "clean"
             },
