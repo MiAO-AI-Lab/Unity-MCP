@@ -117,7 +117,8 @@
                 "parameters": {
                     "max_tokens": 200
                 },
-                "ModelType": "text"
+                "ModelType": "text",
+                "Mode": "clean"
             },
             "condition": "${ask_add_components.success}",
             "timeoutSeconds": 30
