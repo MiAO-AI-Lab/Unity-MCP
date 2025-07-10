@@ -17,7 +17,7 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
     /// </summary>
     public class AgentModelProxy : IAgentModelProxy
     {
-        private readonly AIConfig _config;
+        private AIConfig _config;
         private readonly HttpClient _httpClient;
 
         public AgentModelProxy()
@@ -34,6 +34,8 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         {
             try
             {
+                _config = LoadConfig();
+
 #if UNITY_5_3_OR_NEWER
                 UnityEngine.Debug.Log($"[AgentModelProxy] Processing {request.Type} model request");
 #else
@@ -884,7 +886,7 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         {
 #if UNITY_5_3_OR_NEWER
             // Use Unity path in Unity environment
-            var configPath = Path.Combine(UnityEngine.Application.dataPath, "..", "Packages", "com.MiAO.Unity.MCP", "Config", "AI_Config.json");
+            var configPath = Path.Combine(UnityEngine.Application.dataPath, "..", "Packages", "com.miao.unity.mcp", "Config", "AI_Config.json");
 #else
             // Use relative path in Server environment
             var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "AI_Config.json");
@@ -982,11 +984,11 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
             
             if (!string.IsNullOrEmpty(projectRoot))
             {
-                return Path.Combine(projectRoot, "Packages", "com.MiAO.Unity.MCP", "Config", "AI_Config.json");
+                return Path.Combine(projectRoot, "Packages", "com.miao.unity.mcp", "Config", "AI_Config.json");
             }
             
             // If project root not found, try using relative path
-            return Path.Combine(currentDir, "..", "..", "..", "..", "..", "Packages", "com.MiAO.Unity.MCP", "Config", "AI_Config.json");
+            return Path.Combine(currentDir, "..", "..", "..", "..", "..", "Packages", "com.miao.unity.mcp", "Config", "AI_Config.json");
         }
 
         /// <summary>

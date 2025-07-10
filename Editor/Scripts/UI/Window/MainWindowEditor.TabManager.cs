@@ -93,6 +93,19 @@ namespace com.MiAO.Unity.MCP.Editor
             // Unregister EditorApplication.update event to avoid memory leaks
             EditorApplication.update -= UpdateSelectedObjectsDisplay;
         }
+        
+        /// <summary>
+        /// Handle undo operations changes for auto-refresh
+        /// </summary>
+        private void OnUndoOperationsChanged()
+        {
+            // Only refresh if the undo tab is currently active to avoid unnecessary UI updates
+            if (_currentTab == TabType.UndoHistory)
+            {
+                // Immediately refresh UI - reduce delay perception
+                RefreshUndoStackUI();
+            }
+        }
 
         private void SwitchTab(TabType tabType)
         {
@@ -178,7 +191,6 @@ namespace com.MiAO.Unity.MCP.Editor
                         RefreshUndoStackUI();
                         // RefreshUndoStackUI() already called RefreshButtonStates(), no need to call SetAllButtonsEnabled(true) again
                     };
-                    Debug.Log("[√] Undo operation successful");
                 }
                 else
                 {
@@ -208,7 +220,6 @@ namespace com.MiAO.Unity.MCP.Editor
                         RefreshUndoStackUI();
                         // RefreshUndoStackUI() already called RefreshButtonStates(), no need to call SetAllButtonsEnabled(true) again
                     };
-                    Debug.Log("[√] Redo operation successful");
                 }
                 else
                 {
@@ -238,23 +249,33 @@ namespace com.MiAO.Unity.MCP.Editor
                 Undo.ClearAll();
                 UnityUndoMonitor.ClearHistory();
                 RefreshUndoStackUI();
-                Debug.Log("[√] Undo stack cleared");
             }
         }
 
         private void RefreshUndoStackUI()
         {
-            // Update status text using UnityUndoMonitor
-            var undoCount = UnityUndoMonitor.GetUndoCount();
-            var redoCount = UnityUndoMonitor.GetRedoCount();
-            var totalCount = undoCount + redoCount;
-            _undoStackStatusText.text = LocalizationManager.GetText("operations.stack_status", totalCount);
+            // Temporarily disable undo monitoring during UI refresh to prevent false detection of operations
+            UnityUndoMonitor.SetUIRefreshState(true);
             
-            // Update operation history list
-            UpdateUndoStackList();
-            
-            // Update button states (place at the end to ensure all UI elements are updated)
-            RefreshButtonStates();
+            try
+            {
+                // Update status text using UnityUndoMonitor
+                var undoCount = UnityUndoMonitor.GetUndoCount();
+                var redoCount = UnityUndoMonitor.GetRedoCount();
+                var totalCount = undoCount + redoCount;
+                _undoStackStatusText.text = LocalizationManager.GetText("operations.stack_status", totalCount);
+                
+                // Update operation history list
+                UpdateUndoStackList();
+                
+                // Update button states (place at the end to ensure all UI elements are updated)
+                RefreshButtonStates();
+            }
+            finally
+            {
+                // Immediately re-enable undo monitoring to reduce impact on subsequent operation detection
+                UnityUndoMonitor.SetUIRefreshState(false);
+            }
         }
 
         private void UpdateUndoStackList()
@@ -280,9 +301,11 @@ namespace com.MiAO.Unity.MCP.Editor
                 
                 // Add undo stack operations (display in order, newest at the top)
                 var undoHistory = UnityUndoMonitor.GetUndoHistory();
-                for (int i = 0; i < undoHistory.Count; i++)
+                // Reverse the list to show newest operations first
+                var reversedUndoHistory = undoHistory.AsEnumerable().Reverse().ToArray();
+                for (int i = 0; i < reversedUndoHistory.Length; i++)
                 {
-                    var operation = undoHistory[i];
+                    var operation = reversedUndoHistory[i];
                     var operationElement = CreateUndoStackItemElement(operation, i, true);
                     _undoStackContainer.Add(operationElement);
                 }
@@ -297,6 +320,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 
                 // Add redo stack operations (display in order, newest at the top)
                 var redoHistory = UnityUndoMonitor.GetRedoHistory();
+                // GetRedoHistory() already returns reversed list (newest first), so no need to reverse again
                 for (int i = 0; i < redoHistory.Count; i++)
                 {
                     var operation = redoHistory[i];
@@ -905,8 +929,6 @@ namespace com.MiAO.Unity.MCP.Editor
 
                 // Load auto-refresh settings
                 _autoRefreshToggle.value = EditorPrefs.GetBool(PREF_AUTO_REFRESH, true);
-
-                Debug.Log("[Settings] Settings loaded successfully");
             }
             catch (Exception e)
             {
@@ -987,8 +1009,6 @@ namespace com.MiAO.Unity.MCP.Editor
                     LocalizationManager.CurrentLanguage = LocalizationManager.StringToLanguage(languageToSave);
                 }
                 
-                Debug.Log($"[Settings] Settings saved successfully - Language: {languageToSave}, Theme: {themeToSave}, AutoRefresh: {_autoRefreshToggle.value}");
-                
                 // Show detailed save confirmation
                 var settingsSummary = GetSettingsSummary();
                 var successTitle = LocalizationManager.GetText("dialog.settings");
@@ -1017,7 +1037,6 @@ namespace com.MiAO.Unity.MCP.Editor
                 {
                     ResetSettingsToDefaults();
                     
-                    Debug.Log("[Settings] Settings reset to defaults successfully");
                     var successTitle = LocalizationManager.GetText("dialog.settings");
                     var successMessage = LocalizationManager.GetText("dialog.reset_success");
                     EditorUtility.DisplayDialog(successTitle, successMessage, "OK");
@@ -1083,7 +1102,6 @@ namespace com.MiAO.Unity.MCP.Editor
             EditorPrefs.DeleteKey(PREF_LANGUAGE);
             EditorPrefs.DeleteKey(PREF_THEME);
             EditorPrefs.DeleteKey(PREF_AUTO_REFRESH);
-            Debug.Log("[Settings] All settings cleared");
         }
 
         /// <summary>

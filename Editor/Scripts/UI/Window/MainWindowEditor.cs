@@ -3,6 +3,7 @@ using com.MiAO.Unity.MCP.Utils;
 using R3;
 using UnityEditor;
 using UnityEngine;
+using Unity.MCP;
 
 namespace com.MiAO.Unity.MCP.Editor
 {
@@ -25,9 +26,6 @@ namespace com.MiAO.Unity.MCP.Editor
 
         private void SaveChanges(string message)
         {
-            if (McpPluginUnity.IsLogActive(LogLevel.Info))
-                Debug.Log(message);
-
             saveChangesMessage = message;
 
             Undo.RecordObject(McpPluginUnity.AssetFile, message); // Undo record started
@@ -48,11 +46,18 @@ namespace com.MiAO.Unity.MCP.Editor
             
             // Subscribe to language change events to update window title
             LocalizationManager.OnLanguageChanged += OnLanguageChanged;
+            
+            // Subscribe to undo operations changes for auto-refresh
+            UnityUndoMonitor.OnOperationsChanged += OnUndoOperationsChanged;
         }
         private void OnDisable()
         {
             McpPluginUnity.UnsubscribeOnChanged(OnChanged);
             LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
+            
+            // Unsubscribe from undo operations changes
+            UnityUndoMonitor.OnOperationsChanged -= OnUndoOperationsChanged;
+            
             _disposables.Clear();
         }
 
@@ -63,7 +68,5 @@ namespace com.MiAO.Unity.MCP.Editor
         {
             titleContent = new GUIContent(text: LocalizationManager.GetText("window.title"));
         }
-
-
     }
 }
