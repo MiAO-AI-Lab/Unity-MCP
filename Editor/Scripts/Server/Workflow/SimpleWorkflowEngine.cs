@@ -401,40 +401,111 @@ namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
             if (string.IsNullOrEmpty(expression))
                 return Task.FromResult(default(T));
 
-            // Support ${input.param} syntax
-            if (expression.StartsWith("${input.") && expression.EndsWith("}"))
+            // Check if the string contains any expressions to resolve
+            if (!expression.Contains("${"))
             {
-                var paramName = expression.Substring(8, expression.Length - 9);
-                if (InputParameters.TryGetValue(paramName, out var value))
+                return Task.FromResult((T?)(object)expression);
+            }
+
+            // Perform string interpolation by replacing all expressions within the string
+            var resolvedExpression = InterpolateExpressions(expression);
+
+            // If T is string, return the interpolated string directly
+            if (typeof(T) == typeof(string))
+            {
+                return Task.FromResult((T?)(object)resolvedExpression);
+            }
+
+            // For non-string types, try to convert if the result is a pure value (no additional text)
+            if (expression.StartsWith("${") && expression.EndsWith("}"))
+            {
+                // This was a pure expression, try to return the actual resolved value
+                var pureValue = GetSingleExpressionValue(expression);
+                if (pureValue != null)
                 {
-                    return Task.FromResult((T?)value);
+                    return Task.FromResult((T?)pureValue);
                 }
             }
 
-            // Support ${step.result} syntax
-            var stepMatch = Regex.Match(expression, @"\$\{(\w+)\.result\}");
-            if (stepMatch.Success)
+            // Default to string conversion for mixed content
+            return Task.FromResult((T?)(object)resolvedExpression);
+        }
+
+        /// <summary>
+        /// Interpolates all ${...} expressions within a string and returns the resolved string
+        /// </summary>
+        private string InterpolateExpressions(string input)
+        {
+            if (string.IsNullOrEmpty(input) || !input.Contains("${"))
+                return input;
+
+            // Pattern to match ${...} expressions
+            var pattern = @"\$\{([^}]+)\}";
+
+            return Regex.Replace(input, pattern, match =>
             {
-                var stepId = stepMatch.Groups[1].Value;
+                var expression = match.Groups[1].Value;
+                var resolvedValue = ResolveExpressionValue(expression);
+                return resolvedValue?.ToString() ?? match.Value; // Keep original if resolution fails
+            });
+        }
+
+        /// <summary>
+        /// Resolves a single expression (without ${}) to its value
+        /// </summary>
+        private object? ResolveExpressionValue(string expression)
+        {
+            if (string.IsNullOrEmpty(expression))
+                return null;
+
+            // Handle input.param syntax
+            if (expression.StartsWith("input."))
+            {
+                var paramName = expression.Substring(6); // Remove "input." prefix
+                if (InputParameters.TryGetValue(paramName, out var inputValue))
+                {
+                    return inputValue;
+                }
+            }
+
+            // Handle step.result syntax
+            var stepResultMatch = Regex.Match(expression, @"^(\w+)\.result$");
+            if (stepResultMatch.Success)
+            {
+                var stepId = stepResultMatch.Groups[1].Value;
                 if (StepResults.TryGetValue(stepId, out var stepResult))
                 {
-                    return Task.FromResult((T?)stepResult.Result);
+                    return stepResult.Result;
                 }
             }
 
-            // Support ${step.success} syntax
-            var successMatch = Regex.Match(expression, @"\$\{(\w+)\.success\}");
-            if (successMatch.Success)
+            // Handle step.success syntax
+            var stepSuccessMatch = Regex.Match(expression, @"^(\w+)\.success$");
+            if (stepSuccessMatch.Success)
             {
-                var stepId = successMatch.Groups[1].Value;
+                var stepId = stepSuccessMatch.Groups[1].Value;
                 if (StepResults.TryGetValue(stepId, out var stepResult))
                 {
-                    return Task.FromResult((T?)(object)stepResult.IsSuccess);
+                    return stepResult.IsSuccess;
                 }
             }
 
-            // If no expression found, return original value directly
-            return Task.FromResult((T?)(object)expression);
+            // TODO: Add support for additional expression types here
+            // For example: global.variableName, env.variableName, etc.
+
+            return null; // Expression not resolved
+        }
+
+        /// <summary>
+        /// Gets the resolved value for a single pure expression (entire string is ${expression})
+        /// </summary>
+        private object? GetSingleExpressionValue(string fullExpression)
+        {
+            if (!fullExpression.StartsWith("${") || !fullExpression.EndsWith("}"))
+                return null;
+
+            var innerExpression = fullExpression.Substring(2, fullExpression.Length - 3);
+            return ResolveExpressionValue(innerExpression);
         }
 
         public async Task<bool> EvaluateConditionAsync(string? condition)

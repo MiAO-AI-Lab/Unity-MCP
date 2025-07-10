@@ -25,22 +25,22 @@ namespace com.MiAO.Unity.MCP.Editor
             _disposables.Clear();
             rootVisualElement.Clear();
             
-            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.MiAO.Unity.MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
+            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.miao.unity.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
             if (templateControlPanel == null)
             {
-                Debug.LogError("'templateControlPanel' could not be loaded from path: Packages/com.MiAO.Unity.MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
+                Debug.LogError("'templateControlPanel' could not be loaded from path: Packages/com.miao.unity.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
                 return;
             }
 
             // Load and apply the stylesheet
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.MiAO.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.miao.unity.mcp/Editor/UI/uss/AiConnectorWindow.uss");
             if (styleSheet != null)
             {
                 rootVisualElement.styleSheets.Add(styleSheet);
             }
             else
             {
-                Debug.LogWarning("Could not load stylesheet from: Packages/com.MiAO.Unity.MCP/Editor/UI/uss/AiConnectorWindow.uss");
+                Debug.LogWarning("Could not load stylesheet from: Packages/com.miao.unity.mcp/Editor/UI/uss/AiConnectorWindow.uss");
             }
 
             var root = templateControlPanel.Instantiate();
@@ -369,16 +369,13 @@ namespace com.MiAO.Unity.MCP.Editor
             {
                 var config = CollectAIConfigurationFromUI(root);
 
-                // Save to Unity package
-                var unityConfigPath = "Packages/com.miao.Unity.MCP/Config/AI_Config.json";
+                // 1. Save configuration file in Unity package
+                var unityConfigPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json";
                 var jsonText = JsonUtility.ToJson(config, true);
                 System.IO.File.WriteAllText(unityConfigPath, jsonText);
                 
-                // Update server environment
+                // 2. Update server environment
                 UpdateServerConfiguration(config);
-                
-                // Reload proxy configuration
-                ReloadAgentModelProxyConfig();
                 
                 SaveChanges(changeMessage);
             }
@@ -519,38 +516,6 @@ namespace com.MiAO.Unity.MCP.Editor
             if (textProperty != null && textProperty.CanWrite)
             {
                 textProperty.SetValue(element, text);
-            }
-        }
-
-        /// <summary>
-        /// Reload AgentModelProxy configuration
-        /// </summary>
-        private void ReloadAgentModelProxyConfig()
-        {
-            try
-            {
-                // Use reflection to call AgentModelProxy.ReloadConfig()
-                var agentModelProxyType = System.Type.GetType("com.miao.Unity.MCP.Editor.Server.AgentModelProxy, com.miao.Unity.MCP.Editor");
-                if (agentModelProxyType != null)
-                {
-                    var reloadConfigMethod = agentModelProxyType.GetMethod("ReloadConfig", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-                    if (reloadConfigMethod != null)
-                    {
-                        reloadConfigMethod.Invoke(null, null);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("ReloadConfig method not found in AgentModelProxy");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("AgentModelProxy type not found");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"Failed to reload AgentModelProxy configuration: {ex.Message}");
             }
         }
 

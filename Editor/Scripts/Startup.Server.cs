@@ -16,8 +16,8 @@ namespace com.MiAO.Unity.MCP.Editor
     using Consts = com.MiAO.Unity.MCP.Common.Consts;
     public static partial class Startup
     {
-        public const string PackageName = "com.miao.Unity.MCP";
-        public const string ServerProjectName = "com.miao.Unity.MCP.Server";
+        public const string PackageName = "com.miao.unity.mcp";
+        public const string ServerProjectName = "com.miao.unity.mcp.server";
 
         // Server source path
         public static string PackageCache => Path.GetFullPath(Path.Combine(Application.dataPath, "../Library", "PackageCache"));

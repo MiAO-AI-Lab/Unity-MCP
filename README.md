@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/github/license/IvanMurzak/Unity-MCP) [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
 
-![image](https://raw.githubusercontent.com/MiAO-AI-LAB/Unity-MCP/main/.github/images/ai-connector-landing.png)
+![image](https://raw.githubusercontent.com/MiAO-AI-LAB/Unity-MCP/main/.github/images/ai-connector-landing.jpg)
 
 | Unity Version | Editmode                                                                                                                                     | Playmode                                                                                                                                     | Standalone                                                                                                                                       |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -52,7 +52,12 @@ Provides Unity with complete AI model usage API:
 - **Model Type Support**: Text, vision, code analysis and other AI models
 - **Unified API Interface**: Unified access to various AI services through ModelUse API
 
-### 3. Tool System
+### 3. Interactive User Input System
+
+- ✅ **Ask User Input Tool** - Interactive user input collection
+- ✅ **Undo & Redo System** - Complete undo/redo functionality for GameObject operations
+
+### 4. Tool System
 
 Added numerous tool features
 
@@ -70,6 +75,8 @@ Added numerous tool features
 - ✅ Modify (tag, layer, name, static)
 - ✅ Set parent
 - ✅ Duplicate
+- ✅ **Set Active/Inactive**
+- ✅ **Set Component Active/Inactive**
 
 ##### GameObject.Components
 
@@ -80,6 +87,7 @@ Added numerous tool features
 - - ✅ `Property` set value
 - - ✅ `Reference` link set
 - ✅ Destroy Component
+- ✅ **Missing Component Detection**
 - 🔲 Remove missing components
 
 ### Editor
@@ -144,6 +152,15 @@ Added numerous tool features
   - ✅ Weight synthesis
 - ✅ Location selection
 - ✅ Object placement
+
+### Skeleton Analysis & Visualization
+
+- ✅ **Skeleton Hierarchy Analysis**
+- ✅ **Bone Reference Detection**
+
+### Interactive Tools
+
+- ✅ **Wait User Input**
 
 </td>
 <td valign="top">
