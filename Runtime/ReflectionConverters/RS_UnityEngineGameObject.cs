@@ -115,5 +115,140 @@ namespace com.MiAO.Unity.MCP.Reflection.Convertor
             var componentObject = (object)component;
             return reflector.Populate(ref componentObject, fieldValue, logger: logger);
         }
+
+        protected override StringBuilder? ModifyProperty(Reflector reflector, ref object obj, SerializedMember property, StringBuilder? stringBuilder = null, int depth = 0,
+            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
+            ILogger? logger = null)
+        {
+            var go = obj as UnityEngine.GameObject;
+            if (go == null)
+                return stringBuilder?.AppendLine($"[Error] Object is not a GameObject");
+
+            try
+            {
+                // Use reflection to find the property on GameObject
+                var propertyInfo = typeof(UnityEngine.GameObject).GetProperty(property.name, flags);
+                
+                if (propertyInfo == null)
+                {
+                    // If not found in GameObject, try base Object class (for properties like name)
+                    propertyInfo = typeof(UnityEngine.Object).GetProperty(property.name, flags);
+                }
+
+                if (propertyInfo == null)
+                {
+                    // Property not found, delegate to base method
+                    return base.ModifyProperty(reflector, ref obj, property, stringBuilder, depth, flags, logger);
+                }
+
+                // Check if the property is writable
+                if (!propertyInfo.CanWrite)
+                {
+                    return stringBuilder?.AppendLine($"[Error] Property '{property.name}' is read-only and cannot be modified");
+                }
+
+                // Validate property type
+                var expectedType = propertyInfo.PropertyType;
+                var actualTypeName = property.typeName;
+                
+                if (!IsTypeCompatible(expectedType, actualTypeName))
+                {
+                    return stringBuilder?.AppendLine($"[Error] Property '{property.name}' expects type '{expectedType.FullName}' but got '{actualTypeName}'");
+                }
+
+                // Convert and set the property value
+                var convertedValue = ConvertPropertyValue(property, expectedType);
+                if (convertedValue == null && !IsNullableType(expectedType))
+                {
+                    return stringBuilder?.AppendLine($"[Error] Failed to convert value for property '{property.name}'");
+                }
+
+                // Set the property value
+                propertyInfo.SetValue(go, convertedValue);
+                
+                return stringBuilder?.AppendLine($"[Success] GameObject property '{property.name}' changed to '{convertedValue}'");
+            }
+            catch (Exception ex)
+            {
+                return stringBuilder?.AppendLine($"[Error] Failed to modify property '{property.name}': {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Check if the expected type is compatible with the provided type name
+        /// </summary>
+        private bool IsTypeCompatible(Type expectedType, string actualTypeName)
+        {
+            if (expectedType.FullName == actualTypeName)
+                return true;
+
+            // Handle common type aliases and conversions
+            var typeMap = new Dictionary<string, string[]>
+            {
+                { "System.String", new[] { "string" } },
+                { "System.Int32", new[] { "int", "System.Int32" } },
+                { "System.Boolean", new[] { "bool", "System.Boolean" } },
+                { "System.Single", new[] { "float", "System.Single" } },
+                { "UnityEngine.LayerMask", new[] { "LayerMask", "UnityEngine.LayerMask", "System.Int32", "int" } }
+            };
+
+            if (typeMap.ContainsKey(expectedType.FullName))
+            {
+                return typeMap[expectedType.FullName].Contains(actualTypeName);
+            }
+
+            // Try to get the actual type and check if it's assignable
+            var actualType = TypeUtils.GetType(actualTypeName);
+            if (actualType != null)
+            {
+                return expectedType.IsAssignableFrom(actualType);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Convert the property value to the expected type
+        /// </summary>
+        private object? ConvertPropertyValue(SerializedMember property, Type expectedType)
+        {
+            try
+            {
+                if (expectedType == typeof(string))
+                    return property.GetValue<string>();
+
+                if (expectedType == typeof(int))
+                    return property.GetValue<int>();
+
+                if (expectedType == typeof(bool))
+                    return property.GetValue<bool>();
+
+                if (expectedType == typeof(float))
+                    return property.GetValue<float>();
+
+                if (expectedType == typeof(UnityEngine.LayerMask))
+                {
+                    // LayerMask can be set from int
+                    var intValue = property.GetValue<int>();
+                    return (UnityEngine.LayerMask)intValue;
+                }
+
+                // For complex types, try to use the generic GetValue
+                var methodInfo = typeof(SerializedMember).GetMethod("GetValue").MakeGenericMethod(expectedType);
+                return methodInfo.Invoke(property, null);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Check if a type is nullable
+        /// </summary>
+        private bool IsNullableType(Type type)
+        {
+            return !type.IsValueType || (Nullable.GetUnderlyingType(type) != null);
+        }
     }
 }

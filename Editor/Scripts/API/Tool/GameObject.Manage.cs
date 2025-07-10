@@ -17,245 +17,8 @@ using UnityEngine;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
-    /// <summary>
-    /// Simplified undo stack item
-    /// </summary>
-    public class SimpleUndoItem
-    {
-        public string operationName;
-        public DateTime timestamp;
-        public System.Action undoAction;
-        public System.Action redoAction;
-        
-        public SimpleUndoItem(string name, System.Action undo, System.Action redo)
-        {
-            operationName = name;
-            timestamp = DateTime.Now;
-            undoAction = undo;
-            redoAction = redo;
-        }
-    }
 
-    /// <summary>
-    /// Simplified undo stack manager
-    /// </summary>
-    public static class SimpleUndoStack
-    {
-        private static Stack<SimpleUndoItem> undoStack = new Stack<SimpleUndoItem>();
-        private static Stack<SimpleUndoItem> redoStack = new Stack<SimpleUndoItem>();
-        private const int MAX_STACK_SIZE = 20;
 
-        public static void PushOperation(string operationName, System.Action undoAction, System.Action redoAction)
-        {
-            // New operation starts, clear redo stack (standard behavior)
-            redoStack.Clear();
-            
-            var item = new SimpleUndoItem(operationName, undoAction, redoAction);
-            undoStack.Push(item);
-            
-            // Limit stack size
-            if (undoStack.Count > MAX_STACK_SIZE)
-            {
-                var items = undoStack.ToArray().Reverse().ToArray();
-                undoStack.Clear();
-                for (int i = 1; i < items.Length; i++)
-                {
-                    undoStack.Push(items[i]);
-                }
-            }
-            
-            Debug.Log($"🆕 Operation added to undo stack: {operationName} (Stack size: {undoStack.Count})");
-        }
-
-        public static bool Undo()
-        {
-            if (undoStack.Count == 0)
-            {
-                Debug.Log("📭 Undo stack is empty, cannot undo");
-                return false;
-            }
-
-            var item = undoStack.Pop();
-            try
-            {
-                Debug.Log($"↶ Executing undo: {item.operationName}");
-                item.undoAction?.Invoke();
-                redoStack.Push(item);
-                
-                EditorApplication.RepaintHierarchyWindow();
-                Debug.Log($"✅ Undo successful: {item.operationName}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Undo failed: {ex.Message}");
-                undoStack.Push(item); // Put back
-                return false;
-            }
-        }
-
-        public static bool Redo()
-        {
-            if (redoStack.Count == 0)
-            {
-                Debug.Log("📭 Redo stack is empty, cannot redo");
-                return false;
-            }
-
-            var item = redoStack.Pop();
-            try
-            {
-                Debug.Log($"↷ Executing redo: {item.operationName}");
-                item.redoAction?.Invoke();
-                undoStack.Push(item);
-                
-                EditorApplication.RepaintHierarchyWindow();
-                Debug.Log($"✅ Redo successful: {item.operationName}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Redo failed: {ex.Message}");
-                redoStack.Push(item); // Put back
-                return false;
-            }
-        }
-
-        public static int GetUndoCount() => undoStack.Count;
-        public static int GetRedoCount() => redoStack.Count;
-        
-        public static List<SimpleUndoItem> GetUndoHistory() => undoStack.ToList();
-        public static List<SimpleUndoItem> GetRedoHistory() => redoStack.ToList();
-        
-        public static void Clear()
-        {
-            undoStack.Clear();
-            redoStack.Clear();
-            Debug.Log("🧹 Undo stack cleared");
-        }
-        
-        private static bool _isProcessingOperation = false;
-        
-        /// <summary>
-        /// Undo specific operation by index (remove from undo stack and add to redo stack)
-        /// </summary>
-        /// <param name="index">Operation index (0 is the newest operation)</param>
-        public static bool UndoSpecificOperation(int index)
-        {
-            if (_isProcessingOperation)
-            {
-                Debug.LogWarning("⚠️ Processing another operation, please try again later");
-                return false;
-            }
-            
-            _isProcessingOperation = true;
-            
-            try
-            {
-                var undoHistory = undoStack.ToArray(); // Get array, index 0 is newest
-                
-                if (index < 0 || index >= undoHistory.Length)
-                {
-                    Debug.LogError($"❌ Invalid operation index: {index}, valid range: 0-{undoHistory.Length - 1}");
-                    return false;
-                }
-                
-                var targetOperation = undoHistory[index];
-                
-                Debug.Log($"↶ Undoing specific operation: {targetOperation.operationName}");
-                
-                // Execute undo operation
-                targetOperation.undoAction?.Invoke();
-                
-                // Remove operation from undo stack
-                var newUndoStack = new Stack<SimpleUndoItem>();
-                for (int i = undoHistory.Length - 1; i >= 0; i--) // Rebuild stack from oldest to newest
-                {
-                    if (i != index) // Skip the operation to remove
-                    {
-                        newUndoStack.Push(undoHistory[i]);
-                    }
-                }
-                undoStack = newUndoStack;
-                
-                // Add undone operation to redo stack
-                redoStack.Push(targetOperation);
-                
-                EditorApplication.RepaintHierarchyWindow();
-                Debug.Log($"✅ Undo operation successful: {targetOperation.operationName}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Undo operation failed: {ex.Message}");
-                return false;
-            }
-            finally
-            {
-                _isProcessingOperation = false;
-            }
-        }
-        
-        /// <summary>
-        /// Redo specific operation by index (remove from redo stack and add to undo stack)
-        /// </summary>
-        /// <param name="index">Operation index (0 is the newest operation)</param>
-        public static bool RedoSpecificOperation(int index)
-        {
-            if (_isProcessingOperation)
-            {
-                Debug.LogWarning("⚠️ Processing another operation, please try again later");
-                return false;
-            }
-            
-            _isProcessingOperation = true;
-            
-            try
-            {
-                var redoHistory = redoStack.ToArray(); // Get array, index 0 is newest
-                
-                if (index < 0 || index >= redoHistory.Length)
-                {
-                    Debug.LogError($"❌ Invalid redo index: {index}, valid range: 0-{redoHistory.Length - 1}");
-                    return false;
-                }
-                
-                var targetOperation = redoHistory[index];
-                
-                Debug.Log($"↷ Redoing specific operation: {targetOperation.operationName}");
-                
-                // Execute redo operation
-                targetOperation.redoAction?.Invoke();
-                
-                // Remove operation from redo stack
-                var newRedoStack = new Stack<SimpleUndoItem>();
-                for (int i = redoHistory.Length - 1; i >= 0; i--) // Rebuild stack from oldest to newest
-                {
-                    if (i != index) // Skip the operation to remove
-                    {
-                        newRedoStack.Push(redoHistory[i]);
-                    }
-                }
-                redoStack = newRedoStack;
-                
-                // Add redone operation to undo stack
-                undoStack.Push(targetOperation);
-                
-                EditorApplication.RepaintHierarchyWindow();
-                Debug.Log($"✅ Redo operation successful: {targetOperation.operationName}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Redo operation failed: {ex.Message}");
-                return false;
-            }
-            finally
-            {
-                _isProcessingOperation = false;
-            }
-        }
-    }
 
     public partial class Tool_GameObject
     {
@@ -268,7 +31,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
 - create: Create a new GameObject at specific path
 - destroy: Remove a GameObject and all nested GameObjects recursively
 - duplicate: Clone GameObjects in opened Prefab or in a Scene
-- modify: Update GameObjects and/or attached component's field and properties
+- modify: Update GameObjects and/or attached component's field and properties (IMPORTANT: For GameObject properties like name/tag/layer, use ""props"" array: [{""typeName"": ""UnityEngine.GameObject"", ""props"": [{""name"": ""name"", ""typeName"": ""System.String"", ""value"": ""NewName""}]}]. For Transform position/rotation, use: [{""typeName"": ""UnityEngine.Transform"", ""props"": [{""name"": ""position"", ""typeName"": ""UnityEngine.Vector3"", ""value"": {""x"": 1, ""y"": 2, ""z"": 3}}]}]. Always use ""props"" for properties, ""fields"" for public variables.)
 - setParent: Assign parent GameObject for target GameObjects
 - setActive: Set active state of GameObjects
 - setComponentActive: Enable/disable specific components on GameObjects")]
@@ -487,80 +250,14 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     
                     var result = $"[Success] Created {createdObjects.Count} GameObjects in batch.\n{stringBuilder}";
                     
-                    // Add to undo stack
-                    var createdObjectsData = createdObjects.Select(obj => new
+                    // Use Unity's native Undo system for batch creation with MCP marking
+                    // Group all operations as a single undo operation
+                    Undo.IncrementCurrentGroup();
+                    foreach (var createdObject in createdObjects)
                     {
-                        InstanceID = obj.GetInstanceID(),
-                        Name = obj.name,
-                        Position = obj.transform.position,
-                        Rotation = obj.transform.rotation,
-                        Scale = obj.transform.localScale,
-                        ParentPath = obj.transform.parent != null ? GetGameObjectPath(obj.transform.parent.gameObject) : null
-                    }).ToList();
-                    
-                    SimpleUndoStack.PushOperation(
-                        $"Create {createdObjects.Count} GameObjects",
-                        // Undo action: delete all created objects
-                        () => {
-                            foreach (var objData in createdObjectsData)
-                            {
-                                var objectToDelete = EditorUtility.InstanceIDToObject(objData.InstanceID) as GameObject;
-                                if (objectToDelete != null)
-                                {
-                                    UnityEngine.Object.DestroyImmediate(objectToDelete);
-                                }
-                                else
-                                {
-                                    // If can't find by instance ID, try to find by name
-                                    var objectByName = FindGameObjectByName(objData.Name);
-                                    if (objectByName != null)
-                                    {
-                                        UnityEngine.Object.DestroyImmediate(objectByName);
-                                    }
-                                }
-                            }
-                            Debug.Log($"🗑️ Undone batch creation operation, deleted {createdObjectsData.Count} objects");
-                        },
-                        // Redo action: recreate all objects
-                        () => {
-                            foreach (var objData in createdObjectsData)
-                            {
-                                // Check if object with same name already exists
-                                var existingObject = FindGameObjectByName(objData.Name);
-                                if (existingObject != null)
-                                {
-                                    Debug.LogWarning($"⚠️ Object already exists, skipping redo: {objData.Name}");
-                                    continue;
-                                }
-                                
-                                var newGo = primitiveType switch
-                                {
-                                    0 => GameObject.CreatePrimitive(PrimitiveType.Cube),
-                                    1 => GameObject.CreatePrimitive(PrimitiveType.Sphere),
-                                    2 => GameObject.CreatePrimitive(PrimitiveType.Capsule),
-                                    3 => GameObject.CreatePrimitive(PrimitiveType.Cylinder),
-                                    4 => GameObject.CreatePrimitive(PrimitiveType.Plane),
-                                    5 => GameObject.CreatePrimitive(PrimitiveType.Quad),
-                                    _ => new GameObject(objData.Name)
-                                };
-                                newGo.name = objData.Name;
-                                newGo.transform.position = objData.Position;
-                                newGo.transform.rotation = objData.Rotation;
-                                newGo.transform.localScale = objData.Scale;
-                                
-                                // Reset parent object
-                                if (!string.IsNullOrEmpty(objData.ParentPath))
-                                {
-                                    var parentObj = FindGameObjectByPath(objData.ParentPath);
-                                    if (parentObj != null)
-                                        newGo.transform.SetParent(parentObj.transform, false);
-                                }
-                                
-                                EditorUtility.SetDirty(newGo);
-                            }
-                            Debug.Log($"🔄 Redone batch creation operation, recreated {createdObjectsData.Count} objects");
-                        }
-                    );
+                        Undo.RegisterCreatedObjectUndo(createdObject, $"Create GameObject: {createdObject.name}");
+                    }
+                    Undo.SetCurrentGroupName($"[MCP] Create {createdObjects.Count} GameObjects");
                     
                     return result;
                 }
@@ -588,82 +285,32 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
                     var result = $"[Success] Created GameObject.\n{go.Print()}";
                     
-                    // Add to undo stack
-                    var goInstanceID = go.GetInstanceID();
-                    var goName = go.name;
-                    var goPrimitiveType = primitiveType;
-                    var goPosition = go.transform.position;
-                    var goRotation = go.transform.rotation;
-                    var goScale = go.transform.localScale;
-                    var goParent = go.transform.parent;
-                    var goParentPath = goParent != null ? GetGameObjectPath(goParent.gameObject) : null;
-                    
-                    SimpleUndoStack.PushOperation(
-                        $"Create GameObject: {goName}",
-                        // Undo action: delete object
-                        () => {
-                            var objectToDelete = EditorUtility.InstanceIDToObject(goInstanceID) as GameObject;
-                            if (objectToDelete != null)
-                            {
-                                UnityEngine.Object.DestroyImmediate(objectToDelete);
-                                Debug.Log($"🗑️ Undone creation operation, deleted: {goName}");
-                            }
-                            else
-                            {
-                                // If can't find by instance ID, try to find by name
-                                var objectByName = FindGameObjectByName(goName);
-                                if (objectByName != null)
-                                {
-                                    UnityEngine.Object.DestroyImmediate(objectByName);
-                                    Debug.Log($"🗑️ Undone creation operation, deleted: {goName} (found by name)");
-                                }
-                                else
-                                {
-                                    Debug.LogWarning($"⚠️ Object not found during undo: {goName}");
-                                }
-                            }
-                        },
-                        // Redo action: recreate object
-                        () => {
-                            // Check if object with same name already exists
-                            var existingObject = FindGameObjectByName(goName);
-                            if (existingObject != null)
-                            {
-                                Debug.LogWarning($"⚠️ Object already exists, skipping redo: {goName}");
-                                return;
-                            }
-                            
-                            var newGo = goPrimitiveType switch
-                            {
-                                0 => GameObject.CreatePrimitive(PrimitiveType.Cube),
-                                1 => GameObject.CreatePrimitive(PrimitiveType.Sphere),
-                                2 => GameObject.CreatePrimitive(PrimitiveType.Capsule),
-                                3 => GameObject.CreatePrimitive(PrimitiveType.Cylinder),
-                                4 => GameObject.CreatePrimitive(PrimitiveType.Plane),
-                                5 => GameObject.CreatePrimitive(PrimitiveType.Quad),
-                                _ => new GameObject(goName)
-                            };
-                            newGo.name = goName;
-                            newGo.transform.position = goPosition;
-                            newGo.transform.rotation = goRotation;
-                            newGo.transform.localScale = goScale;
-                            
-                            // Reset parent object
-                            if (!string.IsNullOrEmpty(goParentPath))
-                            {
-                                var parentObj = FindGameObjectByPath(goParentPath);
-                                if (parentObj != null)
-                                    newGo.transform.SetParent(parentObj.transform, false);
-                            }
-                            
-                            EditorUtility.SetDirty(newGo);
-                            Debug.Log($"🔄 Redone creation operation, recreated: {goName}");
-                        }
-                    );
+                    // Use Unity's native Undo system for creation with MCP marking
+                    Undo.IncrementCurrentGroup();
+                    Undo.RegisterCreatedObjectUndo(go, $"Create GameObject: {go.name}");
+                    Undo.SetCurrentGroupName($"[MCP] Create GameObject: {go.name}");
                     
                     return result;
                 }
             });
+        }
+
+        /// <summary>
+        /// 递归收集GameObject及其所有子对象
+        /// </summary>
+        private void CollectObjectHierarchy(GameObject obj, List<GameObject> collection)
+        {
+            if (obj == null || collection.Contains(obj))
+                return;
+                
+            collection.Add(obj);
+            
+            // 递归收集所有子对象
+            for (int i = 0; i < obj.transform.childCount; i++)
+            {
+                var child = obj.transform.GetChild(i).gameObject;
+                CollectObjectHierarchy(child, collection);
+            }
         }
 
         private string DestroyGameObject(GameObjectRef? gameObjectRef)
@@ -677,83 +324,36 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 if (error != null)
                     return error;
 
-                // Save object state before deletion for undo
-                var goName = go.name;
-                var goPosition = go.transform.position;
-                var goRotation = go.transform.rotation;
-                var goScale = go.transform.localScale;
-                var goParentPath = go.transform.parent != null ? GetGameObjectPath(go.transform.parent.gameObject) : null;
-                var goActive = go.activeInHierarchy;
-                
-                // Determine if it's a primitive
-                var meshFilter = go.GetComponent<MeshFilter>();
-                PrimitiveType? primitiveType = null;
-                if (meshFilter?.sharedMesh != null)
+                try
                 {
-                    var meshName = meshFilter.sharedMesh.name.ToLower();
-                    primitiveType = meshName switch
+                    var goName = go.name;
+                    
+                    // Use Unity's native Undo system for deletion with proper group management
+                    Undo.IncrementCurrentGroup();
+                    Undo.SetCurrentGroupName($"[MCP] Delete GameObject: {goName}");
+                    
+                    // Record all affected objects before deletion to ensure single undo group
+                    // This includes the object itself and all its children
+                    var objectsToDelete = new List<GameObject>();
+                    CollectObjectHierarchy(go, objectsToDelete);
+                    
+                    foreach (var obj in objectsToDelete)
                     {
-                        "cube" => PrimitiveType.Cube,
-                        "sphere" => PrimitiveType.Sphere,
-                        "capsule" => PrimitiveType.Capsule,
-                        "cylinder" => PrimitiveType.Cylinder,
-                        "plane" => PrimitiveType.Plane,
-                        "quad" => PrimitiveType.Quad,
-                        _ => null
-                    };
-                }
-
-                // Execute deletion
-                UnityEngine.Object.DestroyImmediate(go);
-                
-                // Add to undo stack
-                SimpleUndoStack.PushOperation(
-                    $"Delete GameObject: {goName}",
-                    // Undo action: recreate object
-                    () => {
-                        GameObject newGo;
-                        if (primitiveType.HasValue)
-                        {
-                            newGo = GameObject.CreatePrimitive(primitiveType.Value);
-                        }
-                        else
-                        {
-                            newGo = new GameObject();
-                        }
-                        
-                        newGo.name = goName;
-                        newGo.transform.position = goPosition;
-                        newGo.transform.rotation = goRotation;
-                        newGo.transform.localScale = goScale;
-                        newGo.SetActive(goActive);
-                        
-                        // Reset parent object
-                        if (!string.IsNullOrEmpty(goParentPath))
-                        {
-                            var parentObj = FindGameObjectByPath(goParentPath);
-                            if (parentObj != null)
-                                newGo.transform.SetParent(parentObj.transform, false);
-                        }
-                            
-                        EditorUtility.SetDirty(newGo);
-                        Debug.Log($"🔄 Undone deletion operation, recreated: {goName}");
-                    },
-                    // Redo action: delete object again
-                    () => {
-                        var objToDelete = FindGameObjectByName(goName);
-                        if (objToDelete != null)
-                        {
-                            UnityEngine.Object.DestroyImmediate(objToDelete);
-                            Debug.Log($"🗑️ Redone deletion operation, deleted: {goName}");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"⚠️ Object not found during redo deletion: {goName}");
-                        }
+                        Undo.RegisterCompleteObjectUndo(obj, $"Delete {obj.name}");
                     }
-                );
-                
-                return $"[Success] Destroy GameObject: {goName}";
+                    
+                    // Now perform the actual deletion - this should not create additional groups
+                    Undo.DestroyObjectImmediate(go);
+                    
+                    // Refresh the hierarchy
+                    EditorApplication.RepaintHierarchyWindow();
+                    
+                    return $"[Success] Destroy GameObject: {goName} (using Unity native Undo)";
+                }
+                catch (Exception ex)
+                {
+                    return $"[Error] Failed to destroy GameObject: {ex.Message}";
+                }
             });
         }
 
@@ -780,7 +380,10 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     .Select(go => go.GetInstanceID())
                     .ToArray();
 
+                // Mark as MCP operation before duplication
+                Undo.IncrementCurrentGroup();
                 Unsupported.DuplicateGameObjectsUsingPasteboard();
+                Undo.SetCurrentGroupName($"[MCP] Duplicate {gos.Count} GameObjects");
 
                 var modifiedScenes = Selection.gameObjects
                     .Select(go => go.scene)
@@ -794,49 +397,6 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 var result = @$"[Success] Duplicated {gos.Count} GameObjects in opened {location}.
 Duplicated instanceIDs:
 {string.Join(", ", Selection.instanceIDs)}";
-                
-                // Add to undo stack
-                var duplicatedObjects = Selection.gameObjects.ToList();
-                var originalGameObjectRefs = gameObjectRefs.ToList(); // Save original reference info
-                SimpleUndoStack.PushOperation(
-                    $"Duplicate {gos.Count} GameObjects",
-                    // Undo action: delete duplicated objects
-                    () => {
-                        foreach (var duplicatedGo in duplicatedObjects)
-                        {
-                            if (duplicatedGo != null)
-                            {
-                                UnityEngine.Object.DestroyImmediate(duplicatedGo);
-                            }
-                        }
-                        Debug.Log($"🗑️ Undone duplication operation, deleted {duplicatedObjects.Count} objects");
-                    },
-                    // Redo action: duplicate objects again
-                    () => {
-                        // Re-get original object references
-                        var originalObjects = new List<GameObject>();
-                        foreach (var gameObjectRef in originalGameObjectRefs)
-                        {
-                            var go = GameObjectUtils.FindBy(gameObjectRef, out var error);
-                            if (error == null && go != null)
-                                originalObjects.Add(go);
-                        }
-                        
-                        if (originalObjects.Count > 0)
-                        {
-                            // Re-select original objects and duplicate
-                            Selection.instanceIDs = originalObjects
-                                .Select(go => go.GetInstanceID())
-                                .ToArray();
-                            Unsupported.DuplicateGameObjectsUsingPasteboard();
-                            Debug.Log($"🔄 Redone duplication operation, re-duplicated {originalObjects.Count} objects");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"⚠️ Original objects not found during redo duplication");
-                        }
-                    }
-                );
                 
                 return result;
             });
@@ -860,8 +420,9 @@ Duplicated instanceIDs:
                 var successCount = 0;
                 var errorCount = 0;
                 
-                // Save state before modification for undo
-                var originalStates = new List<(GameObject go, object targetObj, SerializedMember originalData)>();
+                // Group all modifications as a single undo operation
+                Undo.IncrementCurrentGroup();
+                var modifiedObjects = new List<string>(); // Track object names for group naming
 
                 for (int i = 0; i < gameObjectRefs.Count; i++)
                 {
@@ -889,9 +450,11 @@ Duplicated instanceIDs:
                             objToModify = component;
                         }
 
-                        // Save state before modification
-                        var originalData = Reflector.Instance.Serialize(objToModify);
-                        originalStates.Add((go, objToModify, originalData));
+                        // Use Unity's native Undo system to record the object state before modification
+                        if (objToModify is UnityEngine.Object unityObject)
+                        {
+                            Undo.RegisterCompleteObjectUndo(unityObject, $"Modify {unityObject.name}");
+                        }
 
                         var populateResult = Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i]);
                         var populateResultString = populateResult.ToString().Trim();
@@ -911,6 +474,7 @@ Duplicated instanceIDs:
                         {
                             stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {populateResultString}");
                             successCount++;
+                            modifiedObjects.Add(go.name);
                         }
 
                         // Mark the object as modified
@@ -946,78 +510,13 @@ Duplicated instanceIDs:
 
                 var result = summary.ToString();
                 
-                // If there are successful modifications, add to undo stack
-                if (successCount > 0 && originalStates.Count > 0)
+                // Set the undo group name if there were successful modifications
+                if (successCount > 0 && modifiedObjects.Count > 0)
                 {
-                    var originalStatesCopy = new List<(GameObject go, object targetObj, SerializedMember originalData)>(originalStates);
-                    var gameObjectDiffsCopy = new List<SerializedMember>(gameObjectDiffs);
-                    var gameObjectRefsCopy = new List<GameObjectRef>(gameObjectRefs);
-                    
-                    SimpleUndoStack.PushOperation(
-                        $"Modify GameObject: {string.Join(", ", originalStatesCopy.Select(s => s.go?.name ?? "Unknown"))}",
-                        // Undo action: restore original state
-                        () => {
-                            try
-                            {
-                                foreach (var (go, targetObj, originalData) in originalStatesCopy)
-                                {
-                                    if (go != null && targetObj != null)
-                                    {
-                                        var objToRestore = targetObj;
-                                        Reflector.Instance.Populate(ref objToRestore, originalData);
-                                        EditorUtility.SetDirty(go);
-                                    }
-                                }
-                                EditorApplication.RepaintHierarchyWindow();
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogError($"Undo modification failed: {ex.Message}");
-                            }
-                        },
-                        // Redo action: reapply modifications (re-get object references)
-                        () => {
-                            try
-                            {
-                                for (int i = 0; i < gameObjectRefsCopy.Count && i < gameObjectDiffsCopy.Count; i++)
-                                {
-                                    var gameObjectRef = gameObjectRefsCopy[i];
-                                    var diff = gameObjectDiffsCopy[i];
-                                    
-                                    // Re-get GameObject reference
-                                    var go = GameObjectUtils.FindBy(gameObjectRef, out var error);
-                                    if (error != null || go == null)
-                                    {
-                                        Debug.LogWarning($"GameObject not found during redo: {error}");
-                                        continue;
-                                    }
-                                    
-                                    // Re-get target object
-                                    var objToModify = (object)go;
-                                    var type = TypeUtils.GetType(diff.typeName);
-                                    if (typeof(UnityEngine.Component).IsAssignableFrom(type))
-                                    {
-                                        var component = go.GetComponent(type);
-                                        if (component == null)
-                                        {
-                                            Debug.LogWarning($"Component '{type.FullName}' not found on GameObject '{go.name}' during redo");
-                                            continue;
-                                        }
-                                        objToModify = component;
-                                    }
-                                    
-                                    // Apply modifications
-                                    Reflector.Instance.Populate(ref objToModify, diff);
-                                    EditorUtility.SetDirty(go);
-                                }
-                                EditorApplication.RepaintHierarchyWindow();
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogError($"Redo modification failed: {ex.Message}");
-                            }
-                        }
-                    );
+                    var groupName = modifiedObjects.Count == 1 
+                        ? $"Modify GameObject: {modifiedObjects[0]}" 
+                        : $"Modify {modifiedObjects.Count} GameObjects";
+                    Undo.SetCurrentGroupName($"[MCP] {groupName}");
                 }
                 
                 return result;
@@ -1037,8 +536,14 @@ Duplicated instanceIDs:
                 var stringBuilder = new StringBuilder();
                 int changedCount = 0;
                 
-                // Save parent state before modification
-                var originalParents = new List<(GameObject go, string originalParentPath)>();
+                // Get parent GameObject once
+                var parentGo = GameObjectUtils.FindBy(parentGameObjectRef, out var parentError);
+                if (parentError != null)
+                    return $"[Error] Parent GameObject: {parentError}";
+
+                // Group all parent changes as one undo operation
+                Undo.IncrementCurrentGroup();
+                var modifiedObjectNames = new List<string>();
 
                 for (var i = 0; i < gameObjectRefs.Count; i++)
                 {
@@ -1049,19 +554,10 @@ Duplicated instanceIDs:
                         continue;
                     }
 
-                    var parentGo = GameObjectUtils.FindBy(parentGameObjectRef, out error);
-                    if (error != null)
-                    {
-                        stringBuilder.AppendLine(error);
-                        continue;
-                    }
-
-                    // Save original parent path
-                    var originalParentPath = targetGo.transform.parent != null ? GetGameObjectPath(targetGo.transform.parent.gameObject) : null;
-                    originalParents.Add((targetGo, originalParentPath));
-
-                    targetGo.transform.SetParent(parentGo.transform, worldPositionStays: worldPositionStays);
+                    // Use Unity's native Undo system for parent changes
+                    Undo.SetTransformParent(targetGo.transform, parentGo.transform, $"Set parent of {targetGo.name}");
                     changedCount++;
+                    modifiedObjectNames.Add(targetGo.name);
 
                     stringBuilder.AppendLine(@$"[Success] Set parent of {gameObjectRefs[i]} to {parentGameObjectRef}.");
                 }
@@ -1071,71 +567,13 @@ Duplicated instanceIDs:
 
                 var result = stringBuilder.ToString();
                 
-                // If there are successful modifications, add to undo stack
-                if (changedCount > 0 && originalParents.Count > 0)
+                // Set undo group name with MCP marking
+                if (changedCount > 0 && modifiedObjectNames.Count > 0)
                 {
-                    var originalParentsCopy = new List<(GameObject go, string originalParentPath)>(originalParents);
-                    var newParentRef = parentGameObjectRef; // Save new parent reference info
-                    
-                    SimpleUndoStack.PushOperation(
-                        $"Set parent for {changedCount} GameObjects",
-                        // Undo action: restore original parent
-                        () => {
-                            try
-                            {
-                                foreach (var (go, originalParentPath) in originalParentsCopy)
-                                {
-                                    if (go != null)
-                                    {
-                                        Transform originalParent = null;
-                                        if (!string.IsNullOrEmpty(originalParentPath))
-                                        {
-                                            var parentObj = FindGameObjectByPath(originalParentPath);
-                                            if (parentObj != null)
-                                                originalParent = parentObj.transform;
-                                        }
-                                        
-                                        go.transform.SetParent(originalParent, worldPositionStays);
-                                        EditorUtility.SetDirty(go);
-                                    }
-                                }
-                                EditorApplication.RepaintHierarchyWindow();
-                                Debug.Log($"🔄 Undone set parent operation, restored parent for {originalParentsCopy.Count} objects");
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogError($"Undo set parent failed: {ex.Message}");
-                            }
-                        },
-                        // Redo action: set parent again
-                        () => {
-                            try
-                            {
-                                // Re-get new parent object
-                                var newParentGo = GameObjectUtils.FindBy(newParentRef, out var error);
-                                if (error != null || newParentGo == null)
-                                {
-                                    Debug.LogWarning($"⚠️ Target parent not found during redo set parent: {error}");
-                                    return;
-                                }
-                                
-                                foreach (var (go, _) in originalParentsCopy)
-                                {
-                                    if (go != null)
-                                    {
-                                        go.transform.SetParent(newParentGo.transform, worldPositionStays);
-                                        EditorUtility.SetDirty(go);
-                                    }
-                                }
-                                EditorApplication.RepaintHierarchyWindow();
-                                Debug.Log($"🔄 Redone set parent operation, reset parent for {originalParentsCopy.Count} objects");
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogError($"Redo set parent failed: {ex.Message}");
-                            }
-                        }
-                    );
+                    var groupName = modifiedObjectNames.Count == 1 
+                        ? $"Set parent for GameObject: {modifiedObjectNames[0]}" 
+                        : $"Set parent for {modifiedObjectNames.Count} GameObjects";
+                    Undo.SetCurrentGroupName($"[MCP] {groupName}");
                 }
                 
                 return result;
@@ -1241,13 +679,13 @@ Duplicated instanceIDs:
                 {
                     stringBuilder.AppendLine($"[Error] GameObject {i}: Exception occurred - {ex.Message}");
                 }
-            }
+                }
 
-            if (changedCount > 0)
-                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                if (changedCount > 0)
+                    EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
-            return stringBuilder.ToString();
-        });
+                return stringBuilder.ToString();
+            });
+        }
     }
-}
 } 
