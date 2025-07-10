@@ -4,16 +4,17 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 
 namespace Unity.MCP
 {
     /// <summary>
-    /// Unity撤销栈监听器 - 实时监控所有撤销操作
+    /// Unity undo stack monitor - Real-time monitoring of all undo operations
     /// </summary>
     public static class UnityUndoMonitor
     {
         /// <summary>
-        /// 撤销操作数据结构
+        /// Undo operation data structure
         /// </summary>
         public struct UndoOperation
         {
@@ -23,74 +24,66 @@ namespace Unity.MCP
             public DateTime timestamp;
             
             public string DisplayName => isMcpOperation 
-                ? $"⭐ [MCP] {operationName}" 
-                : $"🖱️ [Manual] {operationName}";
+                ? $"[MCP] {operationName}" 
+                : $"[Manual] {operationName}";
         }
         
         private static int lastTrackedGroup = -1;
         private static readonly List<UndoOperation> allOperations = new List<UndoOperation>();
-        private static readonly List<UndoOperation> redoOperations = new List<UndoOperation>(); // redo栈
+        private static readonly List<UndoOperation> redoOperations = new List<UndoOperation>(); // redo stack
         private static bool isInitialized = false;
         private static float lastCheckTime = 0f;
-        private static bool isPerformingUndoRedo = false; // 防止撤销/重做时的递归
-        private static bool isCustomUndoRedo = false; // 标记是否是自定义的undo/redo操作
+        private static bool isPerformingUndoRedo = false; // Prevent recursion during undo/redo
+        private static bool isCustomUndoRedo = false; // Mark whether it's a custom undo/redo operation
+        private static bool isRefreshingUI = false; // Mark whether UI is being refreshed
         
-        // 跟踪选择状态变化
+        // Track selection state changes
         private static int lastSelectedInstanceID = -1;
         private static int lastSelectionCount = 0;
+        private static int lastSceneObjectCount = 0;
         
-        // 用于检测实际的undo/redo操作的计数器
+        // Counter for detecting actual undo/redo operations
         private static int lastUnityUndoCount = 0;
         
-        // 跟踪删除操作后的自动选择
-        private static DateTime lastDeleteOperationTime = DateTime.MinValue;
-        private static readonly TimeSpan AUTO_SELECTION_THRESHOLD = TimeSpan.FromMilliseconds(500); // 500ms内的选择操作认为是自动的
-        
-        // Undo/Redo操作后的忽略窗口
+        // Ignore window after Undo/Redo operations
         private static DateTime lastUndoRedoTime = DateTime.MinValue;
-        private static readonly TimeSpan UNDO_REDO_IGNORE_THRESHOLD = TimeSpan.FromSeconds(3); // 3秒内忽略新组检测
-        
-        // 连续操作处理
-        private static DateTime lastGroupProcessTime = DateTime.MinValue;
-        private static int lastProcessedGroup = -1;
-        private static readonly TimeSpan GROUP_BATCH_DELAY = TimeSpan.FromMilliseconds(100); // 100ms延迟来批处理连续组
+        private static readonly TimeSpan UNDO_REDO_IGNORE_THRESHOLD = TimeSpan.FromSeconds(3);
         
         /// <summary>
-        /// 所有操作发生变化时的事件
+        /// Event triggered when all operations change
         /// </summary>
         public static event System.Action OnOperationsChanged;
         
         /// <summary>
-        /// 初始化监听器 - 只监听可撤销操作
+        /// Initialize listener - Only monitor undoable operations
         /// </summary>
         [InitializeOnLoadMethod]
         private static void Initialize()
         {
             if (!isInitialized)
             {
-                // 初始化选择状态跟踪
+                // Initialize selection state tracking
                 UpdateSelectionState();
                 
-                // 添加主要的更新监听器
+                // Add main update listener
                 EditorApplication.update += MonitorUndoStack;
                 
-                // 监听撤销/重做操作
+                // Listen for undo/redo operations
                 Undo.undoRedoPerformed += OnUndoRedoPerformed;
                 
-                // 监听选择变化，因为选择操作也是可撤销的
+                // Listen for selection changes, as selection operations are also undoable
                 Selection.selectionChanged += OnSelectionChanged;
                 
                 isInitialized = true;
                 
-                // 初始化时获取当前撤销组和Unity的undo计数
+                // Get current undo group and Unity's undo count during initialization
                 lastTrackedGroup = Undo.GetCurrentGroup() - 1;
                 lastUnityUndoCount = GetUnityUndoStackCount();
-                Debug.Log($"[UnityUndoMonitor] Initialized - Group: {Undo.GetCurrentGroup()}, Unity Count: {lastUnityUndoCount}");
             }
         }
         
         /// <summary>
-        /// 同步内部操作栈与Unity的undo/redo状态
+        /// Synchronize internal operation stacks with Unity's undo/redo state
         /// </summary>
         private static void SynchronizeStacksWithUnity()
         {
@@ -98,9 +91,6 @@ namespace Unity.MCP
             {
                 var currentUnityUndoCount = GetUnityUndoStackCount();
                 var undoCountDiff = currentUnityUndoCount - lastUnityUndoCount;
-                
-                Debug.Log($"[UnityUndoMonitor] Synchronizing stacks - Unity count: {currentUnityUndoCount}, was: {lastUnityUndoCount}, diff: {undoCountDiff}");
-                Debug.Log($"[UnityUndoMonitor] Current stacks - Undo: {allOperations.Count}, Redo: {redoOperations.Count}");
                 
                 if (undoCountDiff > 0)
                 {
@@ -111,7 +101,6 @@ namespace Unity.MCP
                         var operationToMove = allOperations[allOperations.Count - 1];
                         allOperations.RemoveAt(allOperations.Count - 1);
                         redoOperations.Add(operationToMove);
-                        Debug.Log($"[UnityUndoMonitor] ↶ Moved to redo: {operationToMove.DisplayName}");
                     }
                 }
                 else if (undoCountDiff < 0)
@@ -123,11 +112,8 @@ namespace Unity.MCP
                         var operationToMove = redoOperations[redoOperations.Count - 1];
                         redoOperations.RemoveAt(redoOperations.Count - 1);
                         allOperations.Add(operationToMove);
-                        Debug.Log($"[UnityUndoMonitor] ↷ Moved to undo: {operationToMove.DisplayName}");
                     }
                 }
-                
-                Debug.Log($"[UnityUndoMonitor] After sync - Undo: {allOperations.Count}, Redo: {redoOperations.Count}");
             }
             catch (Exception e)
             {
@@ -136,66 +122,60 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 当撤销/重做操作执行时触发
+        /// Triggered when undo/redo operation is executed
         /// </summary>
         private static void OnUndoRedoPerformed()
         {
             isPerformingUndoRedo = true;
-            Debug.Log($"[UnityUndoMonitor] System Undo/Redo performed (isCustom: {isCustomUndoRedo})");
             
-            // 延迟检查撤销栈状态，并重置标志
+            // Delay checking undo stack state and reset flags
             EditorApplication.delayCall += () =>
             {
-                // 只有在非自定义操作时才进行同步（Unity原生的undo/redo）
+                // Only synchronize for non-custom operations (Unity native undo/redo)
                 if (!isCustomUndoRedo)
                 {
-                    // 同步内部操作栈与Unity的undo/redo状态
+                    // Synchronize internal operation stacks with Unity's undo/redo state
                     SynchronizeStacksWithUnity();
                 }
-                else
-                {
-                    Debug.Log("[UnityUndoMonitor] Skipping synchronization for custom undo/redo");
-                }
                 
-                // 更新选择状态
+                // Update selection state
                 UpdateSelectionState();
                 
-                // 同步撤销组状态，防止检测到系统undo/redo操作产生的内部组变化
+                // Synchronize undo group state to prevent detecting internal group changes from system undo/redo operations
                 lastTrackedGroup = Undo.GetCurrentGroup();
                 lastUnityUndoCount = GetUnityUndoStackCount();
-                lastUndoRedoTime = DateTime.Now; // 设置忽略时间窗口
+                lastUndoRedoTime = DateTime.Now; // Set ignore time window
                 
-                // 增加额外的延迟，确保Unity完成所有相关的内部操作后再重置标志
+                // Add additional delay to ensure Unity completes all related internal operations before resetting flags
                 EditorApplication.delayCall += () =>
                 {
-                    // 最终同步
+                    // Final synchronization
                     lastTrackedGroup = Undo.GetCurrentGroup();
                     lastUnityUndoCount = GetUnityUndoStackCount();
                     isPerformingUndoRedo = false;
-                    isCustomUndoRedo = false; // 重置自定义标志
+                    isCustomUndoRedo = false; // Reset custom flag
                     
-                    // 触发UI更新
+                    // Trigger UI update
                     OnOperationsChanged?.Invoke();
-                    Debug.Log("[UnityUndoMonitor] Stack synchronization complete");
                 };
             };
         }
         
         /// <summary>
-        /// 当选择发生变化时触发
+        /// Triggered when selection changes
         /// </summary>
         private static void OnSelectionChanged()
         {
-            // 如果正在执行撤销/重做操作，忽略选择变化以避免递归
+            // If performing undo/redo operations, ignore selection changes to avoid recursion
             if (isPerformingUndoRedo)
             {
                 return;
             }
             
-            // 延迟一点检查，确保可能的撤销组已经创建
+            // Delay slightly to ensure possible undo groups have been created
             EditorApplication.delayCall += () =>
             {
-                if (!isPerformingUndoRedo) // 再次检查，确保延迟期间没有开始撤销操作
+                if (!isPerformingUndoRedo) // Check again to ensure no undo operation started during delay
                 {
                     MonitorUndoStack();
                 }
@@ -203,15 +183,15 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 实时监控撤销栈变化 - 只监听可撤销的操作
+        /// Real-time monitoring of undo stack changes - Only listen for undoable operations
         /// </summary>
         private static void MonitorUndoStack()
         {
             try
             {
-                // 限制检查频率，避免过度监控
+                // Limit check frequency to avoid excessive monitoring
                 var currentTime = (float)EditorApplication.timeSinceStartup;
-                if (currentTime - lastCheckTime < 0.1f) // 每100ms最多检查一次
+                if (currentTime - lastCheckTime < 0.1f) // Check at most once every 100ms
                 {
                     return;
                 }
@@ -220,18 +200,18 @@ namespace Unity.MCP
                 var currentGroup = Undo.GetCurrentGroup();
                 var currentUnityUndoCount = GetUnityUndoStackCount();
                 
-                // 如果正在执行撤销/重做操作，跳过检测逻辑（栈管理在PerformUndo/PerformRedo中处理）
-                if (isPerformingUndoRedo)
+                // Skip detection logic if performing undo/redo operations or refreshing UI
+                if (isPerformingUndoRedo || isRefreshingUI)
                 {
                     lastTrackedGroup = currentGroup;
                     lastUnityUndoCount = currentUnityUndoCount;
-                    return; // 在undo/redo期间不执行添加新操作的逻辑
+                    return; // Don't execute logic for adding new operations during undo/redo or UI refresh
                 }
                 
-                // 检测新的操作 - 立即处理，依赖重复检测逻辑
+                // Detect new operations - Process immediately, rely on duplicate detection logic
                 if (currentGroup > lastTrackedGroup)
                 {
-                    // 获取当前组名称
+                    // Get current group name
                     var currentGroupName = "";
                     try
                     {
@@ -239,17 +219,17 @@ namespace Unity.MCP
                     }
                     catch { }
                     
-                    // 立即处理新操作
+                    // Process new operation immediately
                     ProcessNewOperation(currentGroup, currentGroupName);
                     lastTrackedGroup = currentGroup;
                     
-                    // 在添加新操作时，同步更新Unity undo计数跟踪
+                    // Update Unity undo count tracking when adding new operations
                     currentUnityUndoCount = GetUnityUndoStackCount();
                     lastUnityUndoCount = currentUnityUndoCount;
                 }
                 
-                // 正常情况下的undo/redo检测已移至PerformUndo/PerformRedo方法中直接处理
-                // 这里只需要更新计数跟踪
+                // Normal undo/redo detection has been moved to PerformUndo/PerformRedo methods for direct handling
+                // Only need to update count tracking here
                 lastUnityUndoCount = currentUnityUndoCount;
             }
             catch (Exception e)
@@ -259,41 +239,29 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 处理新操作的统一方法
+        /// Unified method for processing new operations
         /// </summary>
         private static void ProcessNewOperation(int currentGroup, string currentGroupName)
         {
-            // 检查是否在undo/redo操作后的忽略窗口内
+            // Check if within ignore window after undo/redo operation
             if (DateTime.Now - lastUndoRedoTime < UNDO_REDO_IGNORE_THRESHOLD)
             {
-                Debug.Log($"[UnityUndoMonitor] Ignoring operation within undo/redo window: {currentGroupName}");
                 return;
             }
             
             string groupName = currentGroupName;
             
-            // 处理有明确组名称的操作
+            // Process operations with explicit group names
             if (!string.IsNullOrEmpty(groupName) && IsValidUndoableOperation(groupName))
             {
                 var extractedName = ExtractOperationName(groupName);
                 bool shouldRecord = true;
+
+
+
+                // Delete operation detection has been moved to duplicate detection logic, no longer need time recording
                 
-                // 对于MCP操作，添加额外的日志
-                if (groupName.StartsWith("[MCP]"))
-                {
-                    var currentTime = DateTime.Now;
-                    var lastMcpOp = allOperations.LastOrDefault(op => op.isMcpOperation);
-                    var timeSinceLastMcp = lastMcpOp.timestamp != default ? (currentTime - lastMcpOp.timestamp).TotalMilliseconds : -1;
-                    Debug.Log($"[UnityUndoMonitor] Processing MCP operation: '{extractedName}' (group: {currentGroup}, time since last MCP: {timeSinceLastMcp:F0}ms)");
-                }
-                
-                // 检查是否是删除操作
-                if (IsDeleteOperation(extractedName))
-                {
-                    lastDeleteOperationTime = DateTime.Now;
-                }
-                
-                // 对于选择操作，必须先检查选择状态是否真正变化
+                // For selection operations, must first check if selection state actually changed
                 if (extractedName.StartsWith("Select ") || extractedName == "Clear Selection")
                 {
                     var selectionChangeResult = InferSelectionOperationType(currentGroup);
@@ -303,11 +271,10 @@ namespace Unity.MCP
                     }
                     else
                     {
-                        // 检查是否是删除操作后的自动选择
+                        // Check if it's auto-selection after delete operation
                         if (IsAutoSelectionAfterDelete())
                         {
                             shouldRecord = false;
-                            Debug.Log($"[UnityUndoMonitor] Skipped auto-selection after delete: {extractedName}");
                         }
                     }
                 }
@@ -316,44 +283,44 @@ namespace Unity.MCP
                 {
                     bool isDuplicate = IsDuplicateOperation(groupName);
                     
-                    // 对于MCP操作，进行额外的即时重复检查
+                    // For MCP operations, perform additional immediate duplicate check
                     if (!isDuplicate && groupName.StartsWith("[MCP]"))
                     {
-                        // 检查是否与最后几个操作完全相同（不依赖时间）
+                        // Check if identical to last few operations (not time-dependent)
                         var lastFewOps = allOperations.TakeLast(3).ToList();
                         var identicalCount = lastFewOps.Count(op => op.operationName == extractedName && op.isMcpOperation);
-                        if (identicalCount >= 1) // 如果最近已经有相同的MCP操作
+                        if (identicalCount >= 1) // If there's already a recent identical MCP operation
                         {
                             isDuplicate = true;
-                            Debug.Log($"[UnityUndoMonitor] Detected immediate consecutive MCP duplicate: {extractedName} (found {identicalCount} recent identical ops)");
                         }
+                    }
+                    
+                    // For delete and copy operations, check if temporary selection operations should be removed
+                    if (!isDuplicate && (IsDeleteOperation(extractedName) || IsCopyOperation(extractedName)))
+                    {
+                        CheckAndRemoveTemporarySelection();
                     }
                     
                     if (!isDuplicate)
                     {
                         AddOperation(currentGroup, extractedName, groupName.StartsWith("[MCP]"));
                     }
-                    else if (groupName.StartsWith("[MCP]"))
-                    {
-                        Debug.Log($"[UnityUndoMonitor] Skipped duplicate MCP operation: {extractedName}");
-                    }
                 }
             }
             else if (string.IsNullOrEmpty(groupName))
             {
-                // 对于没有明确组名称的操作，进行有限的推测
-                // 主要处理选择操作等重要的可撤销操作
+                // For operations without explicit group names, perform limited inference
+                // Mainly handle selection operations and other important undoable operations
                 var inferredName = InferSelectionOperationType(currentGroup);
                 if (!string.IsNullOrEmpty(inferredName) && IsValidUndoableOperation(inferredName))
                 {
-                    // 检查是否是删除操作后的自动选择
+                    // Check if it's auto-selection after delete operation
                     if (IsAutoSelectionAfterDelete())
                     {
-                        Debug.Log($"[UnityUndoMonitor] Skipped auto-selection after delete: {inferredName}");
                         return;
                     }
                     
-                    // 检查是否与最近的操作重复
+                    // Check if duplicate with recent operations
                     if (!IsDuplicateOperation(inferredName))
                     {
                         AddOperation(currentGroup, ExtractOperationName(inferredName), false);
@@ -363,7 +330,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 检查是否是删除操作
+        /// Check if it's a delete operation
         /// </summary>
         private static bool IsDeleteOperation(string operationName)
         {
@@ -375,16 +342,71 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 检查是否是删除操作后的自动选择
+        /// Check if it's a copy operation
         /// </summary>
-        private static bool IsAutoSelectionAfterDelete()
+        private static bool IsCopyOperation(string operationName)
         {
-            var timeSinceDelete = DateTime.Now - lastDeleteOperationTime;
-            return timeSinceDelete <= AUTO_SELECTION_THRESHOLD;
+            var lowerName = operationName.ToLower();
+            return lowerName.Contains("copy") || 
+                   lowerName.Contains("duplicate") || 
+                   lowerName.Contains("paste") ||
+                   lowerName.Contains("clone");
         }
         
         /// <summary>
-        /// 添加新操作的统一方法
+        /// Check if it's auto-selection after delete operation (based on sequence detection, not time-dependent)
+        /// </summary>
+        private static bool IsAutoSelectionAfterDelete()
+        {
+            // Check if there's a delete operation in the last 2 operations
+            var recentOps = allOperations.TakeLast(2).ToList();
+            return recentOps.Any(op => IsDeleteOperation(op.operationName));
+        }
+        
+        /// <summary>
+        /// Check and remove temporary selection operations before delete operations
+        /// When user selects an object and immediately deletes it, the selection operation should be considered temporary and removed
+        /// </summary>
+        private static void CheckAndRemoveTemporarySelection()
+        {
+            if (allOperations.Count == 0) return;
+            
+            // Check if the last operation is a selection operation
+            var lastOp = allOperations[allOperations.Count - 1];
+            if (lastOp.operationName.StartsWith("Select ") && !lastOp.isMcpOperation)
+            {
+                // Check if there's only 1 operation, or the previous operation is not a selection operation
+                // This can avoid removing meaningful selection sequences
+                bool shouldRemove = false;
+                
+                if (allOperations.Count == 1)
+                {
+                    // If there's only one selection operation followed by deletion, this selection is temporary
+                    shouldRemove = true;
+                }
+                else
+                {
+                    // Check the previous operation, if it's not a selection operation, this is an isolated selection→delete operation
+                    var previousOp = allOperations[allOperations.Count - 2];
+                    if (!previousOp.operationName.StartsWith("Select ") && !previousOp.operationName.Equals("Clear Selection"))
+                    {
+                        shouldRemove = true;
+                    }
+                }
+                
+                if (shouldRemove)
+                {
+                    // Remove this temporary selection operation
+                    allOperations.RemoveAt(allOperations.Count - 1);
+                    
+                    // Trigger UI update
+                    OnOperationsChanged?.Invoke();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Unified method for adding new operations
         /// </summary>
         private static void AddOperation(int groupId, string operationName, bool isMcpOperation)
         {
@@ -398,42 +420,85 @@ namespace Unity.MCP
             
             allOperations.Add(operation);
             
-            // 新操作添加时，清空redo栈（标准undo/redo行为）
-            // 但如果正在执行undo/redo操作，不要清空redo栈
+            // When new operation is added, clear redo stack (standard undo/redo behavior)
+            // But if performing undo/redo operations, don't clear redo stack
             if (redoOperations.Count > 0 && !isPerformingUndoRedo)
             {
                 redoOperations.Clear();
             }
             
-            // 如果是选择操作，更新选择状态跟踪
+            // If it's a selection operation, update selection state tracking
             if (operationName.StartsWith("Select ") || operationName == "Clear Selection")
             {
                 UpdateSelectionState();
             }
             
-            Debug.Log($"[UnityUndoMonitor] ✓ {operation.DisplayName}");
+            // Immediately trigger event, UI layer will handle delayed refresh
             OnOperationsChanged?.Invoke();
         }
         
         /// <summary>
-        /// 获取Unity内部的实际undo栈计数
+        /// Get Unity's internal actual undo stack count
         /// </summary>
         private static int GetUnityUndoStackCount()
         {
             try
             {
-                // 使用反射来获取Unity内部的undo计数
-                // Unity内部维护一个undo列表，我们尝试通过反射访问它
+                // Use safer reflection method to get Unity's internal undo count
                 var undoType = typeof(Undo);
-                var getRecordsMethod = undoType.GetMethod("GetRecords", 
-                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                
+                // First try to get the parameterless GetRecords method
+                MethodInfo getRecordsMethod = null;
+                try
+                {
+                    // Try to get the parameterless version of GetRecords method
+                    getRecordsMethod = undoType.GetMethod("GetRecords", 
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic,
+                        null, 
+                        Type.EmptyTypes, 
+                        null);
+                }
+                catch (AmbiguousMatchException)
+                {
+                    // If still ambiguous, try to get all GetRecords methods and find the most suitable one
+                    var methods = undoType.GetMethods(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                        .Where(m => m.Name == "GetRecords")
+                        .ToArray();
+                    
+                    // Prefer parameterless method
+                    getRecordsMethod = methods.FirstOrDefault(m => m.GetParameters().Length == 0);
+                    
+                    // If no parameterless method, choose the one with fewest parameters
+                    if (getRecordsMethod == null && methods.Length > 0)
+                    {
+                        getRecordsMethod = methods.OrderBy(m => m.GetParameters().Length).First();
+                    }
+                }
                 
                 if (getRecordsMethod != null)
                 {
-                    var records = getRecordsMethod.Invoke(null, new object[] { });
+                    var paramCount = getRecordsMethod.GetParameters().Length;
+                    object records = null;
+                    
+                    if (paramCount == 0)
+                    {
+                        records = getRecordsMethod.Invoke(null, null);
+                    }
+                    else
+                    {
+                        // For methods with parameters, provide suitable default values
+                        var parameters = new object[paramCount];
+                        for (int i = 0; i < paramCount; i++)
+                        {
+                            var paramType = getRecordsMethod.GetParameters()[i].ParameterType;
+                            parameters[i] = paramType.IsValueType ? Activator.CreateInstance(paramType) : null;
+                        }
+                        records = getRecordsMethod.Invoke(null, parameters);
+                    }
+                    
                     if (records != null)
                     {
-                        // records应该是一个数组或列表
+                        // records should be an array or list
                         if (records is System.Array array)
                         {
                             return array.Length;
@@ -445,33 +510,31 @@ namespace Unity.MCP
                     }
                 }
                 
-                // 如果反射方法失败，尝试另一种方法：使用当前组ID作为估算
-                // 这不是完美的，但是一个备用方案
+                // Fallback: Use current group ID as estimate
                 var currentGroup = Undo.GetCurrentGroup();
                 return Mathf.Max(0, currentGroup);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Debug.LogWarning($"[UnityUndoMonitor] Failed to get Unity undo count: {e.Message}");
-                // 备用方案：使用组ID作为近似值
+                // Fallback: Use group ID as approximation
                 var currentGroup = Undo.GetCurrentGroup();
                 return Mathf.Max(0, currentGroup);
             }
         }
         
         /// <summary>
-        /// 智能推测操作类型
+        /// Smart inference of operation type
         /// </summary>
         private static string InferOperationType(int groupId)
         {
             try
             {
-                // 基于常见的Unity操作模式进行推测
+                // Infer based on common Unity operation patterns
                 var now = DateTime.Now;
                 var lastOp = allOperations.LastOrDefault();
                 var timeDiff = allOperations.Count > 0 ? now - lastOp.timestamp : TimeSpan.Zero;
                 
-                // 基于时间间隔的推测
+                // Inference based on time intervals
                 if (timeDiff.TotalMilliseconds < 50)
                 {
                     return "Continuous Edit";
@@ -481,10 +544,10 @@ namespace Unity.MCP
                     return "Quick Action";
                 }
                 
-                // 基于最近操作模式的推测
+                // Inference based on recent operation patterns
                 var recentOps = allOperations.TakeLast(5).Where(op => !op.isMcpOperation).ToList();
                 
-                // 检查是否有重复的操作模式
+                // Check for repeated operation patterns
                 if (recentOps.Count >= 2)
                 {
                     var lastManualOp = recentOps.LastOrDefault();
@@ -501,10 +564,10 @@ namespace Unity.MCP
                     }
                 }
                 
-                // 基于当前编辑器状态的推测
+                // Inference based on current editor state
                 if (Selection.activeGameObject != null)
                 {
-                    // 有选中对象，可能是相关操作
+                    // Has selected object, might be related operation
                     var hasRecentSelection = recentOps.Any(op => 
                         op.operationName.Contains("Selection") || op.operationName.Contains("Select"));
                     
@@ -518,11 +581,11 @@ namespace Unity.MCP
                     }
                 }
                 
-                // 检查场景状态
+                // Check scene state
                 var activeScene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
                 if (activeScene.isDirty)
                 {
-                    // 场景有变化，根据最近操作推测类型
+                    // Scene has changes, infer type based on recent operations
                     if (recentOps.Any(op => op.operationName.Contains("Property")))
                     {
                         return "Component Edit";
@@ -537,7 +600,7 @@ namespace Unity.MCP
                     }
                 }
                 
-                // 基于工具模式的推测
+                // Inference based on tool mode
                 if (Tools.current == Tool.Move)
                 {
                     return "Move Tool";
@@ -551,7 +614,7 @@ namespace Unity.MCP
                     return "Scale Tool";
                 }
                 
-                // 默认分类
+                // Default category
                 return $"Editor Action";
             }
             catch (Exception ex)
@@ -562,19 +625,19 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 检查撤销组是否包含有效的可撤销内容
+        /// Check if undo group contains valid undoable content
         /// </summary>
         private static bool HasValidUndoContent(int groupId)
         {
             try
             {
-                // 检查当前撤销组是否有实际内容
-                // Unity的撤销系统会为很多不可撤销的操作也创建组，但这些组通常是空的
+                // Check if current undo group has actual content
+                // Unity's undo system creates groups for many non-undoable operations, but these groups are usually empty
                 
-                // 方法1：检查撤销计数 - 但这个检查可能过于严格
+                // Method 1: Check undo count - but this check might be too strict
                 var currentUndoCount = GetUndoCount();
                 
-                // 方法2：尝试获取组名
+                // Method 2: Try to get group name
                 var groupName = "";
                 try
                 {
@@ -582,18 +645,18 @@ namespace Unity.MCP
                 }
                 catch { }
                 
-                // 如果是MCP操作，总是认为有效
+                // If it's an MCP operation, always consider it valid
                 if (!string.IsNullOrEmpty(groupName) && groupName.StartsWith("[MCP]"))
                 {
                     return true;
                 }
                 
-                // 方法3：基于组名内容判断 - 只过滤明确的无效操作
+                // Method 3: Judge based on group name content - only filter explicitly invalid operations
                 if (!string.IsNullOrEmpty(groupName))
                 {
                     var lowerName = groupName.ToLower();
                     
-                    // 只过滤明确无效的UI操作
+                    // Only filter explicitly invalid UI operations
                     if (lowerName.Contains("console") || 
                         lowerName.Contains("log") ||
                         lowerName.Contains("window") ||
@@ -605,8 +668,8 @@ namespace Unity.MCP
                     }
                 }
                 
-                // 方法4：宽松验证 - 默认认为有效
-                // 如果有组名或者有撤销计数，就认为可能是有效操作
+                // Method 4: Lenient verification - default to valid
+                // If has group name or undo count, consider it might be a valid operation
                 if (!string.IsNullOrEmpty(groupName) || currentUndoCount > 0)
                 {
                     return true;
@@ -617,12 +680,12 @@ namespace Unity.MCP
             catch (Exception e)
             {
                 Debug.LogWarning($"[UnityUndoMonitor] Error checking undo content: {e.Message}");
-                return false; // 出错时认为无效
+                return false; // Consider invalid when error occurs
             }
         }
         
         /// <summary>
-        /// 检查是否为重复操作 - 强化版本，特别处理删除、MCP等关键操作
+        /// Check if it's a duplicate operation - Enhanced version, specially handles delete, MCP and other key operations
         /// </summary>
         private static bool IsDuplicateOperation(string operationName)
         {
@@ -631,87 +694,101 @@ namespace Unity.MCP
             
             var extractedName = ExtractOperationName(operationName);
             
-            // 对于MCP操作，采用更严格的重复检测
+            // For MCP operations, sequence-based duplicate detection
             if (operationName.StartsWith("[MCP]"))
             {
-                // 检查最近10个操作，看是否有相同的MCP操作
-                var recentOperations = allOperations.TakeLast(10).ToList();
+                // Check if there are identical MCP operations in the last 5 operations
+                var recentOperations = allOperations.TakeLast(5).ToList();
+                var identicalMcpOps = recentOperations.Where(op => op.operationName == extractedName && op.isMcpOperation).ToList();
                 
-                foreach (var recentOp in recentOperations)
+                if (identicalMcpOps.Count > 0)
                 {
-                    if (recentOp.operationName == extractedName && recentOp.isMcpOperation)
-                    {
-                        var timeDiff = DateTime.Now - recentOp.timestamp;
-                        // MCP操作在5秒内重复认为是同一操作，并且特别检测连续的相同操作
-                        if (timeDiff.TotalSeconds < 5.0)
-                        {
-                            Debug.Log($"[UnityUndoMonitor] Detected duplicate MCP operation: {extractedName} (within {timeDiff.TotalSeconds:F1}s)");
-                            return true;
-                        }
-                    }
-                }
-                
-                // 额外检查：如果最后一个操作就是相同的MCP操作，直接认为是重复
-                if (allOperations.Count > 0)
-                {
-                    var lastOp = allOperations[allOperations.Count - 1];
-                    if (lastOp.operationName == extractedName && lastOp.isMcpOperation)
-                    {
-                        var timeDiff = DateTime.Now - lastOp.timestamp;
-                        if (timeDiff.TotalMilliseconds < 100) // 100ms内的连续相同MCP操作必定是重复
-                        {
-                            Debug.Log($"[UnityUndoMonitor] Detected immediate duplicate MCP operation: {extractedName} (within {timeDiff.TotalMilliseconds:F0}ms)");
-                            return true;
-                        }
-                    }
+                    return true;
                 }
             }
-            // 对于删除操作，采用更严格的重复检测
+            // For delete operations, judge uniqueness based on scene object count change (each delete reduces objects, even if operation names are same)
             else if (IsDeleteOperation(extractedName))
             {
-                // 检查最近5个操作，看是否有相同的删除操作
-                var recentOperations = allOperations.TakeLast(5).ToList();
-                
-                foreach (var recentOp in recentOperations)
+                // Delete operations always reduce object count, even if operation names are same
+                // We confirm this is a genuine new operation by checking if scene object count decreased
+                if (allOperations.Count > 0)
                 {
-                    if (recentOp.operationName == extractedName)
+                    var lastOp = allOperations.Last();
+                    if (lastOp.operationName == extractedName && !lastOp.isMcpOperation)
                     {
-                        var timeDiff = DateTime.Now - recentOp.timestamp;
-                        // 删除操作在2秒内重复认为是同一操作
-                        if (timeDiff.TotalSeconds < 2.0)
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // 对于其他操作，检查最近3个操作
-                var recentOperations = allOperations.TakeLast(3).ToList();
-                
-                foreach (var recentOp in recentOperations)
-                {
-                    if (recentOp.operationName == extractedName)
-                    {
-                        var timeDiff = DateTime.Now - recentOp.timestamp;
+                        // Check if object count in scene decreased
+                        var currentObjectCount = GetSceneObjectCount();
+                        var objectCountDecreased = currentObjectCount < lastSceneObjectCount;
                         
-                        // 对于非选择操作
-                        if (!extractedName.StartsWith("Select ") && extractedName != "Clear Selection")
+                        if (objectCountDecreased)
                         {
-                            if (timeDiff.TotalMilliseconds < 500) // 500ms内的相同非选择操作认为是重复
-                            {
-                                return true;
-                            }
+                            // Object count in scene decreased, indicating objects were deleted, this is a valid delete operation
+                            lastSceneObjectCount = currentObjectCount; // Update count
+                            return false; // Not duplicate, allow recording
                         }
                         else
                         {
-                            // 对于选择操作，使用更短的时间窗口
-                            if (timeDiff.TotalMilliseconds < 100) // 100ms内的相同选择操作认为是重复
-                            {
-                                return true;
-                            }
+                            // Object count unchanged, might be UI refresh causing duplicate
+                            return true;
                         }
+                    }
+                }
+                
+                // Update object count for next comparison
+                lastSceneObjectCount = GetSceneObjectCount();
+                return false;
+            }
+            // For copy operations, judge uniqueness based on scene object count change (each copy creates new objects, even if source objects are same)
+            else if (IsCopyOperation(extractedName))
+            {
+                // Copy operations always create new object instances, even if source objects are same
+                // We confirm this is a genuine new operation by checking if scene object count increased
+                if (allOperations.Count > 0)
+                {
+                    var lastOp = allOperations.Last();
+                    if (lastOp.operationName == extractedName && !lastOp.isMcpOperation)
+                    {
+                        // Check if object count in scene increased
+                        var currentObjectCount = GetSceneObjectCount();
+                        var objectCountIncreased = currentObjectCount > lastSceneObjectCount;
+                        
+                        if (objectCountIncreased)
+                        {
+                            // Object count in scene increased, indicating new objects were created, this is a valid copy operation
+                            lastSceneObjectCount = currentObjectCount; // Update count
+                            return false; // Not duplicate, allow recording
+                        }
+                        else
+                        {
+                            // Object count unchanged, might be UI refresh causing duplicate
+                            return true;
+                        }
+                    }
+                }
+                
+                // Update object count for next comparison
+                lastSceneObjectCount = GetSceneObjectCount();
+                return false;
+            }
+            else
+            {
+                // For other operations, check last 2 operations
+                var recentOperations = allOperations.TakeLast(2).ToList();
+                var identicalOps = recentOperations.Where(op => op.operationName == extractedName && !op.isMcpOperation).ToList();
+                
+                if (identicalOps.Count > 0)
+                {
+                    // For selection operations, only check the last operation
+                    if (extractedName.StartsWith("Select ") || extractedName == "Clear Selection")
+                    {
+                        if (allOperations.Count > 0 && allOperations.Last().operationName == extractedName)
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        return true;
                     }
                 }
             }
@@ -720,7 +797,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 判断操作是否为有效的可撤销操作
+        /// Determine if operation is a valid undoable operation
         /// </summary>
         private static bool IsValidUndoableOperation(string operationName)
         {
@@ -729,28 +806,28 @@ namespace Unity.MCP
                 return false;
             }
             
-            // 明确的MCP操作总是有效的
+            // Explicit MCP operations are always valid
             if (operationName.StartsWith("[MCP]"))
             {
                 return true;
             }
             
-            // 过滤掉不可撤销的操作类型
+            // Filter out non-undoable operation types
             var lowerName = operationName.ToLower();
             
-            // **优先检查Unity原生的选择操作格式**
+            // **Priority check for Unity native selection operation format**
             if (lowerName.StartsWith("select ") && lowerName.Contains("(gameobject)"))
             {
                 return true;
             }
             
-            // 清除选择操作
+            // Clear selection operation
             if (lowerName == "clear selection")
             {
                 return true;
             }
             
-            // 明确的无效操作 - 界面和系统操作
+            // Explicitly invalid operations - Interface and system operations
             if (lowerName.Contains("console") || 
                 lowerName.Contains("log") ||
                 lowerName.Contains("selection change") ||
@@ -769,11 +846,14 @@ namespace Unity.MCP
                 return false;
             }
             
-            // 明确的有效操作 - 真正的编辑操作
+            // Explicitly valid operations - Real editing operations
             if (lowerName.Contains("create") || 
                 lowerName.Contains("delete") || 
                 lowerName.Contains("destroy") ||
                 lowerName.Contains("duplicate") ||
+                lowerName.Contains("copy") ||      // Add copy operation detection
+                lowerName.Contains("paste") ||     // Add paste operation detection
+                lowerName.Contains("clone") ||     // Add clone operation detection
                 lowerName.Contains("move") ||
                 lowerName.Contains("rotate") ||
                 lowerName.Contains("scale") ||
@@ -781,8 +861,8 @@ namespace Unity.MCP
                 lowerName.Contains("transform") ||
                 lowerName.Contains("modify") ||
                 lowerName.Contains("edit") ||
-                lowerName.Contains("select") ||  // 通用选择操作
-                lowerName.Contains("clear") ||   // 通用清除操作
+                lowerName.Contains("select") ||  // General selection operation
+                lowerName.Contains("clear") ||   // General clear operation
                 lowerName.Contains("add component") ||
                 lowerName.Contains("remove component") ||
                 lowerName.Contains("component edit") ||
@@ -795,42 +875,31 @@ namespace Unity.MCP
                 return true;
             }
             
-            // 默认情况：严格过滤，未知操作认为无效
+            // Default case: Strict filtering, unknown operations considered invalid
             return false;
         }
         
         /// <summary>
-        /// 推测可撤销操作类型（已废弃 - 推测经常不准确）
-        /// 现在只处理有明确Unity组名称的操作，不再进行推测
-        /// </summary>
-        [System.Obsolete("No longer used - now only processing operations with explicit Unity group names")]
-        private static string InferUndoableOperationType(int groupId)
-        {
-            // 此方法已不再使用，保留仅为兼容性
-            return "";
-        }
-
-        /// <summary>
-        /// 专门推测选择相关的操作类型
-        /// 只检测选择状态变化，不更新状态（状态更新由调用者负责）
+        /// Specifically infer selection-related operation types
+        /// Only detect selection state changes, don't update state (state update is caller's responsibility)
         /// </summary>
         private static string InferSelectionOperationType(int groupId)
         {
             try
             {
-                // 检查当前选择状态
+                // Check current selection state
                 var currentSelection = Selection.objects;
                 var activeGameObject = Selection.activeGameObject;
                 var currentInstanceID = activeGameObject != null ? activeGameObject.GetInstanceID() : -1;
                 var currentSelectionCount = currentSelection.Length;
                 
-                // 检查选择状态是否真正发生了变化
+                // Check if selection state actually changed
                 if (currentInstanceID != lastSelectedInstanceID || currentSelectionCount != lastSelectionCount)
                 {
-                    // 确定操作类型，但不更新状态
+                    // Determine operation type, but don't update state
                     if (activeGameObject != null)
                     {
-                        // 有选中对象
+                        // Has selected object
                         if (currentSelectionCount == 1)
                         {
                             var operationName = $"Select {activeGameObject.name} ({activeGameObject.GetInstanceID()})";
@@ -844,7 +913,7 @@ namespace Unity.MCP
                     }
                     else if (currentSelectionCount == 0)
                     {
-                        // 没有选中对象，清除选择
+                        // No selected object, clear selection
                         var operationName = "Clear Selection";
                         return operationName;
                     }
@@ -860,17 +929,64 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 更新选择状态跟踪
+        /// Update selection state tracking
         /// </summary>
         private static void UpdateSelectionState()
         {
             var activeGameObject = Selection.activeGameObject;
             lastSelectedInstanceID = activeGameObject != null ? activeGameObject.GetInstanceID() : -1;
             lastSelectionCount = Selection.objects.Length;
+            lastSceneObjectCount = GetSceneObjectCount(); // Also update scene object count
         }
         
         /// <summary>
-        /// 清理监听器（当编辑器关闭时）
+        /// Get object count in current active scene
+        /// </summary>
+        private static int GetSceneObjectCount()
+        {
+            try
+            {
+                var activeScene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+                if (activeScene.isLoaded)
+                {
+                    var rootObjects = activeScene.GetRootGameObjects();
+                    int totalCount = 0;
+                    
+                    // Recursively count all objects (including child objects)
+                    foreach (var rootObj in rootObjects)
+                    {
+                        totalCount += CountObjectsRecursive(rootObj);
+                    }
+                    
+                    return totalCount;
+                }
+                return 0;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[UnityUndoMonitor] Error getting scene object count: {e.Message}");
+                return 0;
+            }
+        }
+        
+        /// <summary>
+        /// Recursively count GameObject and all its child objects
+        /// </summary>
+        private static int CountObjectsRecursive(GameObject obj)
+        {
+            int count = 1; // Count current object
+            
+            // Recursively count all child objects
+            for (int i = 0; i < obj.transform.childCount; i++)
+            {
+                count += CountObjectsRecursive(obj.transform.GetChild(i).gameObject);
+            }
+            
+            return count;
+        }
+        
+        /// <summary>
+        /// Clean up listener (when editor closes)
         /// </summary>
         private static void Cleanup()
         {
@@ -881,25 +997,24 @@ namespace Unity.MCP
                 Selection.selectionChanged -= OnSelectionChanged;
                 
                 isInitialized = false;
-                Debug.Log("[UnityUndoMonitor] System cleaned up");
             }
         }
         
         /// <summary>
-        /// 尝试获取撤销组名称（保留原方法作为备用）
+        /// Try to get undo group name (keep original method as backup)
         /// </summary>
         private static string TryGetUndoGroupName(int groupId)
         {
             try
             {
-                // Unity的Undo.GetCurrentGroupName()只能获取当前组的名称
+                // Unity's Undo.GetCurrentGroupName() can only get current group's name
                 if (groupId == Undo.GetCurrentGroup())
                 {
                     return Undo.GetCurrentGroupName();
                 }
                 else
                 {
-                    // 对于历史组，使用智能推测
+                    // For historical groups, use smart inference
                     return InferOperationType(groupId);
                 }
             }
@@ -910,19 +1025,57 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 从组名中提取操作名称
+        /// Standardize operation name - Map Unity's internal operation names to more user-friendly names
         /// </summary>
-        private static string ExtractOperationName(string groupName)
+        private static string StandardizeOperationName(string operationName)
         {
-            if (groupName.StartsWith("[MCP]"))
+            if (string.IsNullOrEmpty(operationName))
+                return operationName;
+            
+            var lowerName = operationName.ToLower();
+            
+            // Standardize Paste operations to Duplicate (exclude clipboard operations)
+            if ((lowerName.StartsWith("paste ") || lowerName.Contains(" paste ") || lowerName.EndsWith(" paste")) 
+                && !lowerName.Contains("clipboard"))
             {
-                return groupName.Substring(5).Trim();
+                var standardizedName = operationName
+                    .Replace("Paste ", "Duplicate ").Replace("paste ", "Duplicate ")
+                    .Replace(" Paste ", " Duplicate ").Replace(" paste ", " Duplicate ")
+                    .Replace(" Paste", " Duplicate").Replace(" paste", " Duplicate");
+                return standardizedName;
             }
-            return groupName;
+            
+            // "Copy Game Objects" -> "Duplicate Game Objects"
+            if (lowerName.Contains("copy ") && lowerName.Contains("game object"))
+            {
+                var standardizedName = operationName.Replace("Copy ", "Duplicate ").Replace("copy ", "Duplicate ");
+                return standardizedName;
+            }
+            
+            return operationName;
         }
         
         /// <summary>
-        /// 获取所有操作历史
+        /// Extract operation name from group name
+        /// </summary>
+        private static string ExtractOperationName(string groupName)
+        {
+            string operationName;
+            if (groupName.StartsWith("[MCP]"))
+            {
+                operationName = groupName.Substring(5).Trim();
+            }
+            else
+            {
+                operationName = groupName;
+            }
+            
+            // Standardize operation name
+            return StandardizeOperationName(operationName);
+        }
+        
+        /// <summary>
+        /// Get all operation history
         /// </summary>
         public static List<UndoOperation> GetAllOperations()
         {
@@ -930,7 +1083,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 获取最新的N个操作
+        /// Get latest N operations
         /// </summary>
         public static List<UndoOperation> GetRecentOperations(int count = 10)
         {
@@ -938,7 +1091,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 获取MCP操作数量
+        /// Get MCP operation count
         /// </summary>
         public static int GetMcpOperationCount()
         {
@@ -946,7 +1099,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 获取手动操作数量
+        /// Get manual operation count
         /// </summary>
         public static int GetManualOperationCount()
         {
@@ -954,59 +1107,39 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 执行撤销操作（使用Unity原生）
+        /// Perform undo operation (using Unity native)
         /// </summary>
         public static void PerformUndo()
         {
             try
             {
                 isPerformingUndoRedo = true;
-                isCustomUndoRedo = true; // 标记为自定义操作
+                isCustomUndoRedo = true; // Mark as custom operation
                 
-                // 首先检查是否有操作可以撤销
+                // First check if there are operations to undo
                 if (allOperations.Count == 0)
                 {
-                    Debug.Log("[UnityUndoMonitor] No operations to undo");
                     isPerformingUndoRedo = false;
                     isCustomUndoRedo = false;
                     return;
                 }
                 
-                // 将操作从undo栈移动到redo栈（在Unity执行之前）
+                // Move operation from undo stack to redo stack (before Unity execution)
                 var operationToUndo = allOperations[allOperations.Count - 1];
                 allOperations.RemoveAt(allOperations.Count - 1);
                 redoOperations.Add(operationToUndo);
                 
-                // 记录undo操作时间，用于忽略后续的内部组变化
+                // Record undo operation time for ignoring subsequent internal group changes
                 lastUndoRedoTime = DateTime.Now;
                 
-                // 执行Unity的undo
+                // Execute Unity's undo
                 Undo.PerformUndo();
-                Debug.Log($"[UnityUndoMonitor] ↶ Undo: {operationToUndo.DisplayName}");
                 
-                // 触发UI更新
+                // Trigger UI update
                 OnOperationsChanged?.Invoke();
                 
-                // 延迟重置标志，确保所有相关事件都已处理
-                EditorApplication.delayCall += () =>
-                {
-                    // 重新同步选择状态跟踪
-                    UpdateSelectionState();
-                    
-                    // 彻底同步撤销组状态，防止检测到undo操作产生的内部组变化
-                    lastTrackedGroup = Undo.GetCurrentGroup();
-                    lastUnityUndoCount = GetUnityUndoStackCount();
-                    
-                    // 增加额外的延迟，确保Unity完成所有相关的内部操作后再重置标志
-                    EditorApplication.delayCall += () =>
-                    {
-                        // 最终同步，确保所有Unity内部状态都已稳定
-                        lastTrackedGroup = Undo.GetCurrentGroup();
-                        lastUnityUndoCount = GetUnityUndoStackCount();
-                        isPerformingUndoRedo = false;
-                        // isCustomUndoRedo 在OnUndoRedoPerformed中重置
-                    };
-                };
+                // Delayed reset flags to ensure all related events are processed
+                DelayedResetAfterUndoRedo();
             }
             catch (Exception e)
             {
@@ -1017,59 +1150,39 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 执行重做操作（使用Unity原生）
+        /// Perform redo operation (using Unity native)
         /// </summary>
         public static void PerformRedo()
         {
             try
             {
                 isPerformingUndoRedo = true;
-                isCustomUndoRedo = true; // 标记为自定义操作
+                isCustomUndoRedo = true; // Mark as custom operation
                 
-                // 首先检查是否有操作可以重做
+                // First check if there are operations to redo
                 if (redoOperations.Count == 0)
                 {
-                    Debug.Log("[UnityUndoMonitor] No operations to redo");
                     isPerformingUndoRedo = false;
                     isCustomUndoRedo = false;
                     return;
                 }
                 
-                // 将操作从redo栈移动回undo栈（在Unity执行之前）
+                // Move operation from redo stack back to undo stack (before Unity execution)
                 var operationToRedo = redoOperations[redoOperations.Count - 1];
                 redoOperations.RemoveAt(redoOperations.Count - 1);
                 allOperations.Add(operationToRedo);
                 
-                // 记录redo操作时间，用于忽略后续的内部组变化
+                // Record redo operation time for ignoring subsequent internal group changes
                 lastUndoRedoTime = DateTime.Now;
                 
-                // 执行Unity的redo
+                // Execute Unity's redo
                 Undo.PerformRedo();
-                Debug.Log($"[UnityUndoMonitor] ↷ Redo: {operationToRedo.DisplayName}");
                 
-                // 触发UI更新
+                // Trigger UI update
                 OnOperationsChanged?.Invoke();
                 
-                // 延迟重置标志，确保所有相关事件都已处理
-                EditorApplication.delayCall += () =>
-                {
-                    // 重新同步选择状态跟踪
-                    UpdateSelectionState();
-                    
-                    // 彻底同步撤销组状态，防止检测到redo操作产生的内部组变化
-                    lastTrackedGroup = Undo.GetCurrentGroup();
-                    lastUnityUndoCount = GetUnityUndoStackCount();
-                    
-                    // 增加额外的延迟，确保Unity完成所有相关的内部操作后再重置标志
-                    EditorApplication.delayCall += () =>
-                    {
-                        // 最终同步，确保所有Unity内部状态都已稳定
-                        lastTrackedGroup = Undo.GetCurrentGroup();
-                        lastUnityUndoCount = GetUnityUndoStackCount();
-                        isPerformingUndoRedo = false;
-                        // isCustomUndoRedo 在OnUndoRedoPerformed中重置
-                    };
-                };
+                // Delayed reset flags to ensure all related events are processed
+                DelayedResetAfterUndoRedo();
             }
             catch (Exception e)
             {
@@ -1080,7 +1193,33 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 清除监听历史
+        /// Delayed reset state after undo/redo operations - Public method to avoid code duplication
+        /// </summary>
+        private static void DelayedResetAfterUndoRedo()
+        {
+            EditorApplication.delayCall += () =>
+            {
+                // Re-sync selection state tracking
+                UpdateSelectionState();
+                
+                // Thoroughly sync undo group state to prevent detecting internal group changes from operations
+                lastTrackedGroup = Undo.GetCurrentGroup();
+                lastUnityUndoCount = GetUnityUndoStackCount();
+                
+                // Add additional delay to ensure Unity completes all related internal operations before resetting flags
+                EditorApplication.delayCall += () =>
+                {
+                    // Final sync to ensure all Unity internal states are stable
+                    lastTrackedGroup = Undo.GetCurrentGroup();
+                    lastUnityUndoCount = GetUnityUndoStackCount();
+                    isPerformingUndoRedo = false;
+                    // isCustomUndoRedo is reset in OnUndoRedoPerformed
+                };
+            };
+        }
+        
+        /// <summary>
+        /// Clear listening history
         /// </summary>
         public static void ClearHistory()
         {
@@ -1089,11 +1228,18 @@ namespace Unity.MCP
             lastTrackedGroup = Undo.GetCurrentGroup() - 1;
             lastUnityUndoCount = GetUnityUndoStackCount();
             OnOperationsChanged?.Invoke();
-            Debug.Log("[UnityUndoMonitor] History cleared");
         }
         
         /// <summary>
-        /// 获取当前撤销栈状态信息
+        /// Set UI refresh state - Disable undo monitoring during UI refresh
+        /// </summary>
+        public static void SetUIRefreshState(bool isRefreshing)
+        {
+            isRefreshingUI = isRefreshing;
+        }
+        
+        /// <summary>
+        /// Get current undo stack status information
         /// </summary>
         public static string GetStatusInfo()
         {
@@ -1104,7 +1250,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 获取撤销操作数量（兼容MainWindowEditor）
+        /// Get undo operation count (compatible with MainWindowEditor)
         /// </summary>
         public static int GetUndoCount()
         {
@@ -1112,7 +1258,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 获取重做操作数量
+        /// Get redo operation count
         /// </summary>
         public static int GetRedoCount()
         {
@@ -1120,7 +1266,7 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 获取撤销历史（兼容MainWindowEditor）
+        /// Get undo history (compatible with MainWindowEditor)
         /// </summary>
         public static List<UndoOperation> GetUndoHistory()
         {
@@ -1128,13 +1274,13 @@ namespace Unity.MCP
         }
         
         /// <summary>
-        /// 获取重做历史（兼容MainWindowEditor）
+        /// Get redo history (compatible with MainWindowEditor)
         /// </summary>
         public static List<UndoOperation> GetRedoHistory()
         {
-            // 返回redo栈的副本，注意redo栈是反向的（最新的在最后）
+            // Return copy of redo stack, note that redo stack is reversed (newest at the end)
             var redoHistory = redoOperations.ToList();
-            redoHistory.Reverse(); // 反转以使最新的redo操作在前面
+            redoHistory.Reverse(); // Reverse to put newest redo operations at the front
             return redoHistory;
         }
     }
