@@ -34,7 +34,7 @@
             "operation": "Interact_ManageUserInput",
             "parameters": {
                 "operation": "ask",
-                "promptMessage": "请输入您想要创建的角色名称：",
+                "promptMessage": "Please enter the name of the character you want to create:",
                 "windowId": "character_name_input",
                 "mode": "clean"
             },
@@ -47,7 +47,7 @@
             "operation": "Interact_ManageUserInput",
             "parameters": {
                 "operation": "ask",
-                "promptMessage": "请选择角色类型：\n1. 人形角色 (Humanoid)\n2. 动物角色 (Animal)\n3. 机器人角色 (Robot)\n4. 自定义角色 (Custom)\n\n请输入数字 1-4：",
+                "promptMessage": "Please select character type:\n1. Humanoid Character\n2. Animal Character\n3. Robot Character\n4. Custom Character\n\nPlease enter number 1-4:",
                 "windowId": "character_type_input",
                 "mode": "clean"
             },
@@ -94,7 +94,7 @@
             "operation": "Interact_ManageUserInput",
             "parameters": {
                 "operation": "ask",
-                "promptMessage": "是否需要为角色添加组件？\n可选组件:\n1. Rigidbody (刚体)\n2. Collider (碰撞器)\n3. Animator (动画器)\n4. CharacterController (角色控制器)\n5. AudioSource (音频源)\n\n请输入组件编号，用逗号分隔（例如：1,2,3）或输入'no'跳过：",
+                "promptMessage": "Do you want to add components to the character?\nAvailable components:\n1. Rigidbody\n2. Collider\n3. Animator\n4. CharacterController\n5. AudioSource\n\nPlease enter component numbers separated by commas (e.g., 1,2,3) or enter 'no' to skip:",
                 "windowId": "components_input",
                 "mode": "clean"
             },
@@ -111,7 +111,7 @@
                     {
                         "Role": 0,
                         "Type": 0,
-                        "Content": "用户输入: '${ask_add_components.result}'\n请将用户输入转换为Unity组件类型名称数组。规则如下：\n1->UnityEngine.Rigidbody\n2->UnityEngine.BoxCollider\n3->UnityEngine.Animator\n4->UnityEngine.CharacterController\n5->UnityEngine.AudioSource\n\n如果用户输入'no'或为空，返回空数组[]。\n如果用户输入数字，返回对应组件名称的JSON数组。\n只返回JSON数组，不要其他文字, 不要使用code block。"
+                        "Content": "User input: '${ask_add_components.result}'\nPlease convert the user input to Unity component type name array. Rules as follows:\n1->UnityEngine.Rigidbody\n2->UnityEngine.BoxCollider\n3->UnityEngine.Animator\n4->UnityEngine.CharacterController\n5->UnityEngine.AudioSource\n\nIf user input is 'no' or empty, return empty array [].\nIf user input is numbers, return JSON array of corresponding component names.\nOnly return JSON array, no other text, do not use code block."
                     }
                 ],
                 "parameters": {
@@ -148,7 +148,7 @@
             "operation": "Interact_ManageUserInput",
             "parameters": {
                 "operation": "ask",
-                "promptMessage": "请输入角色的最终位置坐标 (x,y,z)：\n格式：x,y,z （例如：0,0,0）\n或按回车使用默认位置 (0,0,0)：",
+                "promptMessage": "Please enter the final position coordinates (x,y,z) for the character:\nFormat: x,y,z (e.g., 0,0,0)\nOr press Enter to use default position (0,0,0):",
                 "windowId": "position_input",
                 "mode": "clean"
             },
@@ -165,7 +165,7 @@
                     {
                         "Role": 0,
                         "Type": 0,
-                        "Content": "用户输入的位置: '${ask_final_position.result}'\n请将其转换为Unity Vector3格式的JSON对象。\n如果输入为空或无效，使用默认值 {\"x\":0,\"y\":0,\"z\":0}。\n如果输入格式为 'x,y,z'，解析为对应的坐标值。\n只返回JSON对象，不要其他文字。"
+                        "Content": "User input position: '${ask_final_position.result}'\nPlease convert it to Unity Vector3 format JSON object.\nIf input is empty or invalid, use default value {\"x\":0,\"y\":0,\"z\":0}.\nIf input format is 'x,y,z', parse to corresponding coordinate values.\nOnly return JSON object, no other text, no code block."
                     }
                 ],
                 "parameters": {
@@ -227,32 +227,32 @@
         "characterName": {
             "source": "${ask_character_name.result}",
             "type": "string",
-            "description": "用户输入的角色名称"
+            "description": "User input character name"
         },
         "characterType": {
             "source": "${ask_character_type.result}",
             "type": "string",
-            "description": "用户选择的角色类型"
+            "description": "User selected character type"
         },
         "creationResult": {
             "source": "${create_character_base.result}",
             "type": "string",
-            "description": "角色创建操作结果"
+            "description": "Character creation operation result"
         },
         "componentsResult": {
             "source": "${add_components_to_character.result}",
             "type": "string",
-            "description": "组件添加操作结果"
+            "description": "Component addition operation result"
         },
         "finalPosition": {
             "source": "${parse_position.result}",
             "type": "string",
-            "description": "角色最终位置坐标"
+            "description": "Character final position coordinates"
         },
         "creationReport": {
             "source": "${generate_creation_report.result}",
             "type": "string",
-            "description": "完整的角色创建报告"
+            "description": "Complete character creation report"
         }
     }
 }
