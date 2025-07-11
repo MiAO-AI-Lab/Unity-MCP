@@ -557,6 +557,7 @@ namespace com.MiAO.Unity.MCP.Editor
             // Apply tab page text
             SetElementText<Button>(root, "TabConnector", "tab.connector");
             SetElementText<Button>(root, "TabModelConfig", "tab.modelconfig");
+            SetElementText<Button>(root, "TabUserInput", "tab.userinput");
             SetElementText<Button>(root, "TabUndoHistory", "tab.operations");
             SetElementText<Button>(root, "TabSettings", "tab.settings");
 

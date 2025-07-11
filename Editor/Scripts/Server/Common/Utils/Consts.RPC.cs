@@ -172,6 +172,9 @@ namespace com.MiAO.Unity.MCP.Common
         public List<Message> Messages { get; set; } = new();
         public Dictionary<string, object>? Parameters { get; set; }
 
+        // Mode: full - return full response, clean - return only content via HandleModelUseRequestAsync in ModelUseProtocol
+        public string Mode { get; set; } = "full"; 
+
         public ModelUseRequest() { }
         public ModelUseRequest(string modelType, List<Message> messages)
         {
