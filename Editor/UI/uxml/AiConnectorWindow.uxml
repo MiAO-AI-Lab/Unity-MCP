@@ -7,6 +7,7 @@
         <ui:VisualElement name="TabHeader" style="flex-direction: row; height: 30px; background-color: rgba(128, 128, 128, 0.1); border-bottom-width: 1px; border-bottom-color: rgba(128, 128, 128, 0.5);">
             <ui:Button name="TabConnector" text="MCP Connector" class="tab-button tab-button-active" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
             <ui:Button name="TabModelConfig" text="Model Config" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
+            <ui:Button name="TabUserInput" text="User Input" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
             <ui:Button name="TabUndoHistory" text="Operations" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
             <ui:Button name="TabSettings" text="Settings" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
         </ui:VisualElement>
@@ -157,6 +158,47 @@
                     
                     <!-- Reset button -->
                     <ui:Button name="btnResetSettings" text="Reset to Defaults" class="Button-Secondary" style="margin-top: 10px;" />
+                </ui:VisualElement>
+            </ui:ScrollView>
+            
+            <!-- User Input tab content -->
+            <ui:ScrollView name="UserInputContent" style="flex-grow: 1; display: none;">
+                <ui:VisualElement class="container" style="min-width: 320px; padding: 10px;">
+                    <!-- Title area -->
+                    <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 15px;">
+                        <ui:Label text="User Input Panel" style="font-size: 18px; -unity-font-style: bold; flex-grow: 1; color: rgba(220, 220, 220, 0.95);" />
+                    </ui:VisualElement>
+                    
+                    <!-- Prompt message display -->
+                    <ui:VisualElement name="promptMessageSection" style="margin-bottom: 15px; display: none;">
+                        <ui:Label text="Prompt Message:" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 5px; color: rgba(200, 200, 200, 0.9);" />
+                        <ui:Label name="promptMessageText" text="" style="background-color: rgba(60, 60, 60, 0.5); padding: 8px; border-radius: 4px; white-space: normal; -unity-text-align: upper-left; min-height: 60px;" />
+                    </ui:VisualElement>
+                    
+                    <!-- User input area -->
+                    <ui:VisualElement name="userInputSection" style="margin-bottom: 15px; display: none;">
+                        <ui:Label text="User Input:" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 5px; color: rgba(200, 200, 200, 0.9);" />
+                        <ui:TextField name="userInputField" multiline="true" placeholder-text="请输入..." style="min-height: 80px; background-color: rgba(60, 60, 60, 0.5); border-radius: 4px;" />
+                    </ui:VisualElement>
+                    
+                    <!-- Object selection area -->
+                    <ui:VisualElement name="objectSelectionSection" style="margin-bottom: 15px; display: none;">
+                        <ui:Label text="Currently Selected Objects:" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 5px; color: rgba(200, 200, 200, 0.9);" />
+                        <ui:VisualElement name="selectedObjectsContainer" style="background-color: rgba(60, 60, 60, 0.5); padding: 8px; border-radius: 4px; min-height: 60px;">
+                            <ui:Label name="selectedObjectsText" text="No objects selected" style="color: rgba(150, 150, 150, 0.8);" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    
+                    <!-- Button area -->
+                    <ui:VisualElement name="buttonSection" style="flex-direction: row; margin-bottom: 15px; display: none;">
+                        <ui:Button name="btnConfirmInput" text="Confirm" class="Button-Primary" style="flex-grow: 1; height: 35px; margin-right: 6px;" />
+                        <ui:Button name="btnCancelInput" text="Cancel" class="Button-Secondary" style="flex-grow: 1; height: 35px; margin-left: 6px;" />
+                    </ui:VisualElement>
+                    
+                    <!-- Status display -->
+                    <ui:VisualElement name="statusSection" style="margin-bottom: 15px;">
+                        <ui:Label name="statusText" text="等待用户输入请求..." style="color: rgba(150, 150, 150, 0.8); font-style: italic; text-align: center; margin-top: 20px;" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:ScrollView>
             

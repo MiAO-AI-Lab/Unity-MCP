@@ -6,7 +6,8 @@
     "connector": "MCP连接",
     "modelconfig": "模型配置",
     "operations": "操作管理",
-    "settings": "设置"
+    "settings": "设置",
+    "userinput": "用户输入"
   },
   "language": {
     "english": "English",
@@ -126,6 +127,16 @@
     "no_history": "无历史记录",
     "clear_stack": "清空堆栈",
     "stack_status": "总操作数：{0}"
+  },
+  "userinput": {
+    "title": "用户输入面板",
+    "prompt_message": "提示消息：",
+    "user_input": "用户输入：",
+    "selected_objects": "当前选定对象：",
+    "no_objects": "没有选定对象",
+    "confirm": "确认",
+    "cancel": "取消",
+    "waiting": "等待用户输入请求..."
   },
   "settings": {
     "title": "设置",

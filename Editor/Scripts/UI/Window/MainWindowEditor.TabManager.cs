@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
 using com.MiAO.Unity.MCP.Editor.API;
@@ -19,6 +20,7 @@ namespace com.MiAO.Unity.MCP.Editor
         {
             Connector,
             ModelConfig,
+            UserInput,
             Settings,
             UndoHistory
         }
@@ -26,10 +28,12 @@ namespace com.MiAO.Unity.MCP.Editor
         private TabType _currentTab = TabType.Connector;
         private Button _tabConnectorButton;
         private Button _tabModelConfigButton;
+        private Button _tabUserInputButton;
         private Button _tabSettingsButton;
         private Button _tabUndoHistoryButton;
         private VisualElement _connectorContent;
         private VisualElement _modelConfigContent;
+        private VisualElement _userInputContent;
         private VisualElement _settingsContent;
         private VisualElement _undoContent;
         
@@ -47,18 +51,21 @@ namespace com.MiAO.Unity.MCP.Editor
             // Get tab buttons
             _tabConnectorButton = root.Query<Button>("TabConnector").First();
             _tabModelConfigButton = root.Query<Button>("TabModelConfig").First();
+            _tabUserInputButton = root.Query<Button>("TabUserInput").First();
             _tabSettingsButton = root.Query<Button>("TabSettings").First();
             _tabUndoHistoryButton = root.Query<Button>("TabUndoHistory").First();
             
             // Get tab content
             _connectorContent = root.Query<VisualElement>("ConnectorContent").First();
             _modelConfigContent = root.Query<VisualElement>("ModelConfigContent").First();
+            _userInputContent = root.Query<VisualElement>("UserInputContent").First();
             _settingsContent = root.Query<VisualElement>("SettingsContent").First();
             _undoContent = root.Query<VisualElement>("UndoContent").First();
             
             // Register tab switch events
             _tabConnectorButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.Connector));
             _tabModelConfigButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.ModelConfig));
+            _tabUserInputButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.UserInput));
             _tabSettingsButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.Settings));
             _tabUndoHistoryButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.UndoHistory));
             
@@ -67,6 +74,9 @@ namespace com.MiAO.Unity.MCP.Editor
             
             // Initialize settings page UI
             InitializeSettingsUI(root);
+            
+            // Initialize user input UI
+            InitializeUserInputUI(root);
             
             // Register localization events
             LocalizationManager.OnLanguageChanged += OnLanguageChanged;
@@ -79,6 +89,9 @@ namespace com.MiAO.Unity.MCP.Editor
         {
             // Unregister localization events to avoid memory leaks
             LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
+            
+            // Unregister EditorApplication.update event to avoid memory leaks
+            EditorApplication.update -= UpdateSelectedObjectsDisplay;
         }
         
         /// <summary>
@@ -101,12 +114,14 @@ namespace com.MiAO.Unity.MCP.Editor
             // Update button states
             _tabConnectorButton.RemoveFromClassList("tab-button-active");
             _tabModelConfigButton.RemoveFromClassList("tab-button-active");
+            _tabUserInputButton.RemoveFromClassList("tab-button-active");
             _tabSettingsButton.RemoveFromClassList("tab-button-active");
             _tabUndoHistoryButton.RemoveFromClassList("tab-button-active");
             
             // Hide all content
             _connectorContent.style.display = DisplayStyle.None;
             _modelConfigContent.style.display = DisplayStyle.None;
+            _userInputContent.style.display = DisplayStyle.None;
             _settingsContent.style.display = DisplayStyle.None;
             _undoContent.style.display = DisplayStyle.None;
             
@@ -120,6 +135,11 @@ namespace com.MiAO.Unity.MCP.Editor
                 case TabType.ModelConfig:
                     _tabModelConfigButton.AddToClassList("tab-button-active");
                     _modelConfigContent.style.display = DisplayStyle.Flex;
+                    break;
+                case TabType.UserInput:
+                    _tabUserInputButton.AddToClassList("tab-button-active");
+                    _userInputContent.style.display = DisplayStyle.Flex;
+                    RefreshUserInputUI();
                     break;
                 case TabType.Settings:
                     _tabSettingsButton.AddToClassList("tab-button-active");
@@ -436,6 +456,8 @@ namespace com.MiAO.Unity.MCP.Editor
                     _tabConnectorButton.text = LocalizationManager.GetText("tab.connector");
                 if (_tabModelConfigButton != null)
                     _tabModelConfigButton.text = LocalizationManager.GetText("tab.modelconfig");
+                if (_tabUserInputButton != null)
+                    _tabUserInputButton.text = LocalizationManager.GetText("tab.userinput");
                 if (_tabUndoHistoryButton != null)
                     _tabUndoHistoryButton.text = LocalizationManager.GetText("tab.operations");
                 if (_tabSettingsButton != null)
@@ -446,6 +468,9 @@ namespace com.MiAO.Unity.MCP.Editor
                 
                 // Update Model Config tab content
                 UpdateModelConfigTabTexts();
+                
+                // Update User Input tab content
+                UpdateUserInputTabTexts();
                 
                 // Update Settings tab content
                 UpdateSettingsTabTexts();
@@ -660,6 +685,52 @@ namespace com.MiAO.Unity.MCP.Editor
             {
                 foldout.text = LocalizationManager.GetText("model.general_settings");
             }
+        }
+
+        private void UpdateUserInputTabTexts()
+        {
+            var root = rootVisualElement;
+            
+            // Update User Input tab content
+            var userInputTitles = root.Query<Label>().Where(l => 
+                l.text.Contains("User Input Panel") || 
+                l.text.Contains("用户输入面板")).ToList();
+            foreach (var label in userInputTitles)
+            {
+                label.text = LocalizationManager.GetText("userinput.title");
+            }
+            
+            var promptLabels = root.Query<Label>().Where(l => 
+                l.text.Contains("Prompt Message:") || 
+                l.text.Contains("提示信息:")).ToList();
+            foreach (var label in promptLabels)
+            {
+                label.text = LocalizationManager.GetText("userinput.prompt_message");
+            }
+            
+            var inputLabels = root.Query<Label>().Where(l => 
+                l.text.Contains("User Input:") || 
+                l.text.Contains("用户输入:")).ToList();
+            foreach (var label in inputLabels)
+            {
+                label.text = LocalizationManager.GetText("userinput.user_input");
+            }
+            
+            var objectLabels = root.Query<Label>().Where(l => 
+                l.text.Contains("Currently Selected Objects:") || 
+                l.text.Contains("当前选中的对象:")).ToList();
+            foreach (var label in objectLabels)
+            {
+                label.text = LocalizationManager.GetText("userinput.selected_objects");
+            }
+            
+            var confirmButton = root.Query<Button>("btnConfirmInput").First();
+            if (confirmButton != null)
+                confirmButton.text = LocalizationManager.GetText("userinput.confirm");
+                
+            var cancelButton = root.Query<Button>("btnCancelInput").First();
+            if (cancelButton != null)
+                cancelButton.text = LocalizationManager.GetText("userinput.cancel");
         }
 
         private void UpdateSettingsTabTexts()
@@ -1094,6 +1165,242 @@ namespace com.MiAO.Unity.MCP.Editor
                          $"{themeLabel}{displayTheme}\n" +
                          $"{autoRefreshLabel}{(GetAutoRefreshEnabled() ? enabledText : disabledText)}";
             return summary;
+        }
+        
+        // ==================== User Input Tab ====================
+        
+        // User Input UI elements
+        private VisualElement _promptMessageSection;
+        private Label _promptMessageText;
+        private VisualElement _userInputSection;
+        private TextField _userInputField;
+        private VisualElement _objectSelectionSection;
+        private Label _selectedObjectsText;
+        private VisualElement _buttonSection;
+        private Button _btnConfirmInput;
+        private Button _btnCancelInput;
+        private Label _statusText;
+        
+        // User Input state
+        private bool _userInputActive = false;
+        private string _currentWindowId = "";
+        private System.Action<string> _userInputCallback;
+        private string _mode = "full";
+
+        private void InitializeUserInputUI(VisualElement root)
+        {
+            // Get UI elements
+            _promptMessageSection = root.Query<VisualElement>("promptMessageSection").First();
+            _promptMessageText = root.Query<Label>("promptMessageText").First();
+            _userInputSection = root.Query<VisualElement>("userInputSection").First();
+            _userInputField = root.Query<TextField>("userInputField").First();
+            _objectSelectionSection = root.Query<VisualElement>("objectSelectionSection").First();
+            _selectedObjectsText = root.Query<Label>("selectedObjectsText").First();
+            _buttonSection = root.Query<VisualElement>("buttonSection").First();
+            _btnConfirmInput = root.Query<Button>("btnConfirmInput").First();
+            _btnCancelInput = root.Query<Button>("btnCancelInput").First();
+            _statusText = root.Query<Label>("statusText").First();
+            
+            // Register button events
+            _btnConfirmInput.RegisterCallback<ClickEvent>(evt => OnConfirmInputClicked());
+            _btnCancelInput.RegisterCallback<ClickEvent>(evt => OnCancelInputClicked());
+            
+            // Update selected objects display periodically
+            EditorApplication.update += UpdateSelectedObjectsDisplay;
+            
+            // Initialize UI state
+            RefreshUserInputUI();
+        }
+
+        private void RefreshUserInputUI()
+        {
+            if (_userInputActive)
+            {
+                _promptMessageSection.style.display = DisplayStyle.Flex;
+                _userInputSection.style.display = DisplayStyle.Flex;
+                _objectSelectionSection.style.display = DisplayStyle.Flex;
+                _buttonSection.style.display = DisplayStyle.Flex;
+                _statusText.text = "Waiting for user input...";
+                
+                // Update selected objects display
+                UpdateSelectedObjectsDisplay();
+            }
+            else
+            {
+                _promptMessageSection.style.display = DisplayStyle.None;
+                _userInputSection.style.display = DisplayStyle.None;
+                _objectSelectionSection.style.display = DisplayStyle.None;
+                _buttonSection.style.display = DisplayStyle.None;
+                _statusText.text = "Waiting for prompt...";
+            }
+        }
+
+        private void OnConfirmInputClicked()
+        {
+            var userInputText = _userInputField.value ?? "";
+            var selectedObjects = Selection.objects;
+
+            var result = "";
+            if (_mode == "full")
+            {
+                result = $"[Success] User input completed.";
+                result += $"\nUser input text: '{userInputText}'";
+                
+                if (selectedObjects.Length > 0)
+                {
+                    result += $"\nSelected objects count: {selectedObjects.Length}";
+                    result += $"\nSelected objects list:";
+                    for (int i = 0; i < selectedObjects.Length; i++)
+                    {
+                        if (selectedObjects[i] != null)
+                        {
+                            var obj = selectedObjects[i];
+                            var path = "";
+                            if (obj is GameObject go)
+                            {
+                                path = GetGameObjectPath(go);
+                            }
+                            result += $"\n  [{i + 1}] {obj.name} ({obj.GetType().Name}) - InstanceID: {obj.GetInstanceID()}";
+                            if (!string.IsNullOrEmpty(path))
+                            {
+                                result += $" - Path: {path}";
+                            }
+                        }
+                    }
+                }
+            }
+            else if (_mode == "clean")
+            {
+                result = userInputText;
+            }
+            else if (_mode == "json")
+            {
+                result = JsonSerializer.Serialize(new {
+                    userInput = userInputText,
+                    selectedObjects = selectedObjects.Select(obj => new {
+                        name = obj.name,
+                        type = obj.GetType().Name,
+                        instanceId = obj.GetInstanceID()
+                    }).ToArray()
+                });
+            }
+            
+            CompleteUserInput(result);
+        }
+
+        private void OnCancelInputClicked()
+        {
+            CompleteUserInput("[Cancelled] User cancelled the input.");
+        }
+
+        private void CompleteUserInput(string result)
+        {
+            _userInputActive = false;
+            _userInputCallback?.Invoke(result);
+            _userInputCallback = null;
+            _currentWindowId = "";
+            
+            // Clear input field
+            _userInputField.value = "";
+            
+            // Refresh UI
+            RefreshUserInputUI();
+        }
+
+        private void UpdateSelectedObjectsDisplay()
+        {
+            if (_selectedObjectsText != null)
+            {
+                var selectedObjects = Selection.objects;
+                if (selectedObjects.Length > 0)
+                {
+                    var text = $"Selected {selectedObjects.Length} objects:\n";
+                    for (int i = 0; i < selectedObjects.Length && i < 10; i++)
+                    {
+                        if (selectedObjects[i] != null)
+                        {
+                            text += $"• {selectedObjects[i].name} ({selectedObjects[i].GetType().Name})\n";
+                        }
+                    }
+                    if (selectedObjects.Length > 10)
+                    {
+                        text += $"... and {selectedObjects.Length - 10} more objects";
+                    }
+                    _selectedObjectsText.text = text;
+                }
+                else
+                {
+                    _selectedObjectsText.text = "No objects selected";
+                }
+            }
+        }
+
+        private string GetGameObjectPath(GameObject go)
+        {
+            if (go == null) return "";
+            
+            var path = go.name;
+            var parent = go.transform.parent;
+            
+            while (parent != null)
+            {
+                path = parent.name + "/" + path;
+                parent = parent.parent;
+            }
+            
+            return path;
+        }
+
+        /// <summary>
+        /// Show user input UI and switch to UserInput tab
+        /// </summary>
+        public void ShowUserInputUI(string promptMessage, string windowId, string mode, System.Action<string> callback)
+        {
+            _userInputActive = true;
+            _currentWindowId = windowId;
+            _userInputCallback = callback;
+            _promptMessageText.text = promptMessage;
+            _mode = mode;
+            
+            // Switch to UserInput tab
+            SwitchTab(TabType.UserInput);
+            
+            // Focus the window
+            Focus();
+            
+            // Refresh UI
+            RefreshUserInputUI();
+            
+            // Focus the input field
+            _userInputField.Focus();
+        }
+
+        /// <summary>
+        /// Hide user input UI
+        /// </summary>
+        public void HideUserInputUI()
+        {
+            _userInputActive = false;
+            _userInputCallback = null;
+            _currentWindowId = "";
+            _userInputField.value = "";
+            RefreshUserInputUI();
+        }
+
+        /// <summary>
+        /// Get current user input window ID
+        /// </summary>
+        public string GetCurrentUserInputWindowId()
+        {
+            return _currentWindowId;
+        }
+
+        /// <summary>
+        /// Check if user input is active
+        /// </summary>
+        public bool IsUserInputActive()
+        {
+            return _userInputActive;
         }
     }
 } 

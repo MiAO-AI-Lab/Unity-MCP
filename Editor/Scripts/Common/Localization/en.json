@@ -6,7 +6,8 @@
     "connector": "MCP Connector",
     "modelconfig": "Model Config",
     "operations": "Operations",
-    "settings": "Settings"
+    "settings": "Settings",
+    "userinput": "User Input"
   },
   "language": {
     "english": "English",
@@ -126,6 +127,16 @@
     "no_history": "No history available",
     "clear_stack": "Clear Stack",
     "stack_status": "Total operations: {0}"
+  },
+  "userinput": {
+    "title": "User Input Panel",
+    "prompt_message": "Prompt Message:",
+    "user_input": "User Input:",
+    "selected_objects": "Currently Selected Objects:",
+    "no_objects": "No objects selected",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "waiting": "Waiting for user input request..."
   },
   "settings": {
     "title": "Settings",

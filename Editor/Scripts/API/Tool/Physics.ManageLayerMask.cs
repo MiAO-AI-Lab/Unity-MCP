@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEditor;
 using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Utils;
 
@@ -10,7 +11,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
 {
     public partial class Tool_Physics
     {
-        [McpPluginTool("Physics_GetLayerMaskInfo", Title = "LayerMask Information and Management Tool")]
+        [McpPluginTool("Physics_ManageLayerMask", Title = "LayerMask Management Tool")]
         [Description(@"Unity LayerMask information management tool, providing complete Layer and LayerMask operation functionality.
 
 Supported operation types:
@@ -18,32 +19,37 @@ Supported operation types:
 - 'calculate': Calculate LayerMask values based on Layer names or indices
 - 'decode': Parse LayerMask values into Layer name lists
 - 'sceneAnalysis': Analyze Layer usage in the current scene
-- 'presets': Get common LayerMask preset values
-
-Usage instructions:
-1. Use 'listAll' to view all available Layers in the project
-2. Use 'calculate' to calculate the required LayerMask value based on Layer names
-3. Use 'decode' to see which Layers a LayerMask value contains
-4. Use 'sceneAnalysis' to understand the Layer distribution in the current scene
-5. Use 'presets' to get common LayerMask combinations
+- 'modifyLayer': Modify project Layer definitions (add, remove, rename)
 
 Returns detailed Layer information, including names, indices, LayerMask values, etc.")]
         public string LayerMaskInfo
         (
-            [Description("Operation type: 'listAll'(list all Layers), 'calculate'(calculate LayerMask), 'decode'(parse LayerMask), 'sceneAnalysis'(scene analysis), 'presets'(common presets)")]
+            [Description("Operation type: 'listAll', 'calculate'(calculate LayerMask), 'decode'(parse LayerMask), 'sceneAnalysis', 'modifyLayer'(modify Layer definitions)")]
             string operation = "listAll",
             
-            [Description("Layer name array, used for calculate operation. Example: [\"Default\", \"Water\", \"UI\"]")]
+            [Description("For calculate: Layer name array. Example: [\"Default\", \"Water\", \"UI\"]")]
             string[] layerNames = null,
             
-            [Description("Layer index array, used for calculate operation. Example: [0, 4, 5]")]
+            [Description("For calculate: Layer index array. Example: [0, 4, 5]")]
             int[] layerIndices = null,
             
-            [Description("LayerMask value to parse, used for decode operation")]
+            [Description("For decode: LayerMask value to parse")]
             int layerMaskValue = 0,
             
-            [Description("Whether to include detailed usage statistics, used for sceneAnalysis operation")]
-            bool includeUsageStats = true
+            [Description("For sceneAnalysis: Whether to include detailed usage statistics")]
+            bool includeUsageStats = true,
+            
+            [Description("For modifyLayer: Layer modification operation type. Valid values: 'add', 'remove', 'rename'")]
+            string modifyOperation = "add",
+            
+            [Description("For modifyLayer: Target Layer index. For 'add': specify index to add Layer at; For 'remove': specify index to remove; For 'rename': specify index to rename")]
+            int targetLayerIndex = -1,
+            
+            [Description("For modifyLayer: New Layer name. For 'add' and 'rename' operations")]
+            string newLayerName = null,
+            
+            [Description("For modifyLayer: Old Layer name. For 'rename' operation (optional, can use targetLayerIndex instead)")]
+            string oldLayerName = null
         )
         {
             return MainThread.Instance.Run(() =>
@@ -52,7 +58,7 @@ Returns detailed Layer information, including names, indices, LayerMask values, 
                     return Error.EmptyOperation();
 
                 operation = operation.ToLower().Trim();
-                var validOperations = new[] { "listall", "calculate", "decode", "sceneanalysis", "presets" };
+                var validOperations = new[] { "listall", "calculate", "decode", "sceneanalysis", "presets", "modifylayer" };
                 if (System.Array.IndexOf(validOperations, operation) == -1)
                     return Error.InvalidOperation(operation);
 
@@ -70,8 +76,8 @@ Returns detailed Layer information, including names, indices, LayerMask values, 
                     case "sceneanalysis":
                         return AnalyzeSceneLayers(includeUsageStats);
                     
-                    case "presets":
-                        return GetLayerMaskPresets();
+                    case "modifylayer":
+                        return ModifyLayer(modifyOperation, targetLayerIndex, newLayerName, oldLayerName);
                     
                     default:
                         return Error.UnimplementedOperation(operation);
@@ -383,86 +389,6 @@ Used Layer count: {layerUsage.Count}
 ```";
         }
 
-        private static string GetLayerMaskPresets()
-        {
-            var presets = new List<object>
-            {
-                new { name = "All Layers", description = "Includes all layers", value = -1, hex = "0xFFFFFFFF", usage = "Detects all objects" },
-                new { name = "Nothing", description = "Includes no layers", value = 0, hex = "0x0", usage = "Detects no objects" },
-                new { name = "Default Only", description = "Only Default layer", value = 1, hex = "0x1", usage = "Detects only Default layer objects" },
-                new { name = "Everything", description = "All layers (including user-defined layers)", value = ~0, hex = "0xFFFFFFFF", usage = "Detects all objects (same as All Layers)" }
-            };
-
-            // Add common Unity built-in Layer combinations
-            var builtInCombinations = new List<object>();
-            
-            // Default + TransparentFX + Water + UI
-            int commonLayers = (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5);
-            builtInCombinations.Add(new 
-            { 
-                name = "Common Built-in Layers",
-                description = "Default + TransparentFX + Water + UI",
-                value = commonLayers,
-                hex = "0x" + commonLayers.ToString("X"),
-                layers = new[] { "Default", "TransparentFX", "Water", "UI" }
-            });
-
-            // Get actually defined Layers in current project
-            var definedLayers = new List<object>();
-            for (int i = 0; i < 32; i++)
-            {
-                string layerName = LayerMask.LayerToName(i);
-                if (!string.IsNullOrEmpty(layerName))
-                {
-                    definedLayers.Add(new
-                    {
-                        index = i,
-                        name = layerName,
-                        layerMaskValue = 1 << i,
-                        hex = "0x" + (1 << i).ToString("X")
-                    });
-                }
-            }
-
-            var result = new
-            {
-                operation = "presets",
-                commonPresets = presets,
-                builtInCombinations = builtInCombinations,
-                projectDefinedLayers = definedLayers,
-                calculations = new
-                {
-                    howToCalculate = new
-                    {
-                        singleLayer = "LayerMask.GetMask(\"LayerName\") or (1 << layerIndex)",
-                        multipleLayers = "LayerMask.GetMask(\"Layer1\", \"Layer2\") or (1 << index1) | (1 << index2)",
-                        allExcept = "~LayerMask.GetMask(\"ExcludedLayer\")",
-                        combine = "mask1 | mask2",
-                        remove = "mask1 & ~mask2"
-                    }
-                }
-            };
-
-            var json = JsonUtils.Serialize(result);
-            return $@"[Success] LayerMask preset information retrieval completed.
-# Common presets:
-- All layers: -1 (0xFFFFFFFF)
-- No layer: 0 (0x0)  
-- Default layer only: 1 (0x1)
-
-# Project defined Layer count: {definedLayers.Count}
-
-# LayerMask calculation method:
-- Single Layer: LayerMask.GetMask(""LayerName"")
-- Multiple Layers: LayerMask.GetMask(""Layer1"", ""Layer2"")
-- Exclude Layer: ~LayerMask.GetMask(""ExcludedLayer"")
-
-# Detailed data:
-```json
-{json}
-```";
-        }
-
         private static bool IsBuiltInLayer(int index, string name)
         {
             // Unity built-in Layers
@@ -513,6 +439,251 @@ Used Layer count: {layerUsage.Count}
             }
 
             return recommendations;
+        }
+
+        private static string ModifyLayer(string modifyOperation, int targetLayerIndex, string newLayerName, string oldLayerName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(modifyOperation))
+                    return Error.InvalidOperation("modifyOperation cannot be null or empty");
+
+                modifyOperation = modifyOperation.ToLower().Trim();
+                var validModifyOperations = new[] { "add", "remove", "rename" };
+                if (System.Array.IndexOf(validModifyOperations, modifyOperation) == -1)
+                    return Error.InvalidOperation($"modifyOperation '{modifyOperation}' not supported. Valid operations: {string.Join(", ", validModifyOperations)}");
+
+                // Get TagManager asset
+                var tagManager = new UnityEditor.SerializedObject(UnityEditor.AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+                var layersProp = tagManager.FindProperty("layers");
+
+                if (layersProp == null)
+                    return Error.TagManagerAccessFailed();
+
+                switch (modifyOperation)
+                {
+                    case "add":
+                        return AddLayer(layersProp, targetLayerIndex, newLayerName, tagManager);
+                    
+                    case "remove":
+                        return RemoveLayer(layersProp, targetLayerIndex, oldLayerName, tagManager);
+                    
+                    case "rename":
+                        return RenameLayer(layersProp, targetLayerIndex, newLayerName, oldLayerName, tagManager);
+                    
+                    default:
+                        return Error.UnimplementedOperation(modifyOperation);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                return Error.LayerModificationFailed(ex.Message);
+            }
+        }
+
+        private static string AddLayer(UnityEditor.SerializedProperty layersProp, int targetLayerIndex, string newLayerName, UnityEditor.SerializedObject tagManager)
+        {
+            if (string.IsNullOrEmpty(newLayerName))
+                return Error.LayerNameRequired("add");
+
+            // Validate layer name
+            if (newLayerName.Length > 32)
+                return Error.LayerNameTooLong();
+
+            // Check if layer name already exists
+            for (int i = 0; i < 32; i++)
+            {
+                string existingName = LayerMask.LayerToName(i);
+                if (!string.IsNullOrEmpty(existingName) && existingName.Equals(newLayerName, System.StringComparison.OrdinalIgnoreCase))
+                    return Error.LayerNameAlreadyExists(newLayerName, i);
+            }
+
+            // Find target index
+            int addIndex = targetLayerIndex;
+            if (addIndex < 0)
+            {
+                // Find first available slot starting from index 8 (user-defined layers)
+                addIndex = -1;
+                for (int i = 8; i < 32; i++)
+                {
+                    string existingName = LayerMask.LayerToName(i);
+                    if (string.IsNullOrEmpty(existingName))
+                    {
+                        addIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (addIndex < 0 || addIndex >= 32)
+                return Error.InvalidTargetLayerIndex();
+
+            // Check if target index is built-in layer (0-7)
+            if (addIndex < 8 && !string.IsNullOrEmpty(LayerMask.LayerToName(addIndex)))
+                return Error.CannotModifyBuiltInLayer(addIndex);
+
+            // Check if target slot is already occupied
+            string currentName = LayerMask.LayerToName(addIndex);
+            if (!string.IsNullOrEmpty(currentName))
+                return Error.LayerSlotOccupied(addIndex, currentName);
+
+            // Set the layer name
+            var layerProp = layersProp.GetArrayElementAtIndex(addIndex);
+            layerProp.stringValue = newLayerName;
+            tagManager.ApplyModifiedProperties();
+
+            // Refresh AssetDatabase
+            UnityEditor.AssetDatabase.Refresh();
+
+            var result = new
+            {
+                operation = "modifyLayer",
+                modifyOperation = "add",
+                success = true,
+                layerIndex = addIndex,
+                layerName = newLayerName,
+                layerMaskValue = 1 << addIndex,
+                layerMaskHex = "0x" + (1 << addIndex).ToString("X")
+            };
+
+            var json = JsonUtils.Serialize(result);
+            return $@"[Success] Layer '{newLayerName}' added successfully.
+# Layer information:
+Index: {addIndex}
+Name: {newLayerName}
+LayerMask value: {1 << addIndex}
+LayerMask hex: 0x{(1 << addIndex):X}
+
+# Detailed data:
+```json
+{json}
+```";
+        }
+
+        private static string RemoveLayer(UnityEditor.SerializedProperty layersProp, int targetLayerIndex, string oldLayerName, UnityEditor.SerializedObject tagManager)
+        {
+            int removeIndex = targetLayerIndex;
+            
+            // If index not specified, try to find by name
+            if (removeIndex < 0 && !string.IsNullOrEmpty(oldLayerName))
+            {
+                removeIndex = LayerMask.NameToLayer(oldLayerName);
+                if (removeIndex < 0)
+                    return Error.LayerNotFound(oldLayerName);
+            }
+
+            if (removeIndex < 0 || removeIndex >= 32)
+                return Error.InvalidLayerIndex();
+
+            // Check if it's a built-in layer
+            if (removeIndex < 8 && IsBuiltInLayer(removeIndex, LayerMask.LayerToName(removeIndex)))
+                return Error.CannotRemoveBuiltInLayer(removeIndex);
+
+            string currentName = LayerMask.LayerToName(removeIndex);
+            if (string.IsNullOrEmpty(currentName))
+                return Error.LayerAlreadyEmpty(removeIndex);
+
+            // Set the layer name to empty
+            var layerProp = layersProp.GetArrayElementAtIndex(removeIndex);
+            layerProp.stringValue = "";
+            tagManager.ApplyModifiedProperties();
+
+            // Refresh AssetDatabase
+            UnityEditor.AssetDatabase.Refresh();
+
+            var result = new
+            {
+                operation = "modifyLayer",
+                modifyOperation = "remove",
+                success = true,
+                layerIndex = removeIndex,
+                removedLayerName = currentName
+            };
+
+            var json = JsonUtils.Serialize(result);
+            return $@"[Success] Layer '{currentName}' removed successfully.
+# Removed layer information:
+Index: {removeIndex}
+Name: {currentName}
+
+# Detailed data:
+```json
+{json}
+```";
+        }
+
+        private static string RenameLayer(UnityEditor.SerializedProperty layersProp, int targetLayerIndex, string newLayerName, string oldLayerName, UnityEditor.SerializedObject tagManager)
+        {
+            if (string.IsNullOrEmpty(newLayerName))
+                return Error.LayerNameRequired("rename");
+
+            // Validate new layer name
+            if (newLayerName.Length > 32)
+                return Error.LayerNameTooLong();
+
+            int renameIndex = targetLayerIndex;
+            
+            // If index not specified, try to find by old name
+            if (renameIndex < 0 && !string.IsNullOrEmpty(oldLayerName))
+            {
+                renameIndex = LayerMask.NameToLayer(oldLayerName);
+                if (renameIndex < 0)
+                    return Error.LayerNotFound(oldLayerName);
+            }
+
+            if (renameIndex < 0 || renameIndex >= 32)
+                return Error.InvalidLayerIndex();
+
+            string currentName = LayerMask.LayerToName(renameIndex);
+            if (string.IsNullOrEmpty(currentName))
+                return Error.LayerSlotEmpty(renameIndex);
+
+            // Check if it's a built-in layer
+            if (renameIndex < 8 && IsBuiltInLayer(renameIndex, currentName))
+                return Error.CannotRenameBuiltInLayer(currentName, renameIndex);
+
+            // Check if new name already exists
+            for (int i = 0; i < 32; i++)
+            {
+                if (i == renameIndex) continue;
+                string existingName = LayerMask.LayerToName(i);
+                if (!string.IsNullOrEmpty(existingName) && existingName.Equals(newLayerName, System.StringComparison.OrdinalIgnoreCase))
+                    return Error.LayerNameAlreadyExists(newLayerName, i);
+            }
+
+            // Set the new layer name
+            var layerProp = layersProp.GetArrayElementAtIndex(renameIndex);
+            layerProp.stringValue = newLayerName;
+            tagManager.ApplyModifiedProperties();
+
+            // Refresh AssetDatabase
+            UnityEditor.AssetDatabase.Refresh();
+
+            var result = new
+            {
+                operation = "modifyLayer",
+                modifyOperation = "rename",
+                success = true,
+                layerIndex = renameIndex,
+                oldLayerName = currentName,
+                newLayerName = newLayerName,
+                layerMaskValue = 1 << renameIndex,
+                layerMaskHex = "0x" + (1 << renameIndex).ToString("X")
+            };
+
+            var json = JsonUtils.Serialize(result);
+            return $@"[Success] Layer renamed successfully.
+# Layer information:
+Index: {renameIndex}
+Old name: {currentName}
+New name: {newLayerName}
+LayerMask value: {1 << renameIndex}
+LayerMask hex: 0x{(1 << renameIndex):X}
+
+# Detailed data:
+```json
+{json}
+```";
         }
     }
 }
