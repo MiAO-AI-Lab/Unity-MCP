@@ -106,7 +106,13 @@ Also, it returns Components preview just for the target GameObject.")]
 # Data:
 ```json
 {JsonUtils.Serialize(serializedGo)}
-```";
+```
+
+# Bounds:
+```json
+{JsonUtils.Serialize(go.CalculateBounds())}
+```
+";
                     }
                     catch (System.Exception ex)
                     {
@@ -126,9 +132,9 @@ Basic GameObject info: instanceID={go.GetInstanceID()}, name={go.name}, active={
 {JsonUtils.Serialize(componentsPreview)}
 ```
 
-# Bounds:
+# Layer Info:
 ```json
-{JsonUtils.Serialize(go.CalculateBounds())}
+{JsonUtils.Serialize(new { LayerIndex = go.layer, LayerName = LayerMask.LayerToName(go.layer) })}
 ```
 
 # Hierarchy:
