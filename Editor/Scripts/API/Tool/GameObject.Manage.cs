@@ -456,6 +456,15 @@ Duplicated instanceIDs:
                             Undo.RegisterCompleteObjectUndo(unityObject, $"Modify {unityObject.name}");
                         }
 
+                        // Check if the diff has neither fields nor props
+                        if ((gameObjectDiffs[i].fields == null || gameObjectDiffs[i].fields.Count == 0) &&
+                            (gameObjectDiffs[i].props == null || gameObjectDiffs[i].props.Count == 0))
+                        {
+                            stringBuilder.AppendLine($"[Error] GameObject {i}: Diff has neither fields nor props - no modifications to apply for GameObject '{go.name}'.");
+                            errorCount++;
+                            continue;
+                        }
+
                         var populateResult = Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i]);
                         var populateResultString = populateResult.ToString().Trim();
 
