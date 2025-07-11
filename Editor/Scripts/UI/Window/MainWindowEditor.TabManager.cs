@@ -182,6 +182,9 @@ namespace com.MiAO.Unity.MCP.Editor
             {
                 SetAllButtonsEnabled(false);
                 
+                // Force check for new operations before undo to prevent missing operations due to polling delay
+                UnityUndoMonitor.ForceCheckNewOperations();
+                
                 // Use our UnityUndoMonitor system for proper stack management
                 if (UnityUndoMonitor.GetUndoCount() > 0)
                 {
@@ -211,6 +214,9 @@ namespace com.MiAO.Unity.MCP.Editor
             {
                 SetAllButtonsEnabled(false);
                 
+                // Force check for new operations before redo to prevent missing operations due to polling delay
+                UnityUndoMonitor.ForceCheckNewOperations();
+                
                 // Use our UnityUndoMonitor system for proper stack management
                 if (UnityUndoMonitor.GetRedoCount() > 0)
                 {
@@ -234,8 +240,6 @@ namespace com.MiAO.Unity.MCP.Editor
             }
         }
 
-
-
         private void OnClearUndoStackClicked()
         {
             var title = LocalizationManager.GetText("dialog.clear_undo_stack_title");
@@ -245,6 +249,9 @@ namespace com.MiAO.Unity.MCP.Editor
                 
             if (EditorUtility.DisplayDialog(title, message, clearButton, cancelButton))
             {
+                // Force check for new operations before clear to prevent missing operations due to polling delay
+                UnityUndoMonitor.ForceCheckNewOperations();
+                
                 // Use Unity's native undo clear + monitor clear
                 Undo.ClearAll();
                 UnityUndoMonitor.ClearHistory();
@@ -347,7 +354,7 @@ namespace com.MiAO.Unity.MCP.Editor
             // Operation name with source indicator
             var titleElement = new Label();
             titleElement.AddToClassList("undo-stack-item-title");
-            titleElement.text = operation.DisplayName; // Use DisplayName to show MCP/Manual indicator
+            titleElement.text = operation.ParsedDisplayName; // Use ParsedDisplayName to show formatted [Operation] [Source] description
             
             // Timestamp
             var timeElement = new Label();
@@ -379,24 +386,28 @@ namespace com.MiAO.Unity.MCP.Editor
             return itemElement;
         }
 
-
-
-        private string GetOperationIcon(string description)
+        private string GetOperationIcon(string operationName)
         {
-            if (description.Contains("创建") || description.Contains("Create") || description.Contains("创建GameObject"))
-                return LocalizationManager.GetText("operations.icon.create");
-            if (description.Contains("删除") || description.Contains("Delete") || description.Contains("Destroy"))
-                return LocalizationManager.GetText("operations.icon.delete");
-            if (description.Contains("修改") || description.Contains("Modify") || description.Contains("修改GameObject"))
-                return LocalizationManager.GetText("operations.icon.modify");
-            if (description.Contains("移动") || description.Contains("Move") || description.Contains("Parent"))
-                return LocalizationManager.GetText("operations.icon.move");
-            if (description.Contains("复制") || description.Contains("Copy") || description.Contains("Duplicate"))
-                return LocalizationManager.GetText("operations.icon.copy");
-            if (description.Contains("重命名") || description.Contains("Rename"))
-                return LocalizationManager.GetText("operations.icon.rename");
+            // 使用解析后的操作类型来判断图标
+            var (operationType, _) = UnityUndoMonitor.UndoOperation.ParseOperationName(operationName);
+            var lowerOperationType = operationType.ToLower();
             
-            return LocalizationManager.GetText("operations.icon.unknown");
+            if (lowerOperationType.Contains("create") || lowerOperationType.Contains("instantiate") || lowerOperationType.Contains("spawn"))
+                return "Create";
+            if (lowerOperationType.Contains("delete") || lowerOperationType.Contains("destroy"))
+                return "Delete";
+            if (lowerOperationType.Contains("modify") || lowerOperationType.Contains("edit") || lowerOperationType.Contains("change") || lowerOperationType.Contains("transform"))
+                return "Modify";
+            if (lowerOperationType.Contains("move") || lowerOperationType.Contains("parent") || lowerOperationType.Contains("position"))
+                return "Move";
+            if (lowerOperationType.Contains("copy") || lowerOperationType.Contains("duplicate") || lowerOperationType.Contains("clone") || lowerOperationType.Contains("drag"))
+                return "Copy";
+            if (lowerOperationType.Contains("rename"))
+                return "Rename";
+            if (lowerOperationType.Contains("select") || lowerOperationType.Contains("clear"))
+                return "Select";
+            
+            return "Unknown";
         }
 
         private void SetAllButtonsEnabled(bool enabled)

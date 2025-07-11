@@ -1,20 +1,54 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Globalization;
 using UnityEngine;
 
 namespace com.MiAO.Unity.MCP.Editor.Common
 {
     /// <summary>
-    /// Localization manager for managing multi-language text in UI interface
+    /// Lightweight localization manager with no external dependencies
+    /// Uses Unity's built-in JSON utilities for clean, simple multi-language support
     /// </summary>
     public static class LocalizationManager
     {
+        #region Public Types
+
         public enum Language
         {
             English,
             ChineseSimplified
         }
 
+        #endregion
+
+        #region Private Fields
+
         private static Language _currentLanguage = Language.English;
+        private static bool _isInitialized = false;
+        private static Dictionary<string, string> _currentTranslations = new Dictionary<string, string>();
+        
+        private static readonly Dictionary<Language, string> _languageCodes = new Dictionary<Language, string>
+        {
+            [Language.English] = "en",
+            [Language.ChineseSimplified] = "zh-CN"
+        };
+
+        private static readonly Dictionary<Language, CultureInfo> _cultureMappings = new Dictionary<Language, CultureInfo>
+        {
+            [Language.English] = new CultureInfo("en-US"),
+            [Language.ChineseSimplified] = new CultureInfo("zh-CN")
+        };
+
+        private static readonly Dictionary<Language, string> _resourceFilePaths = new Dictionary<Language, string>
+        {
+            [Language.English] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/en.json",
+            [Language.ChineseSimplified] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/zh-CN.json"
+        };
+
+        #endregion
+
+        #region Public Properties
         
         /// <summary>
         /// Current language setting
@@ -27,643 +61,532 @@ namespace com.MiAO.Unity.MCP.Editor.Common
                 if (_currentLanguage != value)
                 {
                     _currentLanguage = value;
+                    LoadResourceFile();
                     OnLanguageChanged?.Invoke(value);
                 }
             }
         }
 
         /// <summary>
+        /// Current culture info
+        /// </summary>
+        public static CultureInfo CurrentCulture => _cultureMappings[_currentLanguage];
+
+        /// <summary>
+        /// Check if the localization system is initialized
+        /// </summary>
+        public static bool IsInitialized => _isInitialized;
+
+        /// <summary>
+        /// Get count of loaded translations
+        /// </summary>
+        public static int TranslationCount => _currentTranslations.Count;
+
+        #endregion
+
+        #region Public Events
+
+        /// <summary>
         /// Language change event
         /// </summary>
-        public static System.Action<Language> OnLanguageChanged;
+        public static event Action<Language> OnLanguageChanged;
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
-        /// Localized text dictionary
+        /// Initialize the localization system
         /// </summary>
-        private static readonly Dictionary<string, Dictionary<Language, string>> LocalizedTexts = new Dictionary<string, Dictionary<Language, string>>
+        public static void Initialize()
         {
-            // Window title
-            ["window.title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "MCP Hub",
-                [Language.ChineseSimplified] = "MCP Hub"
-            },
+            if (_isInitialized) return;
 
-            // Tab titles
-            ["tab.connector"] = new Dictionary<Language, string>
+            try
             {
-                [Language.English] = "MCP Connector",
-                [Language.ChineseSimplified] = "MCP连接"
-            },
-            ["tab.modelconfig"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Model Config",
-                [Language.ChineseSimplified] = "模型配置"
-            },
-            ["tab.operations"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Operations",
-                [Language.ChineseSimplified] = "操作管理"
-            },
-            ["tab.settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Settings",
-                [Language.ChineseSimplified] = "设置"
-            },
+                // Load saved language preference
+                LoadLanguagePreference();
 
-            // MCP Connector tab
-            ["connector.title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "MCP Connector",
-                [Language.ChineseSimplified] = "MCP连接"
-            },
-            ["connector.loglevel"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Log Level",
-                [Language.ChineseSimplified] = "日志级别"
-            },
-            ["connector.connect_server"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Connect to MCP server",
-                [Language.ChineseSimplified] = "连接到 MCP 服务器"
-            },
-            ["connector.server_url"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Server URL",
-                [Language.ChineseSimplified] = "服务器地址"
-            },
-            ["connector.information"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Information",
-                [Language.ChineseSimplified] = "信息"
-            },
-            ["connector.info_desc"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Usually the server is hosted locally at:\nhttp://localhost:60606\n\nBut feel free to connect to remote MCP server if needed. The connection under the hood is established using SignalR and supports wide range of features.",
-    [Language.ChineseSimplified] = "通常服务器运行在本地地址：\nhttp://localhost:60606\n\n如果需要，您也可以连接到远程 MCP 服务器。底层连接使用 SignalR 建立，支持丰富的功能特性。"
-            },
-            ["connector.disconnected"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Disconnected",
-                [Language.ChineseSimplified] = "已断开连接"
-            },
-            ["connector.connected"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Connected",
-                [Language.ChineseSimplified] = "已连接"
-            },
-            ["connector.connect"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Connect",
-                [Language.ChineseSimplified] = "连接"
-            },
-            ["connector.disconnect"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Disconnect",
-                [Language.ChineseSimplified] = "断开连接"
-            },
-            ["connector.connecting"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Connecting...",
-                [Language.ChineseSimplified] = "连接中..."
-            },
-            ["connector.stop"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Stop",
-                [Language.ChineseSimplified] = "停止"
-            },
-            ["connector.configure_client"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Configure MCP Client",
-                [Language.ChineseSimplified] = "配置 MCP 客户端"
-            },
-            ["connector.client_desc"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "At least one client should be configured.\nSome clients need restart after configuration.",
-                [Language.ChineseSimplified] = "至少需要配置一个客户端。\n某些客户端配置后需要重启。"
-            },
-            ["connector.not_configured"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Not configured",
-                [Language.ChineseSimplified] = "未配置"
-            },
-            ["connector.configured"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Configured",
-                [Language.ChineseSimplified] = "已配置"
-            },
-            ["connector.configure"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Configure",
-                [Language.ChineseSimplified] = "配置"
-            },
-            ["connector.manual_config"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Manual configuration",
-                [Language.ChineseSimplified] = "手动配置"
-            },
-            ["connector.manual_desc"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Copy paste the json into your MCP Client to configure it.",
-                [Language.ChineseSimplified] = "复制此 JSON 配置到您的 MCP 客户端中进行配置。"
-            },
-            ["connector.manual_placeholder"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "This is a multi-line, read-only, selectable text box.\nYou can copy from here.",
-                [Language.ChineseSimplified] = "这是一个多行、只读、可选择的文本框。\n您可以从这里复制。"
-            },
-            ["connector.rebuild_server"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Rebuild MCP Server",
-                [Language.ChineseSimplified] = "重新构建 MCP 服务器"
-            },
-            ["connector.check_logs"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Please check the logs to see the operation result.",
-                [Language.ChineseSimplified] = "请查看日志以了解操作结果。"
-            },
+                // Load resource file
+                LoadResourceFile();
 
-            // Model Configuration tab
-            ["model.title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "AI Model Configuration",
-                [Language.ChineseSimplified] = "AI 模型配置"
-            },
-            ["model.provider_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "AI Provider Settings",
-                [Language.ChineseSimplified] = "AI 提供商设置"
-            },
-            ["model.openai_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "OpenAI Settings",
-                [Language.ChineseSimplified] = "OpenAI 设置"
-            },
-            ["model.gemini_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Gemini Settings",
-                [Language.ChineseSimplified] = "Gemini 设置"
-            },
-            ["model.claude_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Claude Settings",
-                [Language.ChineseSimplified] = "Claude 设置"
-            },
-            ["model.local_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Local Settings",
-                [Language.ChineseSimplified] = "本地设置"
-            },
-            ["model.api_key"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "API Key",
-                [Language.ChineseSimplified] = "API 密钥"
-            },
-            ["model.model"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Model",
-                [Language.ChineseSimplified] = "模型"
-            },
-            ["model.base_url"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Base URL",
-                [Language.ChineseSimplified] = "基础 URL"
-            },
-            ["model.api_url"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "API URL",
-                [Language.ChineseSimplified] = "API 地址"
-            },
-            ["model.provider_selection"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Model Provider Selection",
-                [Language.ChineseSimplified] = "模型提供商选择"
-            },
-            ["model.vision_provider"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Vision Provider",
-                [Language.ChineseSimplified] = "视觉模型提供商"
-            },
-            ["model.text_provider"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Text Provider",
-                [Language.ChineseSimplified] = "文本模型提供商"
-            },
-            ["model.code_provider"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Code Provider",
-                [Language.ChineseSimplified] = "代码模型提供商"
-            },
-            ["model.general_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "General Settings",
-                [Language.ChineseSimplified] = "通用设置"
-            },
-            ["model.timeout"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Timeout (seconds)",
-                [Language.ChineseSimplified] = "超时时间（秒）"
-            },
-            ["model.max_tokens"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Max Tokens",
-                [Language.ChineseSimplified] = "最大令牌数"
-            },
-            ["model.save_config"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Save Configuration",
-                [Language.ChineseSimplified] = "保存配置"
-            },
-
-            // Settings tab
-            ["settings.title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "User Preferences",
-                [Language.ChineseSimplified] = "用户偏好设置"
-            },
-            ["settings.language_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Language Settings",
-                [Language.ChineseSimplified] = "语言设置"
-            },
-            ["settings.interface_language"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Interface Language",
-                [Language.ChineseSimplified] = "界面语言"
-            },
-            ["settings.language_desc"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Select your preferred language for the user interface.",
-                [Language.ChineseSimplified] = "选择您偏好的用户界面语言。"
-            },
-            ["settings.theme_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Theme Settings",
-                [Language.ChineseSimplified] = "主题设置"
-            },
-            ["settings.ui_theme"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "UI Theme",
-                [Language.ChineseSimplified] = "界面主题"
-            },
-            ["settings.auto_refresh"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Auto-refresh UI",
-                [Language.ChineseSimplified] = "自动刷新界面"
-            },
-            ["settings.theme_desc"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Configure the appearance and behavior of the user interface.",
-                [Language.ChineseSimplified] = "配置用户界面的外观和行为。"
-            },
-            ["settings.save"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Save Settings",
-                [Language.ChineseSimplified] = "保存设置"
-            },
-            ["settings.reset"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Reset to Defaults",
-                [Language.ChineseSimplified] = "重置为默认值"
-            },
-
-            // Operations tab
-            ["operations.title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Operations Panel",
-                [Language.ChineseSimplified] = "操作面板"
-            },
-            ["operations.undo_stack"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Undo Stack",
-                [Language.ChineseSimplified] = "撤销栈"
-            },
-            ["operations.refresh"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Refresh",
-                [Language.ChineseSimplified] = "刷新"
-            },
-            ["operations.stack_status"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Stack Status: {0} operations",
-                [Language.ChineseSimplified] = "栈状态：{0} 个操作"
-            },
-            ["operations.undo"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "< Undo",
-                [Language.ChineseSimplified] = "< 撤销"
-            },
-            ["operations.redo"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Redo >",
-                [Language.ChineseSimplified] = "重做 >"
-            },
-            ["operations.history"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Operation History",
-                [Language.ChineseSimplified] = "操作历史"
-            },
-            ["operations.no_history"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "No operation history",
-                [Language.ChineseSimplified] = "无操作历史"
-            },
-            ["operations.clear_stack"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Clear Stack",
-                [Language.ChineseSimplified] = "清空栈"
-            },
-            ["operations.undo_stack_header"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[<] Undo Stack (ordered by time, newest first)",
-                [Language.ChineseSimplified] = "[<] 撤销栈（按时间排序，最新的在前）"
-            },
-            ["operations.redo_stack_header"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[>] Redo Stack (ordered by time, newest first)",
-                [Language.ChineseSimplified] = "[>] 重做栈（按时间排序，最新的在前）"
-            },
-            ["operations.latest"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "< Latest",
-                [Language.ChineseSimplified] = "< 最新"
-            },
-            ["operations.icon.create"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[Create]",
-                [Language.ChineseSimplified] = "[创建]"
-            },
-            ["operations.icon.delete"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[Delete]",
-                [Language.ChineseSimplified] = "[删除]"
-            },
-            ["operations.icon.modify"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[Modify]",
-                [Language.ChineseSimplified] = "[修改]"
-            },
-            ["operations.icon.move"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[Move]",
-                [Language.ChineseSimplified] = "[移动]"
-            },
-            ["operations.icon.copy"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[Copy]",
-                [Language.ChineseSimplified] = "[复制]"
-            },
-            ["operations.icon.rename"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[Rename]",
-                [Language.ChineseSimplified] = "[重命名]"
-            },
-            ["operations.icon.unknown"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "[Unknown]",
-                [Language.ChineseSimplified] = "[未知]"
-            },
-
-            // User Input tab
-            ["tab.userinput"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "User Input",
-                [Language.ChineseSimplified] = "用户输入"
-            },
-            ["userinput.title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "User Input Panel",
-                [Language.ChineseSimplified] = "用户输入面板"
-            },
-            ["userinput.prompt_message"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Prompt Message:",
-                [Language.ChineseSimplified] = "提示消息："
-            },
-            ["userinput.user_input"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "User Input:",
-                [Language.ChineseSimplified] = "用户输入："
-            },
-            ["userinput.selected_objects"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Currently Selected Objects:",
-                [Language.ChineseSimplified] = "当前选中的对象："
-            },
-            ["userinput.no_objects"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "No objects selected",
-                [Language.ChineseSimplified] = "没有选中对象"
-            },
-            ["userinput.confirm"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Confirm",
-                [Language.ChineseSimplified] = "确认"
-            },
-            ["userinput.cancel"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Cancel",
-                [Language.ChineseSimplified] = "取消"
-            },
-            ["userinput.waiting"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Waiting for user input request...",
-                [Language.ChineseSimplified] = "等待用户输入请求..."
-            },
-
-            // Common text
-            ["language.english"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "English",
-                [Language.ChineseSimplified] = "英文"
-            },
-            ["language.chinese"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Chinese (Simplified)",
-                [Language.ChineseSimplified] = "简体中文"
-            },
-            ["theme.dark"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Dark",
-                [Language.ChineseSimplified] = "深色"
-            },
-            ["theme.light"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Light",
-                [Language.ChineseSimplified] = "浅色"
-            },
-            ["theme.auto"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Auto",
-                [Language.ChineseSimplified] = "自动"
-            },
-
-            // Dialog text
-            ["dialog.clear_undo_stack_title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Clear Undo Stack",
-                [Language.ChineseSimplified] = "清空撤销栈"
-            },
-            ["dialog.clear_undo_stack_message"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Are you sure you want to clear all undo history? This action cannot be undone.",
-                [Language.ChineseSimplified] = "您确定要清空所有撤销历史吗？此操作无法撤销。"
-            },
-            ["dialog.clear"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Clear",
-                [Language.ChineseSimplified] = "清空"
-            },
-            ["dialog.cancel"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Cancel",
-                [Language.ChineseSimplified] = "取消"
-            },
-            ["dialog.reset"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Reset",
-                [Language.ChineseSimplified] = "重置"
-            },
-            ["dialog.settings_error"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Settings Error",
-                [Language.ChineseSimplified] = "设置错误"
-            },
-            ["dialog.settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Settings",
-                [Language.ChineseSimplified] = "设置"
-            },
-            ["dialog.invalid_settings"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Invalid settings detected. Please check your selections.",
-                [Language.ChineseSimplified] = "检测到无效设置。请检查您的选择。"
-            },
-            ["dialog.save_success"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Settings saved successfully!\n\n{0}",
-                [Language.ChineseSimplified] = "设置保存成功！\n\n{0}"
-            },
-            ["dialog.save_failed"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Failed to save settings:\n{0}",
-                [Language.ChineseSimplified] = "保存设置失败：\n{0}"
-            },
-            ["dialog.reset_settings_title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Reset Settings",
-                [Language.ChineseSimplified] = "重置设置"
-            },
-            ["dialog.reset_settings_message"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Are you sure you want to reset all settings to default values?\n\nThis will reset:\n• Language to English\n• Theme to Dark\n• Auto-refresh to enabled",
-                [Language.ChineseSimplified] = "您确定要将所有设置重置为默认值吗？\n\n这将重置：\n• 语言为英文\n• 主题为深色\n• 自动刷新为启用"
-            },
-            ["dialog.reset_success"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Settings have been reset to default values.",
-                [Language.ChineseSimplified] = "设置已重置为默认值。"
-            },
-            ["dialog.reset_failed"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Failed to reset settings:\n{0}",
-                [Language.ChineseSimplified] = "重置设置失败：\n{0}"
-            },
-
-            // Settings summary text
-            ["summary.title"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Settings Summary:",
-                [Language.ChineseSimplified] = "设置摘要："
-            },
-            ["summary.language"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "• Language: ",
-                [Language.ChineseSimplified] = "• 语言："
-            },
-            ["summary.theme"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "• Theme: ",
-                [Language.ChineseSimplified] = "• 主题："
-            },
-            ["summary.auto_refresh"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "• Auto Refresh: ",
-                [Language.ChineseSimplified] = "• 自动刷新："
-            },
-            ["text.enabled"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Enabled",
-                [Language.ChineseSimplified] = "启用"
-            },
-            ["text.disabled"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Disabled",
-                [Language.ChineseSimplified] = "禁用"
-            },
-            ["text.light"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Light",
-                [Language.ChineseSimplified] = "浅色"
-            },
-            ["text.dark"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Dark",
-                [Language.ChineseSimplified] = "深色"
-            },
-            ["text.auto"] = new Dictionary<Language, string>
-            {
-                [Language.English] = "Auto",
-                [Language.ChineseSimplified] = "自动"
+                _isInitialized = true;
+                Debug.Log($"[LocalizationManager] Initialized with language: {_currentLanguage}, loaded {_currentTranslations.Count} translations");
             }
-        };
+            catch (Exception ex)
+            {
+                Debug.LogError($"[LocalizationManager] Failed to initialize: {ex.Message}");
+                // Fallback to English if initialization fails
+                _currentLanguage = Language.English;
+                _isInitialized = true;
+            }
+        }
 
         /// <summary>
-        /// Get localized text
+        /// Get localized text by key
         /// </summary>
-        /// <param name="key">Text key</param>
-        /// <param name="args">Format parameters</param>
-        /// <returns>Localized text</returns>
+        /// <param name="key">Localization key (supports dot notation like "window.title")</param>
+        /// <returns>Localized text or key if not found</returns>
+        public static string GetText(string key)
+        {
+            if (!_isInitialized) Initialize();
+
+            if (string.IsNullOrEmpty(key))
+                return key;
+
+            try
+            {
+                if (_currentTranslations.TryGetValue(key, out var text))
+                {
+                    return text;
+                }
+
+                // Log missing translation only once per session
+                if (!_missingKeys.Contains(key))
+                {
+                    _missingKeys.Add(key);
+                    Debug.LogWarning($"[LocalizationManager] Missing translation for key: '{key}' in language: {_currentLanguage}");
+                }
+                
+                return key;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[LocalizationManager] Failed to get text for key '{key}': {ex.Message}");
+                return key;
+            }
+        }
+
+        /// <summary>
+        /// Get localized text by key with formatting arguments
+        /// </summary>
+        /// <param name="key">Localization key</param>
+        /// <param name="args">Format arguments</param>
+        /// <returns>Formatted localized text</returns>
         public static string GetText(string key, params object[] args)
         {
-            if (LocalizedTexts.TryGetValue(key, out var languageDict) && 
-                languageDict.TryGetValue(CurrentLanguage, out var text))
+            var text = GetText(key);
+            
+            if (args == null || args.Length == 0)
+                return text;
+
+            try
             {
-                if (args != null && args.Length > 0)
-                {
-                    return string.Format(text, args);
-                }
+                return string.Format(_cultureMappings[_currentLanguage], text, args);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[LocalizationManager] Failed to format text for key '{key}': {ex.Message}");
                 return text;
             }
+        }
 
-            // Return key as default value if localized text is not found
-            Debug.LogWarning($"Missing localization for key: {key}");
-            return key;
+        /// <summary>
+        /// Get localized text by nested key path
+        /// </summary>
+        /// <param name="category">Category (e.g., "window", "connector")</param>
+        /// <param name="key">Specific key</param>
+        /// <returns>Localized text</returns>
+        public static string GetText(string category, string key)
+        {
+            return GetText($"{category}.{key}");
+        }
+
+        /// <summary>
+        /// Get localized text by nested key path with formatting
+        /// </summary>
+        /// <param name="category">Category</param>
+        /// <param name="key">Specific key</param>
+        /// <param name="args">Format arguments</param>
+        /// <returns>Formatted localized text</returns>
+        public static string GetText(string category, string key, params object[] args)
+        {
+            return GetText($"{category}.{key}", args);
+        }
+
+        /// <summary>
+        /// Check if a localization key exists
+        /// </summary>
+        /// <param name="key">Localization key</param>
+        /// <returns>True if key exists</returns>
+        public static bool HasKey(string key)
+        {
+            if (!_isInitialized) Initialize();
+            return !string.IsNullOrEmpty(key) && _currentTranslations.ContainsKey(key);
+        }
+
+        /// <summary>
+        /// Add or update a translation at runtime
+        /// </summary>
+        /// <param name="key">Translation key</param>
+        /// <param name="value">Translation value</param>
+        public static void SetText(string key, string value)
+        {
+            if (!_isInitialized) Initialize();
+            
+            if (!string.IsNullOrEmpty(key))
+            {
+                _currentTranslations[key] = value ?? "";
+            }
+        }
+
+        /// <summary>
+        /// Remove a translation
+        /// </summary>
+        /// <param name="key">Translation key to remove</param>
+        /// <returns>True if key was removed</returns>
+        public static bool RemoveText(string key)
+        {
+            if (!_isInitialized) Initialize();
+            return !string.IsNullOrEmpty(key) && _currentTranslations.Remove(key);
+        }
+
+        /// <summary>
+        /// Get all translation keys for current language
+        /// </summary>
+        /// <returns>Array of all keys</returns>
+        public static string[] GetAllKeys()
+        {
+            if (!_isInitialized) Initialize();
+            
+            var keys = new string[_currentTranslations.Count];
+            _currentTranslations.Keys.CopyTo(keys, 0);
+            return keys;
+        }
+
+        /// <summary>
+        /// Convert language enum to string
+        /// </summary>
+        /// <param name="language">Language enum</param>
+        /// <returns>Language string</returns>
+        public static string LanguageToString(Language language)
+        {
+            return language.ToString();
         }
 
         /// <summary>
         /// Convert string to language enum
         /// </summary>
+        /// <param name="languageString">Language string</param>
+        /// <returns>Language enum</returns>
         public static Language StringToLanguage(string languageString)
         {
+            if (string.IsNullOrEmpty(languageString))
+                return Language.English;
+
+            // Handle display names first
             return languageString switch
             {
                 "简体中文" => Language.ChineseSimplified,
+                "English" => Language.English,
                 "ChineseSimplified" => Language.ChineseSimplified,
-                _ => Language.English
+                _ => Enum.TryParse<Language>(languageString, true, out var language) ? language : Language.English
             };
         }
 
         /// <summary>
-        /// Convert language enum to display string
+        /// Get display name for language
         /// </summary>
+        /// <param name="language">Language enum</param>
+        /// <returns>Display name</returns>
         public static string LanguageToDisplayString(Language language)
         {
             return language switch
             {
-                Language.ChineseSimplified => GetText("language.chinese"),
-                _ => GetText("language.english")
+                Language.English => "English",
+                Language.ChineseSimplified => "简体中文",
+                _ => language.ToString()
             };
         }
+
+        /// <summary>
+        /// Get all available languages
+        /// </summary>
+        /// <returns>Array of available languages</returns>
+        public static Language[] GetAvailableLanguages()
+        {
+            return (Language[])Enum.GetValues(typeof(Language));
+        }
+
+        /// <summary>
+        /// Reload localization resources
+        /// </summary>
+        public static void Reload()
+        {
+            LoadResourceFile();
+            Debug.Log($"[LocalizationManager] Resources reloaded, {_currentTranslations.Count} translations loaded");
+        }
+
+        /// <summary>
+        /// Clear all cached translations
+        /// </summary>
+        public static void Clear()
+        {
+            _currentTranslations.Clear();
+            _missingKeys.Clear();
+            Debug.Log("[LocalizationManager] All translations cleared");
+        }
+
+        /// <summary>
+        /// Test method to verify localization system is working correctly
+        /// </summary>
+        public static void TestLocalization()
+        {
+            Debug.Log("=== LocalizationManager Test ===");
+            Debug.Log($"IsInitialized: {IsInitialized}");
+            Debug.Log($"CurrentLanguage: {CurrentLanguage}");
+            Debug.Log($"TranslationCount: {TranslationCount}");
+            
+            // Test common keys
+            string[] testKeys = {
+                "language.english",
+                "language.chinese", 
+                "tab.connector",
+                "tab.modelconfig",
+                "connector.title",
+                "model.title",
+                "operations.title",
+                "settings.title"
+            };
+            
+            foreach (var key in testKeys)
+            {
+                var value = GetText(key);
+                Debug.Log($"  '{key}' = '{value}'");
+            }
+            
+            Debug.Log("=== Test Complete ===");
+        }
+
+        #endregion
+
+        #region Private Fields for Optimization
+
+        private static readonly HashSet<string> _missingKeys = new HashSet<string>();
+
+        #endregion
+
+        #region Private Methods
+
+        private static void LoadResourceFile()
+        {
+            try
+            {
+                if (!_resourceFilePaths.TryGetValue(_currentLanguage, out var resourcePath))
+                {
+                    Debug.LogError($"[LocalizationManager] Resource path not found for language: {_currentLanguage}");
+                    return;
+                }
+
+                // Use Unity's package path resolution instead of Path.GetFullPath
+                var fullPath = resourcePath;
+                if (!File.Exists(fullPath))
+                {
+                    // Try alternative path resolution methods
+                    var altPath = Path.Combine(Application.dataPath, "..", resourcePath);
+                    if (File.Exists(altPath))
+                    {
+                        fullPath = altPath;
+                    }
+                    else
+                    {
+                        Debug.LogError($"[LocalizationManager] Resource file not found: {resourcePath}");
+                        Debug.LogError($"[LocalizationManager] Also tried: {altPath}");
+                        return;
+                    }
+                }
+
+                // Load and parse JSON file
+                var jsonContent = File.ReadAllText(fullPath);
+                
+                // Clear current translations and missing keys
+                _currentTranslations.Clear();
+                _missingKeys.Clear();
+                
+                // Parse using Unity's built-in JSON support
+                ParseJsonRecursive(jsonContent, "", _currentTranslations);
+                
+                Debug.Log($"[LocalizationManager] Successfully loaded {_currentTranslations.Count} translations from: {fullPath}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[LocalizationManager] Failed to load resource file: {ex.Message}");
+            }
+        }
+
+        private static void ParseJsonRecursive(string jsonContent, string prefix, Dictionary<string, string> result)
+        {
+            try
+            {
+                // Use a simple JSON parser that works with Unity's JsonUtility concepts
+                var jsonDict = SimpleJsonParser.Parse(jsonContent);
+                FlattenDictionary(jsonDict, prefix, result);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[LocalizationManager] Failed to parse JSON: {ex.Message}");
+            }
+        }
+
+        private static void FlattenDictionary(Dictionary<string, object> dict, string prefix, Dictionary<string, string> result)
+        {
+            foreach (var kvp in dict)
+            {
+                var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}.{kvp.Key}";
+                
+                if (kvp.Value is Dictionary<string, object> nestedDict)
+                {
+                    // Recursively flatten nested objects
+                    FlattenDictionary(nestedDict, key, result);
+                }
+                else
+                {
+                    // Store the value as string
+                    result[key] = kvp.Value?.ToString() ?? "";
+                }
+            }
+        }
+
+        private static void LoadLanguagePreference()
+        {
+            // Use the same preference key as UI settings to ensure consistency
+            var savedLanguage = UnityEditor.EditorPrefs.GetString("MCP.Settings.Language", Language.English.ToString());
+            _currentLanguage = StringToLanguage(savedLanguage);
+        }
+
+        private static void SaveLanguagePreference()
+        {
+            // Use the same preference key as UI settings to ensure consistency
+            UnityEditor.EditorPrefs.SetString("MCP.Settings.Language", _currentLanguage.ToString());
+        }
+
+        #endregion
+
+        #region Static Constructor
+
+        static LocalizationManager()
+        {
+            // Auto-initialize when class is first accessed
+            Initialize();
+            
+            // Save language preference when changed
+            OnLanguageChanged += (language) => SaveLanguagePreference();
+        }
+
+        #endregion
+
+        #region Backward Compatibility
+
+        /// <summary>
+        /// Legacy method for backward compatibility
+        /// </summary>
+        [Obsolete("Use GetText(key) instead")]
+        public static string GetLocalizedText(string key)
+        {
+            return GetText(key);
+        }
+
+        /// <summary>
+        /// Legacy method for backward compatibility
+        /// </summary>
+        [Obsolete("Use GetText(key, args) instead")]
+        public static string GetLocalizedText(string key, params object[] args)
+        {
+            return GetText(key, args);
+        }
+
+        #endregion
     }
+
+    #region Simple JSON Parser
+
+    /// <summary>
+    /// Lightweight JSON parser for localization needs
+    /// No external dependencies, works with Unity's string processing
+    /// </summary>
+    internal static class SimpleJsonParser
+    {
+        public static Dictionary<string, object> Parse(string json)
+        {
+            json = json.Trim();
+            if (!json.StartsWith("{") || !json.EndsWith("}"))
+                throw new ArgumentException("Invalid JSON format");
+
+            var result = new Dictionary<string, object>();
+            var content = json.Substring(1, json.Length - 2).Trim();
+            
+            ParseObject(content, result);
+            return result;
+        }
+
+        private static void ParseObject(string content, Dictionary<string, object> result)
+        {
+            var i = 0;
+            while (i < content.Length)
+            {
+                // Skip whitespace
+                while (i < content.Length && char.IsWhiteSpace(content[i])) i++;
+                if (i >= content.Length) break;
+
+                // Parse key
+                if (content[i] != '"') throw new ArgumentException("Expected quoted key");
+                i++; // Skip opening quote
+                var keyStart = i;
+                while (i < content.Length && content[i] != '"') i++;
+                if (i >= content.Length) throw new ArgumentException("Unterminated key");
+                var key = content.Substring(keyStart, i - keyStart);
+                i++; // Skip closing quote
+
+                // Skip whitespace and colon
+                while (i < content.Length && (char.IsWhiteSpace(content[i]) || content[i] == ':')) i++;
+                if (i >= content.Length) break;
+
+                // Parse value
+                object value;
+                if (content[i] == '"')
+                {
+                    // String value
+                    i++; // Skip opening quote
+                    var valueStart = i;
+                    while (i < content.Length && content[i] != '"')
+                    {
+                        if (content[i] == '\\') i++; // Skip escaped character
+                        i++;
+                    }
+                    if (i >= content.Length) throw new ArgumentException("Unterminated string value");
+                    value = content.Substring(valueStart, i - valueStart).Replace("\\n", "\n").Replace("\\\"", "\"");
+                    i++; // Skip closing quote
+                }
+                else if (content[i] == '{')
+                {
+                    // Nested object
+                    var braceCount = 1;
+                    var objStart = i + 1;
+                    i++; // Skip opening brace
+                    while (i < content.Length && braceCount > 0)
+                    {
+                        if (content[i] == '{') braceCount++;
+                        else if (content[i] == '}') braceCount--;
+                        i++;
+                    }
+                    if (braceCount > 0) throw new ArgumentException("Unterminated object");
+                    var objContent = content.Substring(objStart, i - objStart - 1);
+                    var nestedResult = new Dictionary<string, object>();
+                    ParseObject(objContent, nestedResult);
+                    value = nestedResult;
+                }
+                else
+                {
+                    throw new ArgumentException($"Unexpected character: {content[i]}");
+                }
+
+                result[key] = value;
+
+                // Skip whitespace and comma
+                while (i < content.Length && (char.IsWhiteSpace(content[i]) || content[i] == ',')) i++;
+            }
+        }
+    }
+
+    #endregion
 } 
