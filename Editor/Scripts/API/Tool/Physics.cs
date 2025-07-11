@@ -106,6 +106,49 @@ namespace com.MiAO.Unity.MCP.Editor.API
             
             public static string NoLayersSpecified()
                 => "[Error] Must specify layerNames or layerIndices parameter to calculate LayerMask.";
+            
+            // LayerMask Management related errors
+            public static string TagManagerAccessFailed()
+                => "[Error] Failed to access TagManager layers property.";
+            
+            public static string LayerModificationFailed(string message)
+                => $"[Error] Failed to modify Layer: {message}";
+            
+            public static string LayerNameRequired(string operation)
+                => $"[Error] Layer name is required for {operation} operation.";
+            
+            public static string LayerNameTooLong()
+                => "[Error] Layer name cannot exceed 32 characters.";
+            
+            public static string LayerNameAlreadyExists(string layerName, int index)
+                => $"[Error] Layer name '{layerName}' already exists at index {index}.";
+            
+            public static string InvalidTargetLayerIndex()
+                => "[Error] Invalid target layer index or no available slots found.";
+            
+            public static string CannotModifyBuiltInLayer(int index)
+                => $"[Error] Cannot modify built-in layer at index {index}.";
+            
+            public static string LayerSlotOccupied(int index, string currentName)
+                => $"[Error] Layer slot {index} is already occupied by '{currentName}'.";
+            
+            public static string LayerNotFound(string layerName)
+                => $"[Error] Layer '{layerName}' not found.";
+            
+            public static string InvalidLayerIndex()
+                => "[Error] Invalid target layer index specified.";
+            
+            public static string CannotRemoveBuiltInLayer(int index)
+                => $"[Error] Cannot remove built-in layer at index {index}.";
+            
+            public static string LayerAlreadyEmpty(int index)
+                => $"[Error] Layer at index {index} is already empty.";
+            
+            public static string LayerSlotEmpty(int index)
+                => $"[Error] Layer at index {index} is empty.";
+            
+            public static string CannotRenameBuiltInLayer(string layerName, int index)
+                => $"[Error] Cannot rename built-in layer '{layerName}' at index {index}.";
         }
     }
 }
