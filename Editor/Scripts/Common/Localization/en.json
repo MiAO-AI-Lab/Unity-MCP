@@ -94,7 +94,9 @@
     "save_current": "Save current configuration",
     "reset_default": "Reset to default settings",
     "save_config": "Save Configuration",
-    "general_settings": "General Settings"
+    "general_settings": "General Settings",
+    "timeout": "Timeout",
+    "code_provider": "Code Provider"
   },
   "operations": {
     "title": "Operations Monitor",
