@@ -22,6 +22,11 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
     public partial class Tool_GameObject
     {
+        private class ModificationResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+        }
         [McpPluginTool
         (
             "GameObject_Manage",
@@ -31,7 +36,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
 - create: Create a new GameObject at specific path
 - destroy: Remove a GameObject and all nested GameObjects recursively
 - duplicate: Clone GameObjects in opened Prefab or in a Scene
-- modify: Update GameObjects and/or attached component's field and properties (IMPORTANT: For GameObject properties like name/tag/layer, use ""props"" array: [{""typeName"": ""UnityEngine.GameObject"", ""props"": [{""name"": ""name"", ""typeName"": ""System.String"", ""value"": ""NewName""}]}]. For Transform position/rotation, use: [{""typeName"": ""UnityEngine.Transform"", ""props"": [{""name"": ""position"", ""typeName"": ""UnityEngine.Vector3"", ""value"": {""x"": 1, ""y"": 2, ""z"": 3}}]}]. Always use ""props"" for properties, ""fields"" for public variables.)
+- modify: Update GameObjects and/or attached component's field and properties (IMPORTANT: For GameObject properties like name/tag/layer, use ""props"" array: [{""typeName"": ""UnityEngine.GameObject"", ""props"": [{""name"": ""name"", ""typeName"": ""System.String"", ""value"": ""NewName""}]}]. For Transform position/rotation, use: [{""typeName"": ""UnityEngine.Transform"", ""props"": [{""name"": ""position"", ""typeName"": ""UnityEngine.Vector3"", ""value"": {""x"": 1, ""y"": 2, ""z"": 3}}]}]. For array (such as Transform[]), use: [{""typeName"": ""UnityEngine.Transform"", ""fields"": [{""name"": ""publicArray"", ""typeName"": ""UnityEngine.Transform[]"", ""value"": [-42744, -42754, -42768]}]}]. Always use ""props"" for properties, ""fields"" for public variables. )
 - setParent: Assign parent GameObject for target GameObjects
 - setActive: Set active state of GameObjects
 - setComponentActive: Enable/disable specific components on GameObjects")]
@@ -465,25 +470,19 @@ Duplicated instanceIDs:
                             continue;
                         }
 
-                        var populateResult = Reflector.Instance.Populate(ref objToModify, gameObjectDiffs[i]);
-                        var populateResultString = populateResult.ToString().Trim();
-
-                        // Check if the result contains error information
-                        if (string.IsNullOrEmpty(populateResultString))
+                        // Enhanced array handling - process fields and props separately
+                        var modificationResult = ProcessObjectModifications(objToModify, gameObjectDiffs[i]);
+                        
+                        if (modificationResult.Success)
                         {
-                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' modified successfully (no detailed feedback).");
+                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {modificationResult.Message}");
                             successCount++;
-                        }
-                        else if (populateResultString.Contains("[Error]") || populateResultString.Contains("error", StringComparison.OrdinalIgnoreCase))
-                        {
-                            stringBuilder.AppendLine($"[Error] GameObject {i}: '{go.name}' - {populateResultString}");
-                            errorCount++;
+                            modifiedObjects.Add(go.name);
                         }
                         else
                         {
-                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {populateResultString}");
-                            successCount++;
-                            modifiedObjects.Add(go.name);
+                            stringBuilder.AppendLine($"[Error] GameObject {i}: '{go.name}' - {modificationResult.Message}");
+                            errorCount++;
                         }
 
                         // Mark the object as modified
@@ -530,6 +529,387 @@ Duplicated instanceIDs:
                 
                 return result;
             });
+        }
+
+        private ModificationResult ProcessObjectModifications(object objToModify, SerializedMember serializedMember)
+        {
+            var result = new ModificationResult();
+            var messages = new List<string>();
+            var objType = objToModify.GetType();
+            
+            try
+            {
+                // Process fields
+                if (serializedMember.fields != null && serializedMember.fields.Count > 0)
+                {
+                    foreach (var field in serializedMember.fields)
+                    {
+                        var fieldResult = ProcessFieldModification(objToModify, objType, field);
+                        if (fieldResult.Success)
+                        {
+                            messages.Add($"Field '{field.name}' modified successfully");
+                        }
+                        else
+                        {
+                            result.Success = false;
+                            result.Message = fieldResult.Message;
+                            return result;
+                        }
+                    }
+                }
+
+                // Process properties
+                if (serializedMember.props != null && serializedMember.props.Count > 0)
+                {
+                    foreach (var prop in serializedMember.props)
+                    {
+                        var propResult = ProcessPropertyModification(objToModify, objType, prop);
+                        if (propResult.Success)
+                        {
+                            messages.Add($"Property '{prop.name}' modified successfully");
+                        }
+                        else
+                        {
+                            result.Success = false;
+                            result.Message = propResult.Message;
+                            return result;
+                        }
+                    }
+                }
+
+                result.Success = true;
+                result.Message = messages.Count > 0 ? string.Join(", ", messages) : "Modified successfully";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Exception during modification: {ex.Message}";
+                return result;
+            }
+        }
+
+        private ModificationResult ProcessFieldModification(object objToModify, Type objType, SerializedMember field)
+        {
+            var result = new ModificationResult();
+            
+            try
+            {
+                var fieldInfo = objType.GetField(field.name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (fieldInfo == null)
+                {
+                    result.Success = false;
+                    result.Message = $"Field '{field.name}' not found. Make sure the name is correct and case sensitive.";
+                    return result;
+                }
+
+                var fieldType = fieldInfo.FieldType;
+                
+                var convertedValue = ConvertValue(field, fieldType, field.typeName);
+                
+                if (convertedValue == null && fieldType.IsValueType && Nullable.GetUnderlyingType(fieldType) == null)
+                {
+                    result.Success = false;
+                    result.Message = $"Cannot assign null to value type field '{field.name}' of type '{fieldType.Name}'";
+                    return result;
+                }
+
+                fieldInfo.SetValue(objToModify, convertedValue);
+                result.Success = true;
+                result.Message = $"Field '{field.name}' set successfully";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Failed to set field '{field.name}': {ex.Message}";
+                return result;
+            }
+        }
+
+        private ModificationResult ProcessPropertyModification(object objToModify, Type objType, SerializedMember prop)
+        {
+            var result = new ModificationResult();
+            
+            try
+            {
+                var propertyInfo = objType.GetProperty(prop.name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (propertyInfo == null)
+                {
+                    result.Success = false;
+                    result.Message = $"Property '{prop.name}' not found. Make sure the name is correct and case sensitive.";
+                    return result;
+                }
+
+                if (!propertyInfo.CanWrite)
+                {
+                    result.Success = false;
+                    result.Message = $"Property '{prop.name}' is read-only";
+                    return result;
+                }
+
+                var propertyType = propertyInfo.PropertyType;
+                var convertedValue = ConvertValue(prop, propertyType, prop.typeName);
+                
+                if (convertedValue == null && propertyType.IsValueType && Nullable.GetUnderlyingType(propertyType) == null)
+                {
+                    result.Success = false;
+                    result.Message = $"Cannot assign null to value type property '{prop.name}' of type '{propertyType.Name}'";
+                    return result;
+                }
+
+                propertyInfo.SetValue(objToModify, convertedValue);
+                result.Success = true;
+                result.Message = $"Property '{prop.name}' set successfully";
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Failed to set property '{prop.name}': {ex.Message}";
+                return result;
+            }
+        }
+
+        private object ConvertValue(SerializedMember member, Type targetType, string typeName)
+        {
+            if (member == null)
+                return null;
+
+            // Handle array types
+            if (targetType.IsArray)
+            {
+                return ConvertArray(member, targetType, typeName);
+            }
+
+            // Handle Unity Object references by instance ID
+            if (typeof(UnityEngine.Object).IsAssignableFrom(targetType))
+            {
+                return ConvertToUnityObject(member, targetType, enableTransformSpecialHandling: false);
+            }
+
+            // Handle basic types
+            return ConvertFromSerializedMember(member, targetType);
+        }
+
+        private object ConvertArray(SerializedMember member, Type arrayType, string typeName)
+        {
+            var elementType = arrayType.GetElementType();
+            
+            // Strategy 1: JsonElement array (most common case)
+            var jsonElementArray = TryGetJsonElementArray(member);
+            if (jsonElementArray != null)
+            {
+                return ConvertToTypedArray(jsonElementArray, elementType);
+            }
+            
+            // Strategy 2: Generic approach (handles object[], int[], and all other array types)
+            var genericArray = TryGetGenericArray(member, arrayType);
+            if (genericArray != null)
+            {
+                return ConvertToTypedArray(genericArray, elementType);
+            }
+
+            // Return empty array if all strategies fail
+            return Array.CreateInstance(elementType, 0);
+        }
+
+        private object[] TryGetJsonElementArray(SerializedMember member)
+        {
+            try
+            {
+                var jsonElement = member.GetValue<System.Text.Json.JsonElement>();
+                if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    return jsonElement.EnumerateArray()
+                        .Select(ConvertJsonElementToObject)
+                        .ToArray();
+                }
+            }
+            catch { }
+            return null;
+        }
+
+
+
+        private object[] TryGetGenericArray(SerializedMember member, Type arrayType)
+        {
+            try
+            {
+                var methodInfo = typeof(SerializedMember).GetMethod("GetValue").MakeGenericMethod(arrayType);
+                var result = methodInfo.Invoke(member, null);
+                if (result is Array genericArray)
+                {
+                    var objectArray = new object[genericArray.Length];
+                    for (int i = 0; i < genericArray.Length; i++)
+                    {
+                        objectArray[i] = genericArray.GetValue(i);
+                    }
+                    return objectArray;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private Array ConvertToTypedArray(object[] sourceArray, Type elementType)
+        {
+            var typedArray = Array.CreateInstance(elementType, sourceArray.Length);
+            
+            for (int i = 0; i < sourceArray.Length; i++)
+            {
+                var convertedElement = ConvertArrayElement(sourceArray[i], elementType);
+                typedArray.SetValue(convertedElement, i);
+            }
+            
+            return typedArray;
+        }
+        
+        private object ConvertArrayElement(object elementValue, Type elementType)
+        {
+            if (elementValue == null)
+                return null;
+
+            // Handle Unity Object references by instance ID
+            if (typeof(UnityEngine.Object).IsAssignableFrom(elementType))
+            {
+                return ConvertToUnityObject(elementValue, elementType);
+            }
+
+            // Handle basic types
+            return ConvertToBasicType(elementValue, elementType);
+        }
+
+        private object ConvertJsonElementToObject(System.Text.Json.JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case System.Text.Json.JsonValueKind.String:
+                    return element.GetString();
+                case System.Text.Json.JsonValueKind.Number:
+                    return ExtractNumericValue(element);
+                case System.Text.Json.JsonValueKind.True:
+                    return true;
+                case System.Text.Json.JsonValueKind.False:
+                    return false;
+                case System.Text.Json.JsonValueKind.Null:
+                    return null;
+                case System.Text.Json.JsonValueKind.Object:
+                    // Handle object with instanceID
+                    if (element.TryGetProperty("instanceID", out var instanceIdProperty))
+                    {
+                        return instanceIdProperty.GetInt32();
+                    }
+                    return element;
+                default:
+                    return element;
+            }
+        }
+
+        private int ExtractInstanceId(object value)
+        {
+            return value switch
+            {
+                int intValue => intValue,
+                SerializedMember member => ExtractInstanceIdFromSerializedMember(member),
+                System.Text.Json.JsonElement jsonElement when jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number => jsonElement.GetInt32(),
+                System.Text.Json.JsonElement jsonElement when jsonElement.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                    jsonElement.TryGetProperty("instanceID", out var instanceIdProperty) => instanceIdProperty.GetInt32(),
+                string strValue when int.TryParse(strValue, out int parsedId) => parsedId,
+                _ => 0
+            };
+        }
+
+        private int ExtractInstanceIdFromSerializedMember(SerializedMember member)
+        {
+            try
+            {
+                // First try to get the instanceID directly
+                return member.GetValue<int>();
+            }
+            catch
+            {
+                try
+                {
+                    // Try to get from ObjectRef
+                    var objectRef = member.GetValue<ObjectRef>();
+                    return objectRef?.instanceID ?? 0;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+        }
+
+        private object ExtractNumericValue(System.Text.Json.JsonElement element)
+        {
+            if (element.TryGetInt32(out int intValue))
+                return intValue;
+            if (element.TryGetInt64(out long longValue))
+                return longValue;
+            if (element.TryGetDouble(out double doubleValue))
+                return doubleValue;
+            return element.GetDecimal();
+        }
+
+        private UnityEngine.Object ConvertToUnityObject(object value, Type targetType, bool enableTransformSpecialHandling = true)
+        {
+            var instanceId = ExtractInstanceId(value);
+            
+            if (instanceId == 0)
+                return null;
+
+            var foundObject = EditorUtility.InstanceIDToObject(instanceId);
+            
+            if (foundObject == null)
+                return null;
+
+            // Special handling for Transform - the instanceID might refer to a GameObject
+            if (enableTransformSpecialHandling && targetType == typeof(Transform))
+            {
+                if (foundObject is GameObject gameObject)
+                    return gameObject.transform;
+                else if (foundObject is Transform transform)
+                    return transform;
+            }
+            
+            // Check if the found object is compatible with the target type
+            if (targetType.IsAssignableFrom(foundObject.GetType()))
+                return foundObject;
+            
+            return null;
+        }
+
+        private object ConvertToBasicType(object value, Type targetType)
+        {
+            // Direct type assignment if compatible
+            if (targetType.IsAssignableFrom(value.GetType()))
+                return value;
+
+            // Try to convert using System.Convert
+            try
+            {
+                return Convert.ChangeType(value, targetType);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private object ConvertFromSerializedMember(SerializedMember member, Type targetType)
+        {
+            try
+            {
+                var methodInfo = typeof(SerializedMember).GetMethod("GetValue").MakeGenericMethod(targetType);
+                return methodInfo.Invoke(member, null);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[GameObject.Manage.Modify] Exception in ConvertFromSerializedMember: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                return null;
+            }
         }
 
         private string SetParentGameObjects(GameObjectRefList gameObjectRefs, GameObjectRef? parentGameObjectRef, bool worldPositionStays)
