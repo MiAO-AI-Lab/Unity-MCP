@@ -11,6 +11,53 @@ using UnityEngine;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
+    // Ref: https://github.com/Unity-Technologies/UnityCsReference/blob/2022.2/Editor/Mono/LogEntries.bindings.cs 
+    [Flags]
+    internal enum LogMessageFlags : int
+    {
+        kNoLogMessageFlags = 0,
+        kError = 1 << 0,
+        kAssert = 1 << 1,
+        kLog = 1 << 2,
+        kFatal = 1 << 4,
+        kAssetImportError = 1 << 6,
+        kAssetImportWarning = 1 << 7,
+        kScriptingError = 1 << 8,
+        kScriptingWarning = 1 << 9,
+        kScriptingLog = 1 << 10,
+        kScriptCompileError = 1 << 11,
+        kScriptCompileWarning = 1 << 12,
+        kStickyLog = 1 << 13,
+        kMayIgnoreLineNumber = 1 << 14,
+        kReportBug = 1 << 15,
+        kDisplayPreviousErrorInStatusBar = 1 << 16,
+        kScriptingException = 1 << 17,
+        kDontExtractStacktrace = 1 << 18,
+        kScriptingAssertion = 1 << 21,
+        kStacktraceIsPostprocessed = 1 << 22,
+        kIsCalledFromManaged = 1 << 23
+    }
+
+    // LogMessageFlags extension methods
+    internal static class LogMessageFlagsExtensions
+    {
+        public static bool IsInfo(this LogMessageFlags flags)
+        {
+            return (flags & (LogMessageFlags.kLog | LogMessageFlags.kScriptingLog)) != 0;
+        }
+        
+        public static bool IsWarning(this LogMessageFlags flags)
+        {
+            return (flags & (LogMessageFlags.kScriptCompileWarning | LogMessageFlags.kScriptingWarning | LogMessageFlags.kAssetImportWarning)) != 0;
+        }
+        
+        public static bool IsError(this LogMessageFlags flags)
+        {
+            return (flags & (LogMessageFlags.kFatal | LogMessageFlags.kAssert | LogMessageFlags.kError | LogMessageFlags.kScriptCompileError |
+                            LogMessageFlags.kScriptingError | LogMessageFlags.kAssetImportError | LogMessageFlags.kScriptingAssertion | LogMessageFlags.kScriptingException)) != 0;
+        }
+    }
+
     public partial class Tool_Console
     {
         private static MethodInfo _startGettingEntriesMethod;
@@ -23,48 +70,34 @@ namespace com.MiAO.Unity.MCP.Editor.API
         private static FieldInfo _lineField;
         private static FieldInfo _instanceIdField;
 
-        static Tool_Console()
-        {
-            InitializeReflection();
-        }
+        private static bool _isInitialized = false;
 
         private static void InitializeReflection()
         {
+            if (_isInitialized) return;
+            
             try
             {
-                Type logEntriesType = typeof(EditorApplication).Assembly.GetType(
-                    "UnityEditor.LogEntries"
-                );
-                if (logEntriesType == null)
-                    throw new Exception("Unable to find internal type UnityEditor.LogEntries");
+                Type logEntriesType = typeof(EditorApplication).Assembly.GetType("UnityEditor.LogEntries");
+                Type logEntryType = typeof(EditorApplication).Assembly.GetType("UnityEditor.LogEntry");
+                
+                if (logEntriesType == null || logEntryType == null)
+                    throw new Exception("Unable to find internal Unity types");
 
-                BindingFlags staticFlags =
-                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-                BindingFlags instanceFlags =
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                BindingFlags flags = BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-                _startGettingEntriesMethod = logEntriesType.GetMethod(
-                    "StartGettingEntries",
-                    staticFlags
-                );
-                _endGettingEntriesMethod = logEntriesType.GetMethod(
-                    "EndGettingEntries",
-                    staticFlags
-                );
-                _getCountMethod = logEntriesType.GetMethod("GetCount", staticFlags);
-                _getEntryMethod = logEntriesType.GetMethod("GetEntryInternal", staticFlags);
+                _startGettingEntriesMethod = logEntriesType.GetMethod("StartGettingEntries", flags);
+                _endGettingEntriesMethod = logEntriesType.GetMethod("EndGettingEntries", flags);
+                _getCountMethod = logEntriesType.GetMethod("GetCount", flags);
+                _getEntryMethod = logEntriesType.GetMethod("GetEntryInternal", flags);
 
-                Type logEntryType = typeof(EditorApplication).Assembly.GetType(
-                    "UnityEditor.LogEntry"
-                );
-                if (logEntryType == null)
-                    throw new Exception("Unable to find internal type UnityEditor.LogEntry");
-
-                _modeField = logEntryType.GetField("mode", instanceFlags);
-                _messageField = logEntryType.GetField("message", instanceFlags);
-                _fileField = logEntryType.GetField("file", instanceFlags);
-                _lineField = logEntryType.GetField("line", instanceFlags);
-                _instanceIdField = logEntryType.GetField("instanceID", instanceFlags);
+                _modeField = logEntryType.GetField("mode", flags);
+                _messageField = logEntryType.GetField("message", flags);
+                _fileField = logEntryType.GetField("file", flags);
+                _lineField = logEntryType.GetField("line", flags);
+                _instanceIdField = logEntryType.GetField("instanceID", flags);
+                
+                _isInitialized = true;
             }
             catch (Exception e)
             {
@@ -73,7 +106,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 _modeField = _messageField = _fileField = _lineField = _instanceIdField = null;
             }
         }
-
+ 
         [McpPluginTool
         (
             "Console_ReadWithFilter",
@@ -103,7 +136,10 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 types = new[] { "error", "warning", "log" };
             }
             
-            // Check if reflection initialization was successful
+            // Lazy initialize reflection
+            InitializeReflection();
+            
+            // Check if reflection initialization was successful.
             if (_startGettingEntriesMethod == null || _endGettingEntriesMethod == null ||
                 _getCountMethod == null || _getEntryMethod == null || _modeField == null ||
                 _messageField == null || _fileField == null || _lineField == null || _instanceIdField == null)
@@ -147,9 +183,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     if (string.IsNullOrEmpty(message))
                         continue;
 
-                    // Debug.Log($"{mode}, {message}");
                     // Filter by type
                     string currentType = GetLogTypeFromMode(mode).ToString().ToLowerInvariant();
+                    
                     if (!typesList.Contains(currentType))
                     {
                         continue;
@@ -171,6 +207,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     {
                         logEntries.Add(new LogEntryData
                         {
+                            type = currentType,
                             message = messageOnly
                         });
                     }
@@ -205,8 +242,14 @@ namespace com.MiAO.Unity.MCP.Editor.API
             catch (Exception e)
             {
                 Debug.LogError($"[Console_ReadWithFilter] Error reading log entries: {e}");
-                try { _endGettingEntriesMethod.Invoke(null, null); } 
-                catch { /* Ignore nested exceptions */ }
+                try 
+                { 
+                    _endGettingEntriesMethod.Invoke(null, null); 
+                } 
+                catch 
+                { 
+                    // Ignore nested exceptions 
+                }
                 
                 return JsonUtility.ToJson(new ResponseData
                 {
@@ -243,58 +286,26 @@ namespace com.MiAO.Unity.MCP.Editor.API
             public string stackTrace;
         }
 
-        // LogEntry.mode value mapping (based on actually observed values)
-        private const int ModeInfo = 8406016;      // Info log
-        private const int ModeError = 8405248;     // Error log
-        private const int ModeWarning1 = 8405504;  // Warning log (type 1)
-        private const int ModeWarning2 = 512;      // Warning log (type 2)
-        
-        // // Traditional bit flag definitions (kept for compatibility)
-        // private const int ModeBitError = 1 << 0;          // 1
-        // private const int ModeBitAssert = 1 << 1;         // 2
-        // private const int ModeBitWarning = 1 << 2;        // 4
-        // private const int ModeBitLog = 1 << 3;            // 8
-        // private const int ModeBitException = 1 << 4;      // 16
-        // private const int ModeBitScriptingError = 1 << 9; // 512
-        // private const int ModeBitScriptingWarning = 1 << 10; // 1024
-        // private const int ModeBitScriptingLog = 1 << 11;  // 2048
-        // private const int ModeBitScriptingException = 1 << 18; // 262144
-        // private const int ModeBitScriptingAssertion = 1 << 22; // 4194304
-
         private static LogType GetLogTypeFromMode(int mode)
         {
-            // First check specific mode values
-            if (mode == ModeError)
+            LogMessageFlags flags = (LogMessageFlags)mode;
+            
+            if (flags.IsError())
             {
                 return LogType.Error;
             }
-            else if (mode == ModeWarning1 || mode == ModeWarning2)
+            else if (flags.IsWarning())
             {
                 return LogType.Warning;
             }
-            else if (mode == ModeInfo)
+            else if (flags.IsInfo())
             {
                 return LogType.Log;
             }
-            return LogType.Log;
-            
-            // // If specific values don't match, use bit flag checking (backward compatibility)
-            // if ((mode & (ModeBitError | ModeBitScriptingError | ModeBitException | ModeBitScriptingException)) != 0)
-            // {
-            //     return LogType.Error;
-            // }
-            // else if ((mode & (ModeBitAssert | ModeBitScriptingAssertion)) != 0)
-            // {
-            //     return LogType.Assert;
-            // }
-            // else if ((mode & (ModeBitWarning | ModeBitScriptingWarning)) != 0)
-            // {
-            //     return LogType.Warning;
-            // }
-            // else
-            // {
-            //     return LogType.Log;
-            // }
+            else
+            {
+                return LogType.Log;
+            }
         }
 
         private static string ExtractStackTrace(string fullMessage)
