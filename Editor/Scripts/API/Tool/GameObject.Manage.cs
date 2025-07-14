@@ -484,23 +484,22 @@ Duplicated instanceIDs:
                             successCount++;
                             modifiedObjects.Add(go.name);
                             currentOpSuccess = true;
-                            modificationDetails = "modified";
+
+                            // Extract modification details from the populate result
+                            modificationDetails = ExtractModificationDetails(modificationResult.Message.Trim());
+                            if (string.IsNullOrEmpty(modificationDetails))
+                            {
+                                modificationDetails = "modified";
+                            }
                         }
                         else
                         {
                             stringBuilder.AppendLine($"[Error] GameObject {i}: '{go.name}' - {modificationResult.Message}");
                             errorCount++;
                         }
-                        else
-                        {
-                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {populateResultString}");
-                            successCount++;
-                            modifiedObjects.Add(go.name);
-                            currentOpSuccess = true;
+
                             
-                            // Extract modification details from the populate result
-                            modificationDetails = ExtractModificationDetails(populateResultString);
-                        }
+
 
                         // Mark the object as modified
                         if (objToModify is UnityEngine.Object unityObj)
