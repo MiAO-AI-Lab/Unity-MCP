@@ -11,7 +11,6 @@ using UnityEngine;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
-    // Since Unity 2022.2, the LogEntries class is internal, so we need to use reflection to get the log entries.
     // Ref: https://github.com/Unity-Technologies/UnityCsReference/blob/2022.2/Editor/Mono/LogEntries.bindings.cs 
     [Flags]
     internal enum LogMessageFlags : int
@@ -107,10 +106,6 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 _modeField = _messageField = _fileField = _lineField = _instanceIdField = null;
             }
         }
-        
-        // private static int ModeInfo = 8406016;      // Info log
-        // private static int[] ModeError = new int[]{8405248, 272384};     // Error log
-        // private static int[] ModeWarning = new int[]{ 8405504, 512, 266240 };  // Warning log (type 1)
  
         [McpPluginTool
         (
@@ -247,8 +242,14 @@ namespace com.MiAO.Unity.MCP.Editor.API
             catch (Exception e)
             {
                 Debug.LogError($"[Console_ReadWithFilter] Error reading log entries: {e}");
-                try { _endGettingEntriesMethod.Invoke(null, null); } 
-                catch { /* Ignore nested exceptions */ }
+                try 
+                { 
+                    _endGettingEntriesMethod.Invoke(null, null); 
+                } 
+                catch 
+                { 
+                    // Ignore nested exceptions 
+                }
                 
                 return JsonUtility.ToJson(new ResponseData
                 {
