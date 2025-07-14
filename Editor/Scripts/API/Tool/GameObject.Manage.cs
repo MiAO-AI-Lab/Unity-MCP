@@ -425,9 +425,8 @@ Duplicated instanceIDs:
                 var successCount = 0;
                 var errorCount = 0;
                 
-                // Group all modifications as a single undo operation
-                Undo.IncrementCurrentGroup();
-                var modifiedObjects = new List<string>(); // Track object names for group naming
+                // Create separate undo groups for each GameObject to ensure each operation is recorded separately
+                var modifiedObjects = new List<string>(); // Track object names for summary
 
                 for (int i = 0; i < gameObjectRefs.Count; i++)
                 {
@@ -441,6 +440,9 @@ Duplicated instanceIDs:
 
                     try
                     {
+                        // Create a separate undo group for each GameObject modification
+                        Undo.IncrementCurrentGroup();
+                        
                         var objToModify = (object)go;
                         var type = TypeUtils.GetType(gameObjectDiffs[i].typeName);
                         if (typeof(UnityEngine.Component).IsAssignableFrom(type))
@@ -472,23 +474,54 @@ Duplicated instanceIDs:
 
                         // Enhanced array handling - process fields and props separately
                         var modificationResult = ProcessObjectModifications(objToModify, gameObjectDiffs[i]);
-                        
+                                                
+                        bool currentOpSuccess = false;
+                        string modificationDetails = ""; // Store detailed modification information
+
                         if (modificationResult.Success)
                         {
                             stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {modificationResult.Message}");
                             successCount++;
                             modifiedObjects.Add(go.name);
+                            currentOpSuccess = true;
+                            modificationDetails = "modified";
                         }
                         else
                         {
                             stringBuilder.AppendLine($"[Error] GameObject {i}: '{go.name}' - {modificationResult.Message}");
                             errorCount++;
                         }
+                        else
+                        {
+                            stringBuilder.AppendLine($"[Success] GameObject {i}: '{go.name}' - {populateResultString}");
+                            successCount++;
+                            modifiedObjects.Add(go.name);
+                            currentOpSuccess = true;
+                            
+                            // Extract modification details from the populate result
+                            modificationDetails = ExtractModificationDetails(populateResultString);
+                        }
 
                         // Mark the object as modified
                         if (objToModify is UnityEngine.Object unityObj)
                         {
                             EditorUtility.SetDirty(unityObj);
+                        }
+                        
+                        // Set individual undo group name for this specific GameObject modification
+                        if (currentOpSuccess)
+                        {
+                            string individualGroupName;
+                            if (string.IsNullOrEmpty(modificationDetails) || modificationDetails == "modified")
+                            {
+                                individualGroupName = $"Modify GameObject: {go.name}";
+                            }
+                            else
+                            {
+                                // Include modification details in the group name
+                                individualGroupName = $"Modify {go.name}: {modificationDetails}";
+                            }
+                            Undo.SetCurrentGroupName($"[MCP] {individualGroupName}");
                         }
                     }
                     catch (Exception ex)
@@ -517,15 +550,6 @@ Duplicated instanceIDs:
                 summary.Append(stringBuilder);
 
                 var result = summary.ToString();
-                
-                // Set the undo group name if there were successful modifications
-                if (successCount > 0 && modifiedObjects.Count > 0)
-                {
-                    var groupName = modifiedObjects.Count == 1 
-                        ? $"Modify GameObject: {modifiedObjects[0]}" 
-                        : $"Modify {modifiedObjects.Count} GameObjects";
-                    Undo.SetCurrentGroupName($"[MCP] {groupName}");
-                }
                 
                 return result;
             });
@@ -910,6 +934,163 @@ Duplicated instanceIDs:
                 Debug.LogError($"[GameObject.Manage.Modify] Exception in ConvertFromSerializedMember: {ex.Message}\nStackTrace: {ex.StackTrace}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Extract modification details from the populate result string for better undo group naming
+        /// </summary>
+        private string ExtractModificationDetails(string populateResultString)
+        {
+            if (string.IsNullOrEmpty(populateResultString))
+                return "";
+
+            var details = new List<string>();
+            var lines = populateResultString.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                
+                // Look for success patterns with property/field modifications
+                if (trimmedLine.StartsWith("[Success]"))
+                {
+                    // Extract property/field modification info
+                    // Pattern: "[Success] Property 'position' modified to '(0.10, 0.00, 5.10)'"
+                    // Pattern: "[Success] Field 'someField' changed to 'newValue'"
+                    // Pattern: "[Success] GameObject property 'name' changed to 'NewName'"
+                    
+                    if (trimmedLine.Contains("Property '") && trimmedLine.Contains("' modified to '"))
+                    {
+                        var propStart = trimmedLine.IndexOf("Property '") + "Property '".Length;
+                        var propEnd = trimmedLine.IndexOf("'", propStart);
+                        if (propEnd > propStart)
+                        {
+                            var propertyName = trimmedLine.Substring(propStart, propEnd - propStart);
+                            
+                            var valueStart = trimmedLine.IndexOf("' modified to '") + "' modified to '".Length;
+                            var valueEnd = trimmedLine.LastIndexOf("'");
+                            if (valueEnd > valueStart)
+                            {
+                                var newValue = trimmedLine.Substring(valueStart, valueEnd - valueStart);
+                                // Simplify the value display for readability
+                                var simplifiedValue = SimplifyValue(newValue);
+                                details.Add($"{propertyName} → {simplifiedValue}");
+                            }
+                            else
+                            {
+                                details.Add($"{propertyName} modified");
+                            }
+                        }
+                    }
+                    else if (trimmedLine.Contains("Field '") && trimmedLine.Contains("' changed to '"))
+                    {
+                        var fieldStart = trimmedLine.IndexOf("Field '") + "Field '".Length;
+                        var fieldEnd = trimmedLine.IndexOf("'", fieldStart);
+                        if (fieldEnd > fieldStart)
+                        {
+                            var fieldName = trimmedLine.Substring(fieldStart, fieldEnd - fieldStart);
+                            
+                            var valueStart = trimmedLine.IndexOf("' changed to '") + "' changed to '".Length;
+                            var valueEnd = trimmedLine.LastIndexOf("'");
+                            if (valueEnd > valueStart)
+                            {
+                                var newValue = trimmedLine.Substring(valueStart, valueEnd - valueStart);
+                                var simplifiedValue = SimplifyValue(newValue);
+                                details.Add($"{fieldName} → {simplifiedValue}");
+                            }
+                            else
+                            {
+                                details.Add($"{fieldName} modified");
+                            }
+                        }
+                    }
+                    else if (trimmedLine.Contains("GameObject property '") && trimmedLine.Contains("' changed to '"))
+                    {
+                        var propStart = trimmedLine.IndexOf("GameObject property '") + "GameObject property '".Length;
+                        var propEnd = trimmedLine.IndexOf("'", propStart);
+                        if (propEnd > propStart)
+                        {
+                            var propertyName = trimmedLine.Substring(propStart, propEnd - propStart);
+                            
+                            var valueStart = trimmedLine.IndexOf("' changed to '") + "' changed to '".Length;
+                            var valueEnd = trimmedLine.LastIndexOf("'");
+                            if (valueEnd > valueStart)
+                            {
+                                var newValue = trimmedLine.Substring(valueStart, valueEnd - valueStart);
+                                var simplifiedValue = SimplifyValue(newValue);
+                                details.Add($"{propertyName} → {simplifiedValue}");
+                            }
+                            else
+                            {
+                                details.Add($"{propertyName} modified");
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (details.Count == 0)
+                return "modified";
+
+            // Combine details, but limit length for readability
+            var combined = string.Join(", ", details);
+            if (combined.Length > 60) // Limit to avoid too long names
+            {
+                // Show first few modifications and indicate there are more
+                var firstDetails = details.Take(2).ToList();
+                var firstCombined = string.Join(", ", firstDetails);
+                if (details.Count > 2)
+                {
+                    return $"{firstCombined}... (+{details.Count - 2} more)";
+                }
+                else if (firstCombined.Length > 60)
+                {
+                    return $"{firstCombined.Substring(0, 57)}...";
+                }
+                return firstCombined;
+            }
+
+            return combined;
+        }
+
+        /// <summary>
+        /// Simplify complex values for better readability in undo group names
+        /// </summary>
+        private string SimplifyValue(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            // Simplify Vector3 format: "(1.50, 2.00, 3.00)" -> "(1.5, 2, 3)"
+            if (value.StartsWith("(") && value.EndsWith(")") && value.Contains(","))
+            {
+                var cleaned = value.Trim('(', ')');
+                var parts = cleaned.Split(',');
+                if (parts.Length == 3)
+                {
+                    var simplifiedParts = parts.Select(p => 
+                    {
+                        if (float.TryParse(p.Trim(), out var floatVal))
+                        {
+                            // Remove unnecessary trailing zeros
+                            if (floatVal == Math.Round(floatVal))
+                                return Math.Round(floatVal).ToString();
+                            else
+                                return floatVal.ToString("0.##");
+                        }
+                        return p.Trim();
+                    });
+                    return $"({string.Join(", ", simplifiedParts)})";
+                }
+            }
+
+            // Limit string length
+            if (value.Length > 20)
+            {
+                return $"{value.Substring(0, 17)}...";
+            }
+
+            return value;
         }
 
         private string SetParentGameObjects(GameObjectRefList gameObjectRefs, GameObjectRef? parentGameObjectRef, bool worldPositionStays)

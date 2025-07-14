@@ -34,7 +34,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
         {
             return operation.ToLower() switch
             {
-                "load" => await LoadScene(path, loadSceneMode),
+                "load" => LoadScene(path, loadSceneMode),
                 "unload" => await UnloadScene(sceneName),
                 "save" => SaveScene(path, sceneName),
                 "create" => CreateScene(path),
@@ -42,9 +42,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
             };
         }
 
-        private async Task<string> LoadScene(string? path, int loadSceneMode)
+        private string LoadScene(string? path, int loadSceneMode)
         {
-            return await MainThread.Instance.Run(async () =>
+            return MainThread.Instance.Run(() =>
             {
                 if (string.IsNullOrEmpty(path))
                     return Error.ScenePathIsEmpty();
@@ -61,13 +61,11 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     {
                         0 => UnityEditor.SceneManagement.OpenSceneMode.Single,
                         1 => UnityEditor.SceneManagement.OpenSceneMode.Additive,
-                        _ => throw new System.ArgumentOutOfRangeException(nameof(loadSceneMode), "Invalid open scene mode.")
-                    });
+                        _ => UnityEditor.SceneManagement.OpenSceneMode.Single
+                    }
+                );
 
-                if (!scene.IsValid())
-                    return $"[Error] Failed to load scene at '{path}'.\n{LoadedScenes}";
-
-                return $"[Success] Scene loaded at '{path}'.\n{LoadedScenes}";
+                return $"[Success] Scene loaded: '{scene.name}' with mode: {(loadSceneMode == 0 ? "Single" : "Additive")}";
             });
         }
 

@@ -1,0 +1,258 @@
+{
+    "id": "interactive_character_creator",
+    "name": "Interactive Character Creator",
+    "description": "Create a character through interactive user input using Unity tools",
+    "version": "1.0.0",
+    "author": "Unity MCP System",
+    "metadata": {
+        "category": "Character Creation",
+        "tags": [
+            "character",
+            "interactive",
+            "creation",
+            "user-input"
+        ],
+        "runtimeRequirements": [
+            "Unity"
+        ],
+        "pluginDependencies": []
+    },
+    "parameters": [
+        {
+            "name": "sceneName",
+            "type": "string",
+            "description": "Target scene name for character creation",
+            "required": false,
+            "defaultValue": "Main"
+        }
+    ],
+    "steps": [
+        {
+            "id": "ask_character_name",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "Interact_ManageUserInput",
+            "parameters": {
+                "operation": "ask",
+                "promptMessage": "Please enter the name of the character you want to create:",
+                "windowId": "character_name_input",
+                "mode": "clean"
+            },
+            "timeoutSeconds": 60
+        },
+        {
+            "id": "ask_character_type",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "Interact_ManageUserInput",
+            "parameters": {
+                "operation": "ask",
+                "promptMessage": "Please select character type:\n1. Humanoid Character\n2. Animal Character\n3. Robot Character\n4. Custom Character\n\nPlease enter number 1-4:",
+                "windowId": "character_type_input",
+                "mode": "clean"
+            },
+            "condition": "${ask_character_name.success}",
+            "timeoutSeconds": 60
+        },
+        {
+            "id": "create_character_base",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "GameObject_Manage",
+            "parameters": {
+                "operation": "create",
+                "name": "${ask_character_name.result}",
+                "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "rotation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                },
+                "isLocalSpace": false,
+                "primitiveType": 0
+            },
+            "condition": "${ask_character_type.success}",
+            "retryPolicy": {
+                "maxAttempts": 3,
+                "delaySeconds": 1,
+                "backoffStrategy": "linear"
+            }
+        },
+        {
+            "id": "ask_add_components",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "Interact_ManageUserInput",
+            "parameters": {
+                "operation": "ask",
+                "promptMessage": "Do you want to add components to the character?\nAvailable components:\n1. Rigidbody\n2. Collider\n3. Animator\n4. CharacterController\n5. AudioSource\n\nPlease enter component numbers separated by commas (e.g., 1,2,3) or enter 'no' to skip:",
+                "windowId": "components_input",
+                "mode": "clean"
+            },
+            "condition": "${create_character_base.success}",
+            "timeoutSeconds": 60
+        },
+        {
+            "id": "process_components",
+            "type": "model_use",
+            "connector": "model_use",
+            "operation": "text",
+            "parameters": {
+                "Messages": [
+                    {
+                        "Role": 0,
+                        "Type": 0,
+                        "Content": "User input: '${ask_add_components.result}'\nPlease convert the user input to Unity component type name array. Rules as follows:\n1->UnityEngine.Rigidbody\n2->UnityEngine.BoxCollider\n3->UnityEngine.Animator\n4->UnityEngine.CharacterController\n5->UnityEngine.AudioSource\n\nIf user input is 'no' or empty, return empty array [].\nIf user input is numbers, return JSON array of corresponding component names.\nOnly return JSON array, no other text, do not use code block."
+                    }
+                ],
+                "parameters": {
+                    "max_tokens": 200
+                },
+                "ModelType": "text",
+                "Mode": "clean"
+            },
+            "condition": "${ask_add_components.success}",
+            "timeoutSeconds": 30
+        },
+        {
+            "id": "add_components_to_character",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "GameObject_AddComponent",
+            "parameters": {
+                "gameObjectRef": {
+                    "name": "${ask_character_name.result}"
+                },
+                "componentNames": "${process_components.result}"
+            },
+            "condition": "${process_components.success}",
+            "retryPolicy": {
+                "maxAttempts": 2,
+                "delaySeconds": 1,
+                "backoffStrategy": "linear"
+            }
+        },
+        {
+            "id": "ask_final_position",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "Interact_ManageUserInput",
+            "parameters": {
+                "operation": "ask",
+                "promptMessage": "Please enter the final position coordinates (x,y,z) for the character:\nFormat: x,y,z (e.g., 0,0,0)\nOr press Confirm to use default position (0,0,0):",
+                "windowId": "position_input",
+                "mode": "clean"
+            },
+            "condition": "${add_components_to_character.success}",
+            "timeoutSeconds": 60
+        },
+        {
+            "id": "parse_position",
+            "type": "model_use",
+            "connector": "model_use",
+            "operation": "text",
+            "parameters": {
+                "Messages": [
+                    {
+                        "Role": 0,
+                        "Type": 0,
+                        "Content": "User input position: '${ask_final_position.result}'\nPlease convert it to Unity Vector3 format JSON object.\nIf input is empty or invalid, use default value {\"x\":0,\"y\":0,\"z\":0}.\nIf input format is 'x,y,z', parse to corresponding coordinate values.\nOnly return JSON object, no other text, no code block."
+                    }
+                ],
+                "parameters": {
+                    "max_tokens": 50
+                },
+                "ModelType": "text"
+            },
+            "condition": "${ask_final_position.success}",
+            "timeoutSeconds": 30
+        },
+        {
+            "id": "set_final_position",
+            "type": "rpc_call",
+            "connector": "unity",
+            "operation": "GameObject_Manage",
+            "parameters": {
+                "operation": "modify",
+                "gameObjectRef": {
+                    "name": "${ask_character_name.result}"
+                },
+                "gameObjectDiffs": [
+                    {
+                        "typeName": "UnityEngine.Transform",
+                        "value": null,
+                        "props": [
+                            {
+                                "name": "position",
+                                "typeName": "UnityEngine.Vector3",
+                                "value": "${parse_position.result}"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "condition": "${parse_position.success}"
+        },
+        {
+            "id": "generate_creation_report",
+            "type": "data_transform",
+            "connector": "system",
+            "operation": "json_stringify",
+            "parameters": {
+                "data": {
+                    "characterName": "${ask_character_name.result}",
+                    "characterType": "${ask_character_type.result}",
+                    "primitiveType": "2",
+                    "components": "${process_components.result}",
+                    "finalPosition": "${parse_position.result}",
+                    "creationSuccess": "${create_character_base.success}",
+                    "componentsSuccess": "${add_components_to_character.success}",
+                    "positionSuccess": "${set_final_position.success}",
+                    "timestamp": "$(system.timestamp)"
+                },
+                "transform": "json_stringify"
+            }
+        }
+    ],
+    "outputs": {
+        "characterName": {
+            "source": "${ask_character_name.result}",
+            "type": "string",
+            "description": "User input character name"
+        },
+        "characterType": {
+            "source": "${ask_character_type.result}",
+            "type": "string",
+            "description": "User selected character type"
+        },
+        "creationResult": {
+            "source": "${create_character_base.result}",
+            "type": "string",
+            "description": "Character creation operation result"
+        },
+        "componentsResult": {
+            "source": "${add_components_to_character.result}",
+            "type": "string",
+            "description": "Component addition operation result"
+        },
+        "finalPosition": {
+            "source": "${parse_position.result}",
+            "type": "string",
+            "description": "Character final position coordinates"
+        },
+        "creationReport": {
+            "source": "${generate_creation_report.result}",
+            "type": "string",
+            "description": "Complete character creation report"
+        }
+    }
+}

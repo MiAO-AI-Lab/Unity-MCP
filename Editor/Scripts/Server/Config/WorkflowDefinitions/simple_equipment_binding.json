@@ -70,10 +70,17 @@
             "connector": "model_use",
             "operation": "text",
             "parameters": {
-                "prompt": "Please validate if this character is suitable for equipment binding: ${find_character.result}. Respond with 'valid' or 'invalid' and a brief reason.",
+                "Messages": [
+                    {
+                        "Role": 0,
+                        "Type": 0,
+                        "Content": "Please validate if this character is suitable for equipment binding: ${find_character.result}. Respond with 'valid' or 'invalid' and a brief reason."
+                    }
+                ],
                 "parameters": {
                     "max_tokens": 100
-                }
+                },
+                "ModelType": "text"
             },
             "condition": "${find_character.success}",
             "timeoutSeconds": 30

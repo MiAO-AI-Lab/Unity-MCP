@@ -26,6 +26,187 @@ namespace Unity.MCP
             public string DisplayName => isMcpOperation 
                 ? $"[MCP] {operationName}" 
                 : $"[Manual] {operationName}";
+                
+            /// <summary>
+            /// 解析操作名称为 [操作类型] [来源] 对象描述 的格式
+            /// </summary>
+            public string ParsedDisplayName
+            {
+                get
+                {
+                    var (operationType, objectDescription) = ParseOperationName(operationName);
+                    var sourceType = isMcpOperation ? "MCP" : "Manual";
+                    
+                    if (string.IsNullOrEmpty(objectDescription))
+                    {
+                        return $"[{operationType}] [{sourceType}]";
+                    }
+                    else
+                    {
+                        return $"[{operationType}] [{sourceType}] {objectDescription}";
+                    }
+                }
+            }
+            
+            /// <summary>
+            /// 解析操作名称，提取操作类型和对象描述
+            /// </summary>
+            public static (string operationType, string objectDescription) ParseOperationName(string operationName)
+            {
+                if (string.IsNullOrEmpty(operationName))
+                    return ("Unknown", "");
+                
+                var trimmedName = operationName.Trim();
+                
+                // 处理MCP操作
+                if (trimmedName.StartsWith("[MCP]"))
+                {
+                    trimmedName = trimmedName.Substring(5).Trim();
+                }
+                
+                // 解析各种操作类型
+                
+                // Rename操作: "Rename hhh" -> ("Rename", "hhh")
+                if (trimmedName.StartsWith("Rename ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(7).Trim();
+                    return ("Rename", objectName);
+                }
+                
+                // Select操作: "Select hhh (GameObject)" -> ("Select", "hhh (GameObject)")
+                // 或 "Select hhh (123) (GameObject)" -> ("Select", "hhh (123) (GameObject)")
+                if (trimmedName.StartsWith("Select ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectDescription = trimmedName.Substring(7).Trim();
+                    return ("Select", objectDescription);
+                }
+                
+                // Create操作: "Create hhh" -> ("Create", "hhh")
+                if (trimmedName.StartsWith("Create ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(7).Trim();
+                    return ("Create", objectName);
+                }
+                
+                // Delete操作: "Delete hhh" -> ("Delete", "hhh")
+                if (trimmedName.StartsWith("Delete ", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedName.StartsWith("Destroy ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var startIndex = trimmedName.StartsWith("Delete ", StringComparison.OrdinalIgnoreCase) ? 7 : 8;
+                    var objectName = trimmedName.Substring(startIndex).Trim();
+                    var operationType = trimmedName.StartsWith("Delete ", StringComparison.OrdinalIgnoreCase) ? "Delete" : "Destroy";
+                    return (operationType, objectName);
+                }
+                
+                // Drag and Drop操作: "Drag and Drop hhh" -> ("Drag", "hhh")
+                if (trimmedName.StartsWith("Drag and Drop ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(14).Trim();
+                    return ("Drag", objectName);
+                }
+                
+                // Duplicate操作: "Duplicate hhh" -> ("Duplicate", "hhh")
+                if (trimmedName.StartsWith("Duplicate ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(10).Trim();
+                    return ("Duplicate", objectName);
+                }
+                
+                // Copy操作: "Copy hhh" -> ("Copy", "hhh")
+                if (trimmedName.StartsWith("Copy ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(5).Trim();
+                    return ("Copy", objectName);
+                }
+                
+                // Move操作: "Move hhh" -> ("Move", "hhh")
+                if (trimmedName.StartsWith("Move ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(5).Trim();
+                    return ("Move", objectName);
+                }
+                
+                // Transform操作: "Transform hhh" -> ("Transform", "hhh")
+                if (trimmedName.StartsWith("Transform ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(10).Trim();
+                    return ("Transform", objectName);
+                }
+                
+                // Modify操作: "Modify hhh" -> ("Modify", "hhh")
+                if (trimmedName.StartsWith("Modify ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(7).Trim();
+                    return ("Modify", objectName);
+                }
+                
+                // Add Component操作: "Add Component hhh" -> ("Add Component", "hhh")
+                if (trimmedName.StartsWith("Add Component ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(14).Trim();
+                    return ("Add Component", objectName);
+                }
+                
+                // Remove Component操作: "Remove Component hhh" -> ("Remove Component", "hhh")
+                if (trimmedName.StartsWith("Remove Component ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var objectName = trimmedName.Substring(17).Trim();
+                    return ("Remove Component", objectName);
+                }
+                
+                // Clear Selection操作: "Clear Selection" -> ("Clear Selection", "")
+                if (trimmedName.Equals("Clear Selection", StringComparison.OrdinalIgnoreCase))
+                {
+                    return ("Clear Selection", "");
+                }
+                
+                // 其他特殊操作模式
+                
+                // 检查是否包含常见的操作动词
+                var lowerName = trimmedName.ToLower();
+                var operationVerbs = new[]
+                {
+                    "create", "delete", "destroy", "duplicate", "copy", "paste", "clone",
+                    "move", "rotate", "scale", "rename", "transform", "modify", "edit",
+                    "drag", "drop", "instantiate", "spawn", "add", "place", "insert",
+                    "remove", "change", "set", "update", "build", "generate"
+                };
+                
+                foreach (var verb in operationVerbs)
+                {
+                    if (lowerName.Contains(verb))
+                    {
+                        // 找到操作动词，尝试提取操作类型
+                        var verbIndex = lowerName.IndexOf(verb);
+                        var operationType = char.ToUpper(verb[0]) + verb.Substring(1);
+                        
+                        // 提取对象描述（动词后面的部分）
+                        var afterVerb = trimmedName.Substring(verbIndex + verb.Length).Trim();
+                        if (afterVerb.StartsWith(" "))
+                        {
+                            afterVerb = afterVerb.Substring(1).Trim();
+                        }
+                        
+                        return (operationType, afterVerb);
+                    }
+                }
+                
+                // 如果没有找到明确的操作模式，使用整个名称作为操作类型
+                if (trimmedName.Length > 20)
+                {
+                    // 对于很长的名称，尝试提取前面的部分作为操作类型
+                    var firstWords = trimmedName.Split(' ').Take(2).ToArray();
+                    if (firstWords.Length >= 2)
+                    {
+                        var operationType = string.Join(" ", firstWords);
+                        var objectDescription = trimmedName.Substring(operationType.Length).Trim();
+                        return (operationType, objectDescription);
+                    }
+                }
+                
+                // 默认情况：使用整个名称作为操作类型
+                return (trimmedName, "");
+            }
         }
         
         private static int lastTrackedGroup = -1;
@@ -256,9 +437,7 @@ namespace Unity.MCP
             {
                 var extractedName = ExtractOperationName(groupName);
                 bool shouldRecord = true;
-
-
-
+                
                 // Delete operation detection has been moved to duplicate detection logic, no longer need time recording
                 
                 // For selection operations, must first check if selection state actually changed
@@ -305,6 +484,10 @@ namespace Unity.MCP
                     {
                         AddOperation(currentGroup, extractedName, groupName.StartsWith("[MCP]"));
                     }
+                }
+                else
+                {
+                    // Operation skipped (shouldRecord=false)
                 }
             }
             else if (string.IsNullOrEmpty(groupName))
@@ -694,17 +877,40 @@ namespace Unity.MCP
             
             var extractedName = ExtractOperationName(operationName);
             
-            // For MCP operations, sequence-based duplicate detection
+            // For MCP operations, more sophisticated duplicate detection
             if (operationName.StartsWith("[MCP]"))
             {
-                // Check if there are identical MCP operations in the last 5 operations
-                var recentOperations = allOperations.TakeLast(5).ToList();
-                var identicalMcpOps = recentOperations.Where(op => op.operationName == extractedName && op.isMcpOperation).ToList();
+                // Check if there are identical MCP operations in the last 3 operations
+                var recentOperations = allOperations.TakeLast(3).ToList();
                 
+                // For MCP operations, we need to check the complete operation name, not just the operation type
+                // This allows multiple operations of the same type on different objects
+                var identicalMcpOps = recentOperations.Where(op => 
+                    op.operationName == extractedName && 
+                    op.isMcpOperation).ToList();
+                
+                // Only consider it duplicate if the exact same operation name exists recently
+                // AND it was within the last 2 seconds (to handle rapid identical operations)
                 if (identicalMcpOps.Count > 0)
                 {
-                    return true;
+                    var lastIdentical = identicalMcpOps.Last();
+                    var timeDifference = DateTime.Now - lastIdentical.timestamp;
+                    
+                    // If the identical operation was very recent (within 2 seconds), it might be a duplicate
+                    // But if it contains different object information, allow it
+                    if (timeDifference.TotalSeconds < 2)
+                    {
+                        // Check if the operation contains object-specific information (GameObject names, IDs, etc.)
+                        // If it does, and the information is different, it's not a duplicate
+                        if (ContainsObjectSpecificInfo(extractedName))
+                        {
+                            return false; // Allow operations with different object-specific information
+                        }
+                        return true; // Consider it duplicate only if no object-specific info
+                    }
                 }
+                
+                return false; // Not a duplicate for MCP operations
             }
             // For delete operations, judge uniqueness based on scene object count change (each delete reduces objects, even if operation names are same)
             else if (IsDeleteOperation(extractedName))
@@ -797,6 +1003,19 @@ namespace Unity.MCP
         }
         
         /// <summary>
+        /// Check if a word exists as a complete word in the text using word boundaries
+        /// </summary>
+        private static bool ContainsWholeWord(string text, string word)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(word))
+                return false;
+            
+            // Use regex with word boundaries to match complete words only
+            var pattern = $@"\b{System.Text.RegularExpressions.Regex.Escape(word)}\b";
+            return System.Text.RegularExpressions.Regex.IsMatch(text, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+        
+        /// <summary>
         /// Determine if operation is a valid undoable operation
         /// </summary>
         private static bool IsValidUndoableOperation(string operationName)
@@ -812,7 +1031,6 @@ namespace Unity.MCP
                 return true;
             }
             
-            // Filter out non-undoable operation types
             var lowerName = operationName.ToLower();
             
             // **Priority check for Unity native selection operation format**
@@ -827,58 +1045,76 @@ namespace Unity.MCP
                 return true;
             }
             
-            // Explicitly invalid operations - Interface and system operations
-            if (lowerName.Contains("console") || 
-                lowerName.Contains("log") ||
-                lowerName.Contains("selection change") ||
-                lowerName.Contains("editor action") ||
-                lowerName.Contains("quick action") ||
-                lowerName.Contains("continuous edit") ||
-                lowerName.Contains("window") ||
-                lowerName.Contains("tab") ||
-                lowerName.Contains("focus") ||
-                lowerName.Contains("click") ||
-                lowerName.Contains("ui") ||
-                lowerName.Contains("panel") ||
-                lowerName.Contains("inspector change") ||
-                lowerName.StartsWith("unknown action"))
+            // STEP 1: Check for clearly valid editing operations first (positive matching)
+            var validEditingKeywords = new[]
             {
-                return false;
+                "create", "delete", "destroy", "duplicate", "copy", "paste", "clone",
+                "move", "rotate", "scale", "rename", "transform", "modify", "edit",
+                "drag", "drop", "instantiate", "spawn", "add", "place", "insert",
+                "new", "gameobject", "prefab", "asset", "import", "build", "generate"
+            };
+            
+            foreach (var keyword in validEditingKeywords)
+            {
+                if (ContainsWholeWord(lowerName, keyword))
+                {
+                    return true;
+                }
             }
             
-            // Explicitly valid operations - Real editing operations
-            if (lowerName.Contains("create") || 
-                lowerName.Contains("delete") || 
-                lowerName.Contains("destroy") ||
-                lowerName.Contains("duplicate") ||
-                lowerName.Contains("copy") ||      // Add copy operation detection
-                lowerName.Contains("paste") ||     // Add paste operation detection
-                lowerName.Contains("clone") ||     // Add clone operation detection
-                lowerName.Contains("move") ||
-                lowerName.Contains("rotate") ||
-                lowerName.Contains("scale") ||
-                lowerName.Contains("rename") ||
-                lowerName.Contains("transform") ||
-                lowerName.Contains("modify") ||
-                lowerName.Contains("edit") ||
-                lowerName.Contains("select") ||  // General selection operation
-                lowerName.Contains("clear") ||   // General clear operation
-                lowerName.Contains("add component") ||
-                lowerName.Contains("remove component") ||
-                lowerName.Contains("component edit") ||
-                lowerName.Contains("property change") ||
-                lowerName.Contains("position change") ||
-                lowerName.Contains("scene modification") ||
-                lowerName.Contains("hierarchy change") ||
-                lowerName.Contains("operation"))
+            // STEP 2: Check for clearly invalid UI/system operations (negative matching)
+            var invalidUIKeywords = new[]
+            {
+                "console", "window", "panel", "tab", "focus", "click", "ui",
+                "inspector", "editor", "quick", "continuous", "selection change",
+                "unknown action", "internal", "system", "temp", "debug"
+            };
+            
+            foreach (var keyword in invalidUIKeywords)
+            {
+                if (ContainsWholeWord(lowerName, keyword) || lowerName.Contains(keyword))
+                {
+                    return false;
+                }
+            }
+            
+            // STEP 3: Check for composite operations (phrases that should be valid)
+            var validCompositeOperations = new[]
+            {
+                "add component", "remove component", "component edit", "property change",
+                "position change", "scene modification", "hierarchy change", "clear selection"
+            };
+            
+            foreach (var operation in validCompositeOperations)
+            {
+                if (lowerName.Contains(operation))
+                {
+                    return true;
+                }
+            }
+            
+            // STEP 4: Conservative approach - If it contains "select" or "clear", it's likely valid
+            if (ContainsWholeWord(lowerName, "select") || ContainsWholeWord(lowerName, "clear"))
             {
                 return true;
             }
             
-            // Default case: Strict filtering, unknown operations considered invalid
+            // STEP 5: Lenient filter for operations that look like real editing operations
+            // Must be longer than 3 characters and not obviously invalid
+            if (lowerName.Length > 3 && 
+                !lowerName.Contains("unknown") &&
+                !lowerName.Contains("internal") &&
+                !lowerName.Contains("system") &&
+                !lowerName.Contains("temp") &&
+                !lowerName.Contains("debug"))
+            {
+                return true; // Default to valid for ambiguous cases
+            }
+            
+            // Default case: Only filter out obviously invalid operations
             return false;
         }
-        
+
         /// <summary>
         /// Specifically infer selection-related operation types
         /// Only detect selection state changes, don't update state (state update is caller's responsibility)
@@ -1282,6 +1518,81 @@ namespace Unity.MCP
             var redoHistory = redoOperations.ToList();
             redoHistory.Reverse(); // Reverse to put newest redo operations at the front
             return redoHistory;
+        }
+        
+        /// <summary>
+        /// Force check for new operations before critical operations (undo/redo/clear)
+        /// This ensures we don't miss any operations due to polling delay
+        /// </summary>
+        public static void ForceCheckNewOperations()
+        {
+            try
+            {
+                // Skip if already performing undo/redo or refreshing UI
+                if (isPerformingUndoRedo || isRefreshingUI)
+                {
+                    return;
+                }
+                
+                var currentGroup = Undo.GetCurrentGroup();
+                var currentUnityUndoCount = GetUnityUndoStackCount();
+                
+                // Check if there are new operations to process
+                if (currentGroup > lastTrackedGroup)
+                {
+                    // Get current group name
+                    var currentGroupName = "";
+                    try
+                    {
+                        currentGroupName = Undo.GetCurrentGroupName();
+                    }
+                    catch { }
+                    
+                    // Process new operation immediately
+                    ProcessNewOperation(currentGroup, currentGroupName);
+                    lastTrackedGroup = currentGroup;
+                    
+                    // Update Unity undo count tracking
+                    lastUnityUndoCount = GetUnityUndoStackCount();
+                    
+                    // Trigger UI update if operations were added
+                    OnOperationsChanged?.Invoke();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[UnityUndoMonitor] Error in ForceCheckNewOperations: {e.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Check if operation name contains object-specific information
+        /// </summary>
+        private static bool ContainsObjectSpecificInfo(string operationName)
+        {
+            if (string.IsNullOrEmpty(operationName))
+                return false;
+                
+            var lowerName = operationName.ToLower();
+            
+            // Check for GameObject names or specific identifiers
+            // Operations with object names like "Modify GameObject: North" should be considered unique
+            // New format: "Modify North: position → (0.2, 0, 5.2)" should also be considered unique
+            if (lowerName.Contains(": ") || lowerName.Contains(" - ") || 
+                lowerName.Contains("→") || lowerName.Contains("->") || // Modification indicators
+                lowerName.Contains("north") || lowerName.Contains("south") || 
+                lowerName.Contains("east") || lowerName.Contains("west") ||
+                lowerName.Contains("sphere") || lowerName.Contains("cube") ||
+                lowerName.Contains("gameobject:") || lowerName.Contains("object:") ||
+                lowerName.Contains("position") || lowerName.Contains("rotation") || lowerName.Contains("scale") || // Common properties
+                lowerName.Contains("name") || lowerName.Contains("tag") || lowerName.Contains("layer") || // GameObject properties
+                System.Text.RegularExpressions.Regex.IsMatch(lowerName, @"\b\w+\s*\(\d+\)") || // Pattern like "Object (123)"
+                System.Text.RegularExpressions.Regex.IsMatch(operationName, @"\b[A-Z][a-z]+\b")) // Contains capitalized words (likely object names)
+            {
+                return true;
+            }
+            
+            return false;
         }
     }
 } 

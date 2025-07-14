@@ -56,7 +56,14 @@ namespace com.MiAO.Unity.MCP.Server.Protocol
 
                 // Process request
                 var response = await ProcessModelRequestAsync(request);
-                return JsonSerializer.Serialize(response);
+                if (request.Mode == "clean")
+                {
+                    return response.Content?.ToString() ?? "No content received";
+                }
+                else
+                {
+                    return JsonSerializer.Serialize(response);
+                }
             }
             catch (Exception ex)
             {
