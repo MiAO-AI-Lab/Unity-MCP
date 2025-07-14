@@ -1,0 +1,37 @@
+{
+    "name": "com.miao.unity.mcp.essential",
+    "version": "1.0.0",
+    "displayName": "Unity MCP Essential Tools",
+    "description": "Essential Unity MCP tools including GameObject, Scene, Assets, Component, Editor, Physics, Animation, ScriptableObject, Timeline, and basic utility operations. Automatically includes Unity MCP Hub framework.",
+    "unity": "2021.3",
+    "keywords": [
+        "mcp",
+        "model context protocol",
+        "essential",
+        "tools",
+        "gameobject",
+        "scene",
+        "assets",
+        "physics",
+        "animation"
+    ],
+    "author": {
+        "name": "MiAO",
+        "email": "ai@miao.company"
+    },
+    "license": "Apache-2.0",
+    "contributors": [
+        {
+            "name": "Ivan Murzak",
+            "role": "Original Author"
+        },
+        {
+            "name": "MiAO",
+            "email": "ai@miao.company",
+            "role": "Modifications and Extensions"
+        }
+    ],
+    "dependencies": {
+        "com.miao.unity.mcp": "1.0.1"
+    }
+} 

@@ -1,8 +1,8 @@
 {
     "name": "com.miao.unity.mcp",
     "version": "1.0.1",
-    "displayName": "Unity MCP (Model Context Protocol)",
-    "description": "Unity MCP (Model Context Protocol) integration miao-unity-mcp for Unity Editor automation and scripting.",
+    "displayName": "Unity MCP Hub (Core Framework)",
+    "description": "Unity MCP Hub provides the core framework for Model Context Protocol integration with Unity Editor. Includes MCP communication, tool injection system, and package bootstrap functionality. Install tool packages separately to add specific functionality.",
     "unity": "2021.3",
     "keywords": [
         "mcp",
