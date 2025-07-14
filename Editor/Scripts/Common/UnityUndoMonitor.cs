@@ -877,17 +877,40 @@ namespace Unity.MCP
             
             var extractedName = ExtractOperationName(operationName);
             
-            // For MCP operations, sequence-based duplicate detection
+            // For MCP operations, more sophisticated duplicate detection
             if (operationName.StartsWith("[MCP]"))
             {
-                // Check if there are identical MCP operations in the last 5 operations
-                var recentOperations = allOperations.TakeLast(5).ToList();
-                var identicalMcpOps = recentOperations.Where(op => op.operationName == extractedName && op.isMcpOperation).ToList();
+                // Check if there are identical MCP operations in the last 3 operations
+                var recentOperations = allOperations.TakeLast(3).ToList();
                 
+                // For MCP operations, we need to check the complete operation name, not just the operation type
+                // This allows multiple operations of the same type on different objects
+                var identicalMcpOps = recentOperations.Where(op => 
+                    op.operationName == extractedName && 
+                    op.isMcpOperation).ToList();
+                
+                // Only consider it duplicate if the exact same operation name exists recently
+                // AND it was within the last 2 seconds (to handle rapid identical operations)
                 if (identicalMcpOps.Count > 0)
                 {
-                    return true;
+                    var lastIdentical = identicalMcpOps.Last();
+                    var timeDifference = DateTime.Now - lastIdentical.timestamp;
+                    
+                    // If the identical operation was very recent (within 2 seconds), it might be a duplicate
+                    // But if it contains different object information, allow it
+                    if (timeDifference.TotalSeconds < 2)
+                    {
+                        // Check if the operation contains object-specific information (GameObject names, IDs, etc.)
+                        // If it does, and the information is different, it's not a duplicate
+                        if (ContainsObjectSpecificInfo(extractedName))
+                        {
+                            return false; // Allow operations with different object-specific information
+                        }
+                        return true; // Consider it duplicate only if no object-specific info
+                    }
                 }
+                
+                return false; // Not a duplicate for MCP operations
             }
             // For delete operations, judge uniqueness based on scene object count change (each delete reduces objects, even if operation names are same)
             else if (IsDeleteOperation(extractedName))
@@ -1540,6 +1563,36 @@ namespace Unity.MCP
             {
                 Debug.LogError($"[UnityUndoMonitor] Error in ForceCheckNewOperations: {e.Message}");
             }
+        }
+        
+        /// <summary>
+        /// Check if operation name contains object-specific information
+        /// </summary>
+        private static bool ContainsObjectSpecificInfo(string operationName)
+        {
+            if (string.IsNullOrEmpty(operationName))
+                return false;
+                
+            var lowerName = operationName.ToLower();
+            
+            // Check for GameObject names or specific identifiers
+            // Operations with object names like "Modify GameObject: North" should be considered unique
+            // New format: "Modify North: position → (0.2, 0, 5.2)" should also be considered unique
+            if (lowerName.Contains(": ") || lowerName.Contains(" - ") || 
+                lowerName.Contains("→") || lowerName.Contains("->") || // Modification indicators
+                lowerName.Contains("north") || lowerName.Contains("south") || 
+                lowerName.Contains("east") || lowerName.Contains("west") ||
+                lowerName.Contains("sphere") || lowerName.Contains("cube") ||
+                lowerName.Contains("gameobject:") || lowerName.Contains("object:") ||
+                lowerName.Contains("position") || lowerName.Contains("rotation") || lowerName.Contains("scale") || // Common properties
+                lowerName.Contains("name") || lowerName.Contains("tag") || lowerName.Contains("layer") || // GameObject properties
+                System.Text.RegularExpressions.Regex.IsMatch(lowerName, @"\b\w+\s*\(\d+\)") || // Pattern like "Object (123)"
+                System.Text.RegularExpressions.Regex.IsMatch(operationName, @"\b[A-Z][a-z]+\b")) // Contains capitalized words (likely object names)
+            {
+                return true;
+            }
+            
+            return false;
         }
     }
 } 
