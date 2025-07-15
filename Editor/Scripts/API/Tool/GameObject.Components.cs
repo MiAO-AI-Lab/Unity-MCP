@@ -7,6 +7,7 @@ using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
 using com.IvanMurzak.ReflectorNet.Utils;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
+using UnityEditor;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
@@ -34,6 +35,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 return $"[Error] No component names provided.";
 
             var stringBuilder = new StringBuilder();
+            var addedComponents = new System.Collections.Generic.List<UnityEngine.Component>();
 
             foreach (var componentName in componentNames)
             {
@@ -52,8 +54,14 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 }
 
                 var newComponent = go.AddComponent(type);
-
+                addedComponents.Add(newComponent);
                 stringBuilder.AppendLine($"[Success] Added component '{componentName}'. Component instanceID='{newComponent.GetInstanceID()}'.");
+            }
+
+            // Register undo for all added components
+            if (addedComponents.Count > 0)
+            {
+                McpUndoHelper.RegisterCreatedObjects(addedComponents, "Add Component", go.name);
             }
 
             stringBuilder.AppendLine(go.Print());
@@ -79,20 +87,30 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
             var destroyCounter = 0;
             var stringBuilder = new StringBuilder();
+            var componentsToDestroy = new System.Collections.Generic.List<UnityEngine.Component>();
 
             var allComponents = go.GetComponents<UnityEngine.Component>();
+            
+            // Find components to destroy
             foreach (var component in allComponents)
-            {
+            {    
                 if (destroyComponentRefs.Any(cr => cr.Matches(component)))
                 {
-                    UnityEngine.Object.DestroyImmediate(component);
-                    destroyCounter++;
-                    stringBuilder.AppendLine($"[Success] Destroyed component instanceID='{component.GetInstanceID()}', type='{component.GetType().FullName}'.");
+                    componentsToDestroy.Add(component);
                 }
             }
 
-            if (destroyCounter == 0)
+            if (componentsToDestroy.Count == 0)
                 return Error.NotFoundComponents(destroyComponentRefs, allComponents);
+
+            // Register undo and destroy components
+            McpUndoHelper.RegisterDestroyedObjects(componentsToDestroy, "Remove Component", true);
+
+            foreach (var component in componentsToDestroy)
+            {
+                destroyCounter++;
+                stringBuilder.AppendLine($"[Success] Destroyed component instanceID='{component.GetInstanceID()}', type='{component.GetType().FullName}'.");
+            }
 
             return $"[Success] Destroyed {destroyCounter} components from GameObject.\n{stringBuilder.ToString()}";
         });
