@@ -94,8 +94,11 @@ Also, it returns Components preview just for the target GameObject.")]
                 {
                     try
                     {
+
+                        Debug.Log($"go.GetType(): {go.GetType()}");
                         var serializedGo = Reflector.Instance.Serialize(
                             go,
+                            type: go.GetType(),
                             name: go.name,
                             recursive: true,
                             logger: McpPlugin.Instance.Logger
@@ -119,7 +122,7 @@ Also, it returns Components preview just for the target GameObject.")]
                         result += @$"
 
 # Data:
-⚠️ Component {go.name} serialization failed due to: {ex.Message}
+⚠️ Object {go.name} serialization failed due to: {ex.Message}
 Basic GameObject info: instanceID={go.GetInstanceID()}, name={go.name}, active={go.activeInHierarchy}
 ";
                     }

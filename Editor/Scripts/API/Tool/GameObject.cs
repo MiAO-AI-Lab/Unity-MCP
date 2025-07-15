@@ -42,6 +42,8 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 => $"[Error] Invalid component property type '{serializedProperty.typeName}' for '{propertyInfo.Name}'. Expected '{propertyInfo.FieldType.FullName}'.";
             public static string InvalidComponentType(string typeName)
                 => $"[Error] Invalid component type '{typeName}'. It should be a valid Component Type.";
+            public static string ObjectIsNotCompatibleWithTargetType(string objectName, string targetTypeName)
+                => $"[Error] Object '{objectName}' is not compatible with the target type '{targetTypeName}'.";
             public static string NotFoundComponent(int componentInstanceID, IEnumerable<UnityEngine.Component> allComponents)
             {
                 var availableComponentsPreview = allComponents
