@@ -266,6 +266,9 @@ namespace com.MiAO.Unity.MCP.Editor
             
             try
             {
+                // Force check for new operations before refreshing UI
+                UnityUndoMonitor.ForceCheckNewOperations();
+                
                 // Update status text using UnityUndoMonitor
                 var undoCount = UnityUndoMonitor.GetUndoCount();
                 var redoCount = UnityUndoMonitor.GetRedoCount();

@@ -2004,7 +2004,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                         }
                         
                         // Mark object as dirty for undo system
-                        Undo.RecordObject(group, "Select EQS Marker");
+                        McpUndoHelper.RegisterStateChange(group, "Select EQS Marker");
                         EditorUtility.SetDirty(group);
                         Repaint();
                     }
@@ -2128,7 +2128,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     if (currentEvent.control || currentEvent.command)
                     {
                         // Ctrl+A: Select all markers
-                        Undo.RecordObject(group, "Select All EQS Markers");
+                        McpUndoHelper.RegisterStateChange(group, "Select All EQS Markers");
                         foreach (var marker in group.markers)
                             marker.isSelected = true;
                         EditorUtility.SetDirty(group);
@@ -2141,7 +2141,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     if (currentEvent.control || currentEvent.command)
                     {
                         // Ctrl+D: Deselect all markers
-                        Undo.RecordObject(group, "Deselect All EQS Markers");
+                        McpUndoHelper.RegisterStateChange(group, "Deselect All EQS Markers");
                         foreach (var marker in group.markers)
                             marker.isSelected = false;
                         EditorUtility.SetDirty(group);
@@ -2154,7 +2154,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
                     if (currentEvent.control || currentEvent.command)
                     {
                         // Ctrl+I: Invert selection
-                        Undo.RecordObject(group, "Invert EQS Marker Selection");
+                        McpUndoHelper.RegisterStateChange(group, "Invert EQS Marker Selection");
                         foreach (var marker in group.markers)
                             marker.isSelected = !marker.isSelected;
                         EditorUtility.SetDirty(group);
@@ -2231,7 +2231,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             
             if (EditorGUI.EndChangeCheck())
             {
-                Undo.RecordObject(group, "Change Visualization Settings");
+                McpUndoHelper.RegisterStateChange(group, "Change Visualization Settings");
                 group.markerSize = newMarkerSize;
                 group.selectedAlpha = newSelectedAlpha;
                 group.unselectedAlpha = newUnselectedAlpha;
@@ -2250,7 +2250,7 @@ Scoring curves: linear, exponential, logarithmic, smoothstep, inverse")]
             
             if (EditorGUI.EndChangeCheck())
             {
-                Undo.RecordObject(group, "Change Information Display Settings");
+                McpUndoHelper.RegisterStateChange(group, "Change Information Display Settings");
                 group.showScore = newShowScore;
                 group.showPosition = newShowPosition;
                 EditorUtility.SetDirty(group);
