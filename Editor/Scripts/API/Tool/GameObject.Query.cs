@@ -119,7 +119,7 @@ Also, it returns Components preview just for the target GameObject.")]
                         result += @$"
 
 # Data:
-⚠️ GameObject serialization failed due to missing components: {ex.Message}
+⚠️ Component {go.name} serialization failed due to: {ex.Message}
 Basic GameObject info: instanceID={go.GetInstanceID()}, name={go.name}, active={go.activeInHierarchy}
 ";
                     }
