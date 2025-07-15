@@ -717,24 +717,24 @@ Duplicated instanceIDs:
 
         private object ConvertArray(SerializedMember member, Type arrayType, string typeName)
         {
-            var elementType = arrayType.GetElementType();
+            var targetElementType = arrayType.GetElementType();
             
             // Strategy 1: JsonElement array (most common case)
             var jsonElementArray = TryGetJsonElementArray(member);
             if (jsonElementArray != null)
             {
-                return ConvertToTypedArray(jsonElementArray, elementType);
+                return ConvertToTypedArray(jsonElementArray, targetElementType);
             }
             
             // Strategy 2: Generic approach (handles object[], int[], and all other array types)
             var genericArray = TryGetGenericArray(member, arrayType);
             if (genericArray != null)
             {
-                return ConvertToTypedArray(genericArray, elementType);
+                return ConvertToTypedArray(genericArray, targetElementType);
             }
 
             // Return empty array if all strategies fail
-            return Array.CreateInstance(elementType, 0);
+            return Array.CreateInstance(targetElementType, 0);
         }
 
         private object[] TryGetJsonElementArray(SerializedMember member)
@@ -775,32 +775,38 @@ Duplicated instanceIDs:
             return null;
         }
 
-        private Array ConvertToTypedArray(object[] sourceArray, Type elementType)
+        private Array ConvertToTypedArray(object[] sourceArray, Type targetElementType)
         {
-            var typedArray = Array.CreateInstance(elementType, sourceArray.Length);
+            var typedArray = Array.CreateInstance(targetElementType, sourceArray.Length);
             
             for (int i = 0; i < sourceArray.Length; i++)
             {
-                var convertedElement = ConvertArrayElement(sourceArray[i], elementType);
+                var convertedElement = ConvertArrayElement(sourceArray[i], targetElementType);
                 typedArray.SetValue(convertedElement, i);
             }
             
             return typedArray;
         }
         
-        private object ConvertArrayElement(object elementValue, Type elementType)
+        private object ConvertArrayElement(object elementValue, Type targetElementType)
         {
             if (elementValue == null)
                 return null;
 
             // Handle Unity Object references by instance ID
-            if (typeof(UnityEngine.Object).IsAssignableFrom(elementType))
+            if (typeof(UnityEngine.Object).IsAssignableFrom(targetElementType))
             {
-                return ConvertToUnityObject(elementValue, elementType);
+                var result = ConvertToUnityObject(elementValue, targetElementType);
+                // Check if the result is an error string
+                if (result is string errorString && errorString.StartsWith("[Error]"))
+                {
+                    throw new InvalidCastException(errorString);
+                }
+                return result;
             }
 
             // Handle basic types
-            return ConvertToBasicType(elementValue, elementType);
+            return ConvertToBasicType(elementValue, targetElementType);
         }
 
         private object ConvertJsonElementToObject(System.Text.Json.JsonElement element)
@@ -876,7 +882,7 @@ Duplicated instanceIDs:
             return element.GetDecimal();
         }
 
-        private UnityEngine.Object ConvertToUnityObject(object value, Type targetType, bool enableTransformSpecialHandling = true)
+        private object ConvertToUnityObject(object value, Type targetType, bool enableTransformSpecialHandling = true)
         {
             var instanceId = ExtractInstanceId(value);
             
@@ -886,7 +892,7 @@ Duplicated instanceIDs:
             var foundObject = EditorUtility.InstanceIDToObject(instanceId);
             
             if (foundObject == null)
-                return null;
+                throw new InvalidCastException(Error.NotFoundGameObjectWithInstanceID(instanceId));
 
             // Special handling for Transform - the instanceID might refer to a GameObject
             if (enableTransformSpecialHandling && targetType == typeof(Transform))
@@ -900,6 +906,10 @@ Duplicated instanceIDs:
             // Check if the found object is compatible with the target type
             if (targetType.IsAssignableFrom(foundObject.GetType()))
                 return foundObject;
+            else
+            {
+                throw new InvalidCastException(Error.ObjectIsNotCompatibleWithTargetType(foundObject.name, targetType.Name));
+            }
             
             return null;
         }
