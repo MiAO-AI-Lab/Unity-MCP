@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using com.MiAO.Unity.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Utils;
+using Unity.MCP;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
@@ -459,14 +460,8 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             var environmentGroups = GameObject.FindObjectsOfType<EQSEnvironmentVisualizationGroup>();
             foreach (var group in environmentGroups)
             {
-                #if UNITY_EDITOR
-                if (!UnityEditor.EditorApplication.isPlaying)
-                    GameObject.DestroyImmediate(group.gameObject);
-                else
-                    GameObject.Destroy(group.gameObject);
-                #else
-                GameObject.Destroy(group.gameObject);
-                #endif
+                // Register deletion with Unity Undo system via McpUndoHelper
+                McpUndoHelper.RegisterDestroyedObject(group.gameObject, "Clear EQS Environment Visualization", destroyImmediately: true);
                 totalCleaned++;
                 Debug.Log($"[EQS] Cleared EQS Environment Visualization Group: {group.name}");
             }
@@ -476,14 +471,8 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             if (probeParent != null)
             {
                 var probeCount = probeParent.transform.childCount;
-                #if UNITY_EDITOR
-                if (!UnityEditor.EditorApplication.isPlaying)
-                    GameObject.DestroyImmediate(probeParent);
-                else
-                    GameObject.Destroy(probeParent);
-                #else
-                GameObject.Destroy(probeParent);
-                #endif
+                // Register deletion with Unity Undo system via McpUndoHelper
+                McpUndoHelper.RegisterDestroyedObject(probeParent, "Clear EQS Legacy Probe Environment", destroyImmediately: true);
                 totalCleaned += probeCount;
                 Debug.Log($"[EQS] Cleared legacy EQS_Probe_Environment with {probeCount} probe objects");
             }
@@ -493,14 +482,8 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             if (queryResultParent != null)
             {
                 var queryResultCount = queryResultParent.transform.childCount;
-                #if UNITY_EDITOR
-                if (!UnityEditor.EditorApplication.isPlaying)
-                    GameObject.DestroyImmediate(queryResultParent);
-                else
-                    GameObject.Destroy(queryResultParent);
-                #else
-                GameObject.Destroy(queryResultParent);
-                #endif
+                // Register deletion with Unity Undo system via McpUndoHelper
+                McpUndoHelper.RegisterDestroyedObject(queryResultParent, "Clear EQS Query Result Aggregation", destroyImmediately: true);
                 totalCleaned += queryResultCount;
                 Debug.Log($"[EQS] Cleared EQS_QueryResult_Aggregation with {queryResultCount} query result objects");
             }
@@ -558,6 +541,9 @@ Note: If you need to force reinitialize, set forceReinitialize = true
             
             // Mark as editor-only object
             groupObj.hideFlags = HideFlags.DontSave;
+            
+            // Register with Unity Undo system via McpUndoHelper
+            McpUndoHelper.RegisterCreatedObject(groupObj, "Create EQS Environment Visualization");
             
             return group;
         }

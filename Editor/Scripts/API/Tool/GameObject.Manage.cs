@@ -255,14 +255,8 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     
                     var result = $"[Success] Created {createdObjects.Count} GameObjects in batch.\n{stringBuilder}";
                     
-                    // Use Unity's native Undo system for batch creation with MCP marking
-                    // Group all operations as a single undo operation
-                    Undo.IncrementCurrentGroup();
-                    foreach (var createdObject in createdObjects)
-                    {
-                        Undo.RegisterCreatedObjectUndo(createdObject, $"Create GameObject: {createdObject.name}");
-                    }
-                    Undo.SetCurrentGroupName($"[MCP] Create {createdObjects.Count} GameObjects");
+                    // Register undo for batch creation
+                    McpUndoHelper.RegisterCreatedObjects(createdObjects, "Create GameObject");
                     
                     return result;
                 }
@@ -290,33 +284,15 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
                     var result = $"[Success] Created GameObject.\n{go.Print()}";
                     
-                    // Use Unity's native Undo system for creation with MCP marking
-                    Undo.IncrementCurrentGroup();
-                    Undo.RegisterCreatedObjectUndo(go, $"Create GameObject: {go.name}");
-                    Undo.SetCurrentGroupName($"[MCP] Create GameObject: {go.name}");
+                    // Register undo for single GameObject creation
+                    McpUndoHelper.RegisterCreatedObject(go, "Create GameObject");
                     
                     return result;
                 }
             });
         }
 
-        /// <summary>
-        /// Recursively collect GameObject and all its child objects
-        /// </summary>
-        private void CollectObjectHierarchy(GameObject obj, List<GameObject> collection)
-        {
-            if (obj == null || collection.Contains(obj))
-                return;
-                
-            collection.Add(obj);
-            
-            // Recursively collect all child objects
-            for (int i = 0; i < obj.transform.childCount; i++)
-            {
-                var child = obj.transform.GetChild(i).gameObject;
-                CollectObjectHierarchy(child, collection);
-            }
-        }
+
 
         private string DestroyGameObject(GameObjectRef? gameObjectRef)
         {
@@ -333,22 +309,8 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 {
                     var goName = go.name;
                     
-                    // Use Unity's native Undo system for deletion with proper group management
-                    Undo.IncrementCurrentGroup();
-                    Undo.SetCurrentGroupName($"[MCP] Delete GameObject: {goName}");
-                    
-                    // Record all affected objects before deletion to ensure single undo group
-                    // This includes the object itself and all its children
-                    var objectsToDelete = new List<GameObject>();
-                    CollectObjectHierarchy(go, objectsToDelete);
-                    
-                    foreach (var obj in objectsToDelete)
-                    {
-                        Undo.RegisterCompleteObjectUndo(obj, $"Delete {obj.name}");
-                    }
-                    
-                    // Now perform the actual deletion - this should not create additional groups
-                    Undo.DestroyObjectImmediate(go);
+                    // Register undo for GameObject deletion
+                    McpUndoHelper.RegisterDestroyedObject(go, "Delete GameObject", true);
                     
                     // Refresh the hierarchy
                     EditorApplication.RepaintHierarchyWindow();
@@ -385,10 +347,9 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     .Select(go => go.GetInstanceID())
                     .ToArray();
 
-                // Mark as MCP operation before duplication
-                Undo.IncrementCurrentGroup();
+                // Register undo and perform duplication
+                McpUndoHelper.StartUndoGroup($"Duplicate {gos.Count} GameObjects");
                 Unsupported.DuplicateGameObjectsUsingPasteboard();
-                Undo.SetCurrentGroupName($"[MCP] Duplicate {gos.Count} GameObjects");
 
                 var modifiedScenes = Selection.gameObjects
                     .Select(go => go.scene)
@@ -440,9 +401,6 @@ Duplicated instanceIDs:
 
                     try
                     {
-                        // Create a separate undo group for each GameObject modification
-                        Undo.IncrementCurrentGroup();
-                        
                         var objToModify = (object)go;
                         var type = TypeUtils.GetType(gameObjectDiffs[i].typeName);
                         if (typeof(UnityEngine.Component).IsAssignableFrom(type))
@@ -455,12 +413,6 @@ Duplicated instanceIDs:
                                 continue;
                             }
                             objToModify = component;
-                        }
-
-                        // Use Unity's native Undo system to record the object state before modification
-                        if (objToModify is UnityEngine.Object unityObject)
-                        {
-                            Undo.RegisterCompleteObjectUndo(unityObject, $"Modify {unityObject.name}");
                         }
 
                         // Check if the diff has neither fields nor props
@@ -498,29 +450,34 @@ Duplicated instanceIDs:
                             errorCount++;
                         }
 
+                        // Register undo and mark the object as modified
+                        if (currentOpSuccess && objToModify is UnityEngine.Object unityObj)
+                        {
+                            string operationName;
+                            string details = null;
                             
-
-
-                        // Mark the object as modified
-                        if (objToModify is UnityEngine.Object unityObj)
-                        {
-                            EditorUtility.SetDirty(unityObj);
-                        }
-                        
-                        // Set individual undo group name for this specific GameObject modification
-                        if (currentOpSuccess)
-                        {
-                            string individualGroupName;
                             if (string.IsNullOrEmpty(modificationDetails) || modificationDetails == "modified")
                             {
-                                individualGroupName = $"Modify GameObject: {go.name}";
+                                operationName = "Modify GameObject";
                             }
                             else
                             {
-                                // Include modification details in the group name
-                                individualGroupName = $"Modify {go.name}: {modificationDetails}";
+                                // Extract property name from modification details for more specific operation name
+                                var propertyMatch = System.Text.RegularExpressions.Regex.Match(modificationDetails, @"Property '(\w+)'");
+                                if (propertyMatch.Success)
+                                {
+                                    var propertyName = propertyMatch.Groups[1].Value;
+                                    operationName = $"Modify {propertyName}";
+                                }
+                                else
+                                {
+                                    operationName = "Modify GameObject";
+                                }
+                                details = McpUndoHelper.SimplifyValueForUndo(modificationDetails);
                             }
-                            Undo.SetCurrentGroupName($"[MCP] {individualGroupName}");
+                            
+                            McpUndoHelper.RegisterModifiedObject(unityObj, operationName, details);
+                            EditorUtility.SetDirty(unityObj);
                         }
                     }
                     catch (Exception ex)
@@ -1296,10 +1253,9 @@ Duplicated instanceIDs:
                 if (parentError != null)
                     return $"[Error] Parent GameObject: {parentError}";
 
-                // Group all parent changes as one undo operation
-                Undo.IncrementCurrentGroup();
-                var modifiedObjectNames = new List<string>();
-
+                // Collect transforms for batch parent change
+                var targetTransforms = new List<Transform>();
+                
                 for (var i = 0; i < gameObjectRefs.Count; i++)
                 {
                     var targetGo = GameObjectUtils.FindBy(gameObjectRefs[i], out var error);
@@ -1309,27 +1265,21 @@ Duplicated instanceIDs:
                         continue;
                     }
 
-                    // Use Unity's native Undo system for parent changes
-                    Undo.SetTransformParent(targetGo.transform, parentGo.transform, $"Set parent of {targetGo.name}");
+                    targetTransforms.Add(targetGo.transform);
                     changedCount++;
-                    modifiedObjectNames.Add(targetGo.name);
-
                     stringBuilder.AppendLine(@$"[Success] Set parent of {gameObjectRefs[i]} to {parentGameObjectRef}.");
+                }
+
+                // Register undo for parent changes
+                if (targetTransforms.Count > 0)
+                {
+                    McpUndoHelper.RegisterParentChanges(targetTransforms, parentGo.transform);
                 }
 
                 if (changedCount > 0)
                     EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
                 var result = stringBuilder.ToString();
-                
-                // Set undo group name with MCP marking
-                if (changedCount > 0 && modifiedObjectNames.Count > 0)
-                {
-                    var groupName = modifiedObjectNames.Count == 1 
-                        ? $"Set parent for GameObject: {modifiedObjectNames[0]}" 
-                        : $"Set parent for {modifiedObjectNames.Count} GameObjects";
-                    Undo.SetCurrentGroupName($"[MCP] {groupName}");
-                }
                 
                 return result;
             });
