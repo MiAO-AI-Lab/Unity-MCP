@@ -28,8 +28,16 @@ Also, it returns Components preview just for the target GameObject.")]
             GameObjectRef gameObjectRef,
             [Description("Determines the depth of the hierarchy to include. 0 - means only the target GameObject. 1 - means to include one layer below.")]
             int includeChildrenDepth = 0,
-            [Description("If true, it will print only brief data of the target GameObject.")]
-            bool briefData = false
+            [Description("If true, show detailed GameObject data including serialized information. Default is false.")]
+            bool showGameObjectSerializedDetails = false,
+            [Description("If true, show GameObject bounds information. Default is false.")]
+            bool showBounds = false,
+            [Description("If true, show layer information. Default is false.")]
+            bool showLayer = false,
+            [Description("If true, show components preview with detailed serialization. Default is true.")]
+            bool showComponentsPreview = true,
+            [Description("If true, show related enum information for the GameObject. Default is false.")]
+            bool showRelatedEnums = false
         )
         {
             return MainThread.Instance.Run(() =>
@@ -56,8 +64,8 @@ Also, it returns Components preview just for the target GameObject.")]
                     }
                     else
                     {
-                        // Normal component - serialize it (only if not briefData)
-                        if (!briefData)
+                        // Normal component - serialize it based on showComponentsPreview setting
+                        if (showComponentsPreview)
                         {
                             try
                             {
@@ -77,24 +85,24 @@ Also, it returns Components preview just for the target GameObject.")]
                         }
                         else
                         {
-                            // Brief data - just add basic info
+                            // Basic info only
                             componentsPreview.Add(new { Name = $"[{i}]", Type = component.GetType().Name, Status = "OK" });
                         }
                     }
                 }
 
-                var result = @$"[Success] Found GameObject.";
+                var result = @$"[Success] Found GameObject. Basic GameObject info: instanceID={go.GetInstanceID()}, name={go.name}, active={go.activeInHierarchy}";
                 
                 if (missingComponents.Count > 0)
                 {
                     result += $"\n\n# ⚠️ Missing Components Detected ({missingComponents.Count}):\n" + string.Join("\n", missingComponents);
                 }
 
-                if (!briefData)
+                // Show GameObject details if requested
+                if (showGameObjectSerializedDetails)
                 {
                     try
                     {
-
                         Debug.Log($"go.GetType(): {go.GetType()}");
                         var serializedGo = Reflector.Instance.Serialize(
                             go,
@@ -106,43 +114,180 @@ Also, it returns Components preview just for the target GameObject.")]
                         
                         result += @$"
 
-# Data:
+# GameObject Details:
 ```json
 {JsonUtils.Serialize(serializedGo)}
-```
-
-# Bounds:
-```json
-{JsonUtils.Serialize(go.CalculateBounds())}
-```
-";
+```";
                     }
                     catch (System.Exception ex)
                     {
                         result += @$"
 
-# Data:
-⚠️ Object {go.name} serialization failed due to: {ex.Message}
-Basic GameObject info: instanceID={go.GetInstanceID()}, name={go.name}, active={go.activeInHierarchy}
-";
+# GameObject Details:
+⚠️ Object {go.name} serialization failed due to: {ex.Message}";
                     }
                 }
 
-                result += @$"
+                // Show bounds if requested
+                if (showBounds)
+                {
+                    result += @$"
+
+# Bounds:
+```json
+{JsonUtils.Serialize(go.CalculateBounds())}
+```";
+                }
+
+                // Show components preview if requested
+                if (showComponentsPreview && componentsPreview.Count > 0)
+                {
+                    result += @$"
 
 # Components Preview:
 ```json
 {JsonUtils.Serialize(componentsPreview)}
-```
+```";
+                }
+
+                // Show layer info if requested
+                if (showLayer)
+                {
+                    result += @$"
 
 # Layer Info:
 ```json
 {JsonUtils.Serialize(new { LayerIndex = go.layer, LayerName = LayerMask.LayerToName(go.layer) })}
-```
+```";
+                }
+
+                // Show related enums if requested
+                if (showRelatedEnums)
+                {
+                    var enumInfo = new List<object>();
+                    
+                    // Add enum fields from all components
+                    for (int i = 0; i < components.Length; i++)
+                    {
+                        var component = components[i];
+                        if (component == null) continue; // Skip missing components
+
+                        var componentType = component.GetType();
+                        var componentEnums = new List<object>();
+
+                        // Get all fields
+                        var fields = componentType.GetFields(System.Reflection.BindingFlags.Public | 
+                                                           System.Reflection.BindingFlags.NonPublic | 
+                                                           System.Reflection.BindingFlags.Instance);
+                        
+                        foreach (var field in fields)
+                        {
+                            if (field.FieldType.IsEnum)
+                            {
+                                try
+                                {
+                                    var currentValue = field.GetValue(component);
+                                    var enumValues = System.Enum.GetValues(field.FieldType);
+                                    var enumNames = System.Enum.GetNames(field.FieldType);
+                                    
+                                    var enumDetails = new List<object>();
+                                    for (int j = 0; j < enumValues.Length; j++)
+                                    {
+                                        enumDetails.Add(new { 
+                                            Name = enumNames[j], 
+                                            Value = (int)enumValues.GetValue(j),
+                                            IsCurrent = currentValue.Equals(enumValues.GetValue(j))
+                                        });
+                                    }
+
+                                    componentEnums.Add(new {
+                                        FieldName = field.Name,
+                                        FieldType = field.FieldType.Name,
+                                        CurrentValue = currentValue?.ToString(),
+                                        CurrentIntValue = (int)currentValue,
+                                        AllValues = enumDetails
+                                    });
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    componentEnums.Add(new {
+                                        FieldName = field.Name,
+                                        FieldType = field.FieldType.Name,
+                                        Error = $"Failed to read enum: {ex.Message}"
+                                    });
+                                }
+                            }
+                        }
+
+                        // Get all properties
+                        var properties = componentType.GetProperties(System.Reflection.BindingFlags.Public | 
+                                                                   System.Reflection.BindingFlags.NonPublic | 
+                                                                   System.Reflection.BindingFlags.Instance);
+                        
+                        foreach (var property in properties)
+                        {
+                            if (property.PropertyType.IsEnum && property.CanRead)
+                            {
+                                try
+                                {
+                                    var currentValue = property.GetValue(component);
+                                    var enumValues = System.Enum.GetValues(property.PropertyType);
+                                    var enumNames = System.Enum.GetNames(property.PropertyType);
+                                    
+                                    var enumDetails = new List<object>();
+                                    for (int j = 0; j < enumValues.Length; j++)
+                                    {
+                                        enumDetails.Add(new { 
+                                            Name = enumNames[j], 
+                                            Value = (int)enumValues.GetValue(j),
+                                            IsCurrent = currentValue.Equals(enumValues.GetValue(j))
+                                        });
+                                    }
+
+                                    componentEnums.Add(new {
+                                        PropertyName = property.Name,
+                                        PropertyType = property.PropertyType.Name,
+                                        CurrentValue = currentValue?.ToString(),
+                                        CurrentIntValue = (int)currentValue,
+                                        AllValues = enumDetails
+                                    });
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    componentEnums.Add(new {
+                                        PropertyName = property.Name,
+                                        PropertyType = property.PropertyType.Name,
+                                        Error = $"Failed to read enum: {ex.Message}"
+                                    });
+                                }
+                            }
+                        }
+
+                        // Add component enum info if any enums were found
+                        if (componentEnums.Count > 0)
+                        {
+                            enumInfo.Add(new {
+                                ComponentIndex = i,
+                                ComponentType = componentType.Name,
+                                ComponentFullName = componentType.FullName,
+                                EnumFields = componentEnums
+                            });
+                        }
+                    }
+
+                    result += @$"
+
+# Related Enums:
+```json
+{JsonUtils.Serialize(enumInfo)}
+```";
+                }
+
+                result += @$"
 
 # Hierarchy:
-{go.ToMetadata(includeChildrenDepth).Print()}
-";
+{go.ToMetadata(includeChildrenDepth).Print()}";
+                
                 return result;
             });
         }
