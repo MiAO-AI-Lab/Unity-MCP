@@ -83,7 +83,7 @@ namespace com.MiAO.Unity.MCP.Editor.Common
                 {
                     return $@"{{
   ""{bodyName}"": {{
-    ""unity-mcp"": {{
+    ""Unity-MCP"": {{
       ""command"": ""{serverExecutablePath}"",
       ""args"": [
         ""--port"",
