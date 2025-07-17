@@ -68,6 +68,10 @@ namespace com.MiAO.Unity.MCP.Editor
             ConfigureClient(root.Query<VisualElement>("ConfigureClient-Windsurf").First(),
                 configPath: GetWindsurfSettingsPath(),
                 bodyName: "mcpServers");
+
+            ConfigureClient(root.Query<VisualElement>("ConfigureClient-Cline").First(),
+                configPath: GetClineSettingsPath(),
+                bodyName: "mcpServers");
         }
 
         void ConfigureClient(VisualElement root, string configPath, string bodyName = "mcpServers")
@@ -488,6 +492,54 @@ namespace com.MiAO.Unity.MCP.Editor
                 "windsurf",
                 "mcp_config.json"
             );
+        }
+
+        string GetClineSettingsPath()
+        {
+#if UNITY_EDITOR_WIN
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Code",
+                "User",
+                "globalStorage",
+                "saoudrizwan.claude-dev",
+                "settings",
+                "cline_mcp_settings.json"
+            );
+#elif UNITY_EDITOR_OSX
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Library",
+                "Application Support",
+                "Code",
+                "User",
+                "globalStorage",
+                "saoudrizwan.claude-dev",
+                "settings",
+                "cline_mcp_settings.json"
+            );
+#elif UNITY_EDITOR_LINUX
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".config",
+                "Code",
+                "User",
+                "globalStorage",
+                "saoudrizwan.claude-dev",
+                "settings",
+                "cline_mcp_settings.json"
+            );
+#else
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Code",
+                "User",
+                "globalStorage",
+                "saoudrizwan.claude-dev",
+                "settings",
+                "cline_mcp_settings.json"
+            );
+#endif
         }
     }
 }
