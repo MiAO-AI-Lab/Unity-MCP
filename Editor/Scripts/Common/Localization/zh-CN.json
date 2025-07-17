@@ -94,7 +94,9 @@
     "save_current": "保存当前配置",
     "reset_default": "重置为默认设置",
     "save_config": "保存配置",
-    "general_settings": "通用设置"
+    "general_settings": "通用设置",
+    "timeout": "超时时间",
+    "code_provider": "代码提供商"
   },
   "operations": {
     "title": "操作监控",

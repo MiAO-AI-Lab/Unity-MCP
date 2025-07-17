@@ -266,6 +266,9 @@ namespace com.MiAO.Unity.MCP.Editor
             
             try
             {
+                // Force check for new operations before refreshing UI
+                UnityUndoMonitor.ForceCheckNewOperations();
+                
                 // Update status text using UnityUndoMonitor
                 var undoCount = UnityUndoMonitor.GetUndoCount();
                 var redoCount = UnityUndoMonitor.GetRedoCount();
@@ -1023,7 +1026,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 // Show detailed save confirmation
                 var settingsSummary = GetSettingsSummary();
                 var successTitle = LocalizationManager.GetText("dialog.settings");
-                var successMessage = LocalizationManager.GetText("dialog.save_success", settingsSummary);
+                var successMessage = LocalizationManager.GetText("dialog.save_success", new object[] { settingsSummary });
                 EditorUtility.DisplayDialog(successTitle, successMessage, "OK");
             }
             catch (Exception e)

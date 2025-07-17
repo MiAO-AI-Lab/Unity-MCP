@@ -22,13 +22,22 @@ namespace Unity.MCP
             public string operationName;
             public bool isMcpOperation;
             public DateTime timestamp;
+            public string operationGuid; // Unique identifier for this operation
+            
+            /// <summary>
+            /// Generate operation signature for duplicate detection
+            /// </summary>
+            public string GenerateSignature()
+            {
+                return $"{groupId}:{operationName}:{isMcpOperation}";
+            }
             
             public string DisplayName => isMcpOperation 
                 ? $"[MCP] {operationName}" 
                 : $"[Manual] {operationName}";
                 
             /// <summary>
-            /// 解析操作名称为 [操作类型] [来源] 对象描述 的格式
+            /// Parse operation name into [operation type] [source] object description format
             /// </summary>
             public string ParsedDisplayName
             {
@@ -49,7 +58,7 @@ namespace Unity.MCP
             }
             
             /// <summary>
-            /// 解析操作名称，提取操作类型和对象描述
+            /// Parse operation name, extract operation type and object description
             /// </summary>
             public static (string operationType, string objectDescription) ParseOperationName(string operationName)
             {
@@ -58,153 +67,63 @@ namespace Unity.MCP
                 
                 var trimmedName = operationName.Trim();
                 
-                // 处理MCP操作
+                // Handle MCP operation prefix
                 if (trimmedName.StartsWith("[MCP]"))
                 {
                     trimmedName = trimmedName.Substring(5).Trim();
                 }
                 
-                // 解析各种操作类型
-                
-                // Rename操作: "Rename hhh" -> ("Rename", "hhh")
-                if (trimmedName.StartsWith("Rename ", StringComparison.OrdinalIgnoreCase))
+                // Define operation type matching rules
+                var operationPatterns = new[]
                 {
-                    var objectName = trimmedName.Substring(7).Trim();
-                    return ("Rename", objectName);
+                    // Basic operations
+                    ("Rename ", 7, "Rename"),
+                    ("Select ", 7, "Select"),
+                    ("Create ", 7, "Create"),
+                    ("Delete ", 7, "Delete"),
+                    ("Destroy ", 8, "Destroy"),
+                    ("Duplicate ", 10, "Duplicate"),
+                    ("Copy ", 5, "Copy"),
+                    ("Move ", 5, "Move"),
+                    ("Modify ", 7, "Modify"),
+                    
+                    // Component operations
+                    ("Add Component ", 14, "Add Component"),
+                    ("Remove Component ", 17, "Remove Component"),
+                    
+                    // Special operations
+                    ("Drag and Drop ", 14, "Drag and Drop"),
+                };
+                
+                // Match explicit operation types
+                foreach (var (prefix, prefixLength, operationType) in operationPatterns)
+                {
+                    if (trimmedName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var objectDescription = trimmedName.Substring(prefixLength).Trim();
+                        return (operationType, objectDescription);
+                    }
                 }
                 
-                // Select操作: "Select hhh (GameObject)" -> ("Select", "hhh (GameObject)")
-                // 或 "Select hhh (123) (GameObject)" -> ("Select", "hhh (123) (GameObject)")
-                if (trimmedName.StartsWith("Select ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectDescription = trimmedName.Substring(7).Trim();
-                    return ("Select", objectDescription);
-                }
-                
-                // Create操作: "Create hhh" -> ("Create", "hhh")
-                if (trimmedName.StartsWith("Create ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(7).Trim();
-                    return ("Create", objectName);
-                }
-                
-                // Delete操作: "Delete hhh" -> ("Delete", "hhh")
-                if (trimmedName.StartsWith("Delete ", StringComparison.OrdinalIgnoreCase) || 
-                    trimmedName.StartsWith("Destroy ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var startIndex = trimmedName.StartsWith("Delete ", StringComparison.OrdinalIgnoreCase) ? 7 : 8;
-                    var objectName = trimmedName.Substring(startIndex).Trim();
-                    var operationType = trimmedName.StartsWith("Delete ", StringComparison.OrdinalIgnoreCase) ? "Delete" : "Destroy";
-                    return (operationType, objectName);
-                }
-                
-                // Drag and Drop操作: "Drag and Drop hhh" -> ("Drag", "hhh")
-                if (trimmedName.StartsWith("Drag and Drop ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(14).Trim();
-                    return ("Drag", objectName);
-                }
-                
-                // Duplicate操作: "Duplicate hhh" -> ("Duplicate", "hhh")
-                if (trimmedName.StartsWith("Duplicate ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(10).Trim();
-                    return ("Duplicate", objectName);
-                }
-                
-                // Copy操作: "Copy hhh" -> ("Copy", "hhh")
-                if (trimmedName.StartsWith("Copy ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(5).Trim();
-                    return ("Copy", objectName);
-                }
-                
-                // Move操作: "Move hhh" -> ("Move", "hhh")
-                if (trimmedName.StartsWith("Move ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(5).Trim();
-                    return ("Move", objectName);
-                }
-                
-                // Transform操作: "Transform hhh" -> ("Transform", "hhh")
-                if (trimmedName.StartsWith("Transform ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(10).Trim();
-                    return ("Transform", objectName);
-                }
-                
-                // Modify操作: "Modify hhh" -> ("Modify", "hhh")
-                if (trimmedName.StartsWith("Modify ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(7).Trim();
-                    return ("Modify", objectName);
-                }
-                
-                // Add Component操作: "Add Component hhh" -> ("Add Component", "hhh")
-                if (trimmedName.StartsWith("Add Component ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(14).Trim();
-                    return ("Add Component", objectName);
-                }
-                
-                // Remove Component操作: "Remove Component hhh" -> ("Remove Component", "hhh")
-                if (trimmedName.StartsWith("Remove Component ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectName = trimmedName.Substring(17).Trim();
-                    return ("Remove Component", objectName);
-                }
-                
-                // Clear Selection操作: "Clear Selection" -> ("Clear Selection", "")
+                // Special handling: Clear Selection (no object description)
                 if (trimmedName.Equals("Clear Selection", StringComparison.OrdinalIgnoreCase))
                 {
                     return ("Clear Selection", "");
                 }
                 
-                // 其他特殊操作模式
-                
-                // 检查是否包含常见的操作动词
-                var lowerName = trimmedName.ToLower();
-                var operationVerbs = new[]
-                {
-                    "create", "delete", "destroy", "duplicate", "copy", "paste", "clone",
-                    "move", "rotate", "scale", "rename", "transform", "modify", "edit",
-                    "drag", "drop", "instantiate", "spawn", "add", "place", "insert",
-                    "remove", "change", "set", "update", "build", "generate"
-                };
-                
-                foreach (var verb in operationVerbs)
-                {
-                    if (lowerName.Contains(verb))
-                    {
-                        // 找到操作动词，尝试提取操作类型
-                        var verbIndex = lowerName.IndexOf(verb);
-                        var operationType = char.ToUpper(verb[0]) + verb.Substring(1);
-                        
-                        // 提取对象描述（动词后面的部分）
-                        var afterVerb = trimmedName.Substring(verbIndex + verb.Length).Trim();
-                        if (afterVerb.StartsWith(" "))
-                        {
-                            afterVerb = afterVerb.Substring(1).Trim();
-                        }
-                        
-                        return (operationType, afterVerb);
-                    }
-                }
-                
-                // 如果没有找到明确的操作模式，使用整个名称作为操作类型
+                // For unmatched long names, try to extract first two words as operation type
                 if (trimmedName.Length > 20)
                 {
-                    // 对于很长的名称，尝试提取前面的部分作为操作类型
-                    var firstWords = trimmedName.Split(' ').Take(2).ToArray();
-                    if (firstWords.Length >= 2)
+                    var words = trimmedName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (words.Length >= 2)
                     {
-                        var operationType = string.Join(" ", firstWords);
-                        var objectDescription = trimmedName.Substring(operationType.Length).Trim();
+                        var operationType = string.Join(" ", words.Take(2));
+                        var objectDescription = string.Join(" ", words.Skip(2));
                         return (operationType, objectDescription);
                     }
                 }
                 
-                // 默认情况：使用整个名称作为操作类型
+                // Default case: use entire name as operation type
                 return (trimmedName, "");
             }
         }
@@ -217,6 +136,13 @@ namespace Unity.MCP
         private static bool isPerformingUndoRedo = false; // Prevent recursion during undo/redo
         private static bool isCustomUndoRedo = false; // Mark whether it's a custom undo/redo operation
         private static bool isRefreshingUI = false; // Mark whether UI is being refreshed
+        
+        // GUID-based operation uniqueness tracking
+        private static readonly HashSet<string> processedOperationGuids = new HashSet<string>(); // Processed operation GUIDs to prevent duplicates
+        
+        // Manual operation duplicate detection - track last manual operation
+        private static string lastManualOperationName = null; // Last manual operation name for consecutive duplicate detection
+        private static int lastManualOperationTargetID = -1; // Last manual operation target GameObject InstanceID
         
         // Track selection state changes
         private static int lastSelectedInstanceID = -1;
@@ -389,7 +315,7 @@ namespace Unity.MCP
                     return; // Don't execute logic for adding new operations during undo/redo or UI refresh
                 }
                 
-                // Detect new operations - Process immediately, rely on duplicate detection logic
+                // Detect new operations - Process immediately, with early GUID filtering
                 if (currentGroup > lastTrackedGroup)
                 {
                     // Get current group name
@@ -399,9 +325,45 @@ namespace Unity.MCP
                         currentGroupName = Undo.GetCurrentGroupName();
                     }
                     catch { }
+                    // Early duplicate detection for both MCP and manual operations
+                    bool shouldProcess = true;
+                    if (!string.IsNullOrEmpty(currentGroupName))
+                    {
+                        if (currentGroupName.StartsWith("[MCP]"))
+                        {
+                            // MCP operation: GUID-based duplicate detection
+                            var operationGuid = ExtractGuidFromGroupName(currentGroupName);
+                            
+                            // Reset manual operation tracking when MCP operation occurs
+                            lastManualOperationName = null;
+                            lastManualOperationTargetID = -1;
+                            
+                            if (!string.IsNullOrEmpty(operationGuid) && processedOperationGuids.Contains(operationGuid))
+                            {
+                                // Operation already processed, skip entirely
+                                shouldProcess = false;
+                            }
+                            else if (!string.IsNullOrEmpty(operationGuid))
+                            {
+                                // Mark this GUID as processed
+                                processedOperationGuids.Add(operationGuid);
+                            }
+                        }
+                        else
+                        {
+                            // Manual operation: consecutive duplicate detection
+                            if (IsManualOperationDuplicate(currentGroupName))
+                            {
+                                shouldProcess = false;
+                            }
+                        }
+                    }
                     
-                    // Process new operation immediately
-                    ProcessNewOperation(currentGroup, currentGroupName);
+                    // Process new operation only if not filtered out
+                    if (shouldProcess)
+                    {
+                        ProcessNewOperation(currentGroup, currentGroupName);
+                    }
                     lastTrackedGroup = currentGroup;
                     
                     // Update Unity undo count tracking when adding new operations
@@ -460,30 +422,21 @@ namespace Unity.MCP
                 
                 if (shouldRecord)
                 {
-                    bool isDuplicate = IsDuplicateOperation(groupName);
-                    
-                    // For MCP operations, perform additional immediate duplicate check
-                    if (!isDuplicate && groupName.StartsWith("[MCP]"))
+                    // Extract GUID for MCP operations (for tracking purposes)
+                    string operationGuid = null;
+                    if (groupName.StartsWith("[MCP]"))
                     {
-                        // Check if identical to last few operations (not time-dependent)
-                        var lastFewOps = allOperations.TakeLast(3).ToList();
-                        var identicalCount = lastFewOps.Count(op => op.operationName == extractedName && op.isMcpOperation);
-                        if (identicalCount >= 1) // If there's already a recent identical MCP operation
-                        {
-                            isDuplicate = true;
-                        }
+                        operationGuid = ExtractGuidFromGroupName(groupName);
                     }
                     
                     // For delete and copy operations, check if temporary selection operations should be removed
-                    if (!isDuplicate && (IsDeleteOperation(extractedName) || IsCopyOperation(extractedName)))
+                    if (IsDeleteOperation(extractedName) || IsCopyOperation(extractedName))
                     {
                         CheckAndRemoveTemporarySelection();
                     }
                     
-                    if (!isDuplicate)
-                    {
-                        AddOperation(currentGroup, extractedName, groupName.StartsWith("[MCP]"));
-                    }
+                    // Add the operation
+                    AddOperation(currentGroup, extractedName, groupName.StartsWith("[MCP]"), operationGuid);
                 }
                 else
                 {
@@ -506,7 +459,7 @@ namespace Unity.MCP
                     // Check if duplicate with recent operations
                     if (!IsDuplicateOperation(inferredName))
                     {
-                        AddOperation(currentGroup, ExtractOperationName(inferredName), false);
+                        AddOperation(currentGroup, ExtractOperationName(inferredName), false, null);
                     }
                 }
             }
@@ -589,16 +542,38 @@ namespace Unity.MCP
         }
         
         /// <summary>
+        /// Extract GUID from MCP group name
+        /// </summary>
+        /// <param name="groupName">The Unity undo group name</param>
+        /// <returns>GUID if found, null otherwise</returns>
+        private static string ExtractGuidFromGroupName(string groupName)
+        {
+            if (string.IsNullOrEmpty(groupName) || !groupName.StartsWith("[MCP]"))
+                return null;
+                
+            // Pattern: [MCP] [GUID:xxxxxxxx] operationName
+            var guidMatch = System.Text.RegularExpressions.Regex.Match(groupName, @"\[GUID:([a-fA-F0-9]{8})\]");
+            return guidMatch.Success ? guidMatch.Groups[1].Value : null;
+        }
+
+        /// <summary>
         /// Unified method for adding new operations
         /// </summary>
-        private static void AddOperation(int groupId, string operationName, bool isMcpOperation)
+        private static void AddOperation(int groupId, string operationName, bool isMcpOperation, string operationGuid = null)
         {
+            // Generate GUID if not provided
+            if (string.IsNullOrEmpty(operationGuid))
+            {
+                operationGuid = System.Guid.NewGuid().ToString();
+            }
+            
             var operation = new UndoOperation
             {
                 groupId = groupId,
                 operationName = operationName,
                 isMcpOperation = isMcpOperation,
-                timestamp = DateTime.Now
+                timestamp = DateTime.Now,
+                operationGuid = operationGuid
             };
             
             allOperations.Add(operation);
@@ -877,17 +852,40 @@ namespace Unity.MCP
             
             var extractedName = ExtractOperationName(operationName);
             
-            // For MCP operations, sequence-based duplicate detection
+            // For MCP operations, more sophisticated duplicate detection
             if (operationName.StartsWith("[MCP]"))
             {
-                // Check if there are identical MCP operations in the last 5 operations
-                var recentOperations = allOperations.TakeLast(5).ToList();
-                var identicalMcpOps = recentOperations.Where(op => op.operationName == extractedName && op.isMcpOperation).ToList();
+                // Check if there are identical MCP operations in the last 3 operations
+                var recentOperations = allOperations.TakeLast(3).ToList();
                 
+                // For MCP operations, we need to check the complete operation name, not just the operation type
+                // This allows multiple operations of the same type on different objects
+                var identicalMcpOps = recentOperations.Where(op => 
+                    op.operationName == extractedName && 
+                    op.isMcpOperation).ToList();
+                
+                // Only consider it duplicate if the exact same operation name exists recently
+                // AND it was within the last 2 seconds (to handle rapid identical operations)
                 if (identicalMcpOps.Count > 0)
                 {
-                    return true;
+                    var lastIdentical = identicalMcpOps.Last();
+                    var timeDifference = DateTime.Now - lastIdentical.timestamp;
+                    
+                    // If the identical operation was very recent (within 2 seconds), it might be a duplicate
+                    // But if it contains different object information, allow it
+                    if (timeDifference.TotalSeconds < 2)
+                    {
+                        // Check if the operation contains object-specific information (GameObject names, IDs, etc.)
+                        // If it does, and the information is different, it's not a duplicate
+                        if (ContainsObjectSpecificInfo(extractedName))
+                        {
+                            return false; // Allow operations with different object-specific information
+                        }
+                        return true; // Consider it duplicate only if no object-specific info
+                    }
                 }
+                
+                return false; // Not a duplicate for MCP operations
             }
             // For delete operations, judge uniqueness based on scene object count change (each delete reduces objects, even if operation names are same)
             else if (IsDeleteOperation(extractedName))
@@ -1277,6 +1275,13 @@ namespace Unity.MCP
             if (groupName.StartsWith("[MCP]"))
             {
                 operationName = groupName.Substring(5).Trim();
+                
+                // Remove GUID part if present: [GUID:xxxxxxxx] operationName
+                var guidMatch = System.Text.RegularExpressions.Regex.Match(operationName, @"^\[GUID:[a-fA-F0-9]{8}\]\s*(.*)$");
+                if (guidMatch.Success)
+                {
+                    operationName = guidMatch.Groups[1].Value.Trim();
+                }
             }
             else
             {
@@ -1342,6 +1347,12 @@ namespace Unity.MCP
                 allOperations.RemoveAt(allOperations.Count - 1);
                 redoOperations.Add(operationToUndo);
                 
+                // Remove operation GUID from processed set to allow re-recording if operation is performed again
+                if (!string.IsNullOrEmpty(operationToUndo.operationGuid))
+                {
+                    processedOperationGuids.Remove(operationToUndo.operationGuid);
+                }
+                
                 // Record undo operation time for ignoring subsequent internal group changes
                 lastUndoRedoTime = DateTime.Now;
                 
@@ -1384,6 +1395,12 @@ namespace Unity.MCP
                 var operationToRedo = redoOperations[redoOperations.Count - 1];
                 redoOperations.RemoveAt(redoOperations.Count - 1);
                 allOperations.Add(operationToRedo);
+                
+                // Re-add operation GUID to processed set since operation is being redone
+                if (!string.IsNullOrEmpty(operationToRedo.operationGuid))
+                {
+                    processedOperationGuids.Add(operationToRedo.operationGuid);
+                }
                 
                 // Record redo operation time for ignoring subsequent internal group changes
                 lastUndoRedoTime = DateTime.Now;
@@ -1438,6 +1455,9 @@ namespace Unity.MCP
         {
             allOperations.Clear();
             redoOperations.Clear();
+            processedOperationGuids.Clear();
+            lastManualOperationName = null; // Reset manual operation duplicate detection
+            lastManualOperationTargetID = -1;
             lastTrackedGroup = Undo.GetCurrentGroup() - 1;
             lastUnityUndoCount = GetUnityUndoStackCount();
             OnOperationsChanged?.Invoke();
@@ -1525,8 +1545,45 @@ namespace Unity.MCP
                     }
                     catch { }
                     
-                    // Process new operation immediately
-                    ProcessNewOperation(currentGroup, currentGroupName);
+                    // Early duplicate detection for both MCP and manual operations
+                    bool shouldProcess = true;
+                    if (!string.IsNullOrEmpty(currentGroupName))
+                    {
+                        if (currentGroupName.StartsWith("[MCP]"))
+                        {
+                            // MCP operation: GUID-based duplicate detection
+                            var operationGuid = ExtractGuidFromGroupName(currentGroupName);
+                            
+                            // Reset manual operation tracking when MCP operation occurs
+                            lastManualOperationName = null;
+                            lastManualOperationTargetID = -1;
+                            
+                            if (!string.IsNullOrEmpty(operationGuid) && processedOperationGuids.Contains(operationGuid))
+                            {
+                                // Operation already processed, skip entirely
+                                shouldProcess = false;
+                            }
+                            else if (!string.IsNullOrEmpty(operationGuid))
+                            {
+                                // Mark this GUID as processed
+                                processedOperationGuids.Add(operationGuid);
+                            }
+                        }
+                        else
+                        {
+                            // Manual operation: consecutive duplicate detection
+                            if (IsManualOperationDuplicate(currentGroupName))
+                            {
+                                shouldProcess = false;
+                            }
+                        }
+                    }
+                    
+                    // Process new operation only if not filtered out
+                    if (shouldProcess)
+                    {
+                        ProcessNewOperation(currentGroup, currentGroupName);
+                    }
                     lastTrackedGroup = currentGroup;
                     
                     // Update Unity undo count tracking
@@ -1540,6 +1597,65 @@ namespace Unity.MCP
             {
                 Debug.LogError($"[UnityUndoMonitor] Error in ForceCheckNewOperations: {e.Message}");
             }
+        }
+        
+        /// <summary>
+        /// Check if manual operation is a consecutive duplicate
+        /// </summary>
+        private static bool IsManualOperationDuplicate(string operationName)
+        {
+            if (string.IsNullOrEmpty(operationName))
+                return false;
+            
+            // Get current target GameObject (usually the selected one)
+            int currentTargetID = Selection.activeInstanceID;
+            
+            // Check if this operation is the same as the last manual operation
+            // Consider it duplicate only if both operation name AND target GameObject are the same
+            if (!string.IsNullOrEmpty(lastManualOperationName) && 
+                operationName.Equals(lastManualOperationName, StringComparison.Ordinal) &&
+                currentTargetID == lastManualOperationTargetID &&
+                currentTargetID != 0) // Valid InstanceID
+            {
+                return true; // Consecutive duplicate detected
+            }
+            
+            // Update last manual operation info
+            lastManualOperationName = operationName;
+            lastManualOperationTargetID = currentTargetID;
+            return false; // Not a duplicate
+        }
+        
+
+        
+        /// <summary>
+        /// Check if operation name contains object-specific information
+        /// </summary>
+        private static bool ContainsObjectSpecificInfo(string operationName)
+        {
+            if (string.IsNullOrEmpty(operationName))
+                return false;
+                
+            var lowerName = operationName.ToLower();
+            
+            // Check for GameObject names or specific identifiers
+            // Operations with object names like "Modify GameObject: North" should be considered unique
+            // New format: "Modify North: position → (0.2, 0, 5.2)" should also be considered unique
+            if (lowerName.Contains(": ") || lowerName.Contains(" - ") || 
+                lowerName.Contains("→") || lowerName.Contains("->") || // Modification indicators
+                lowerName.Contains("north") || lowerName.Contains("south") || 
+                lowerName.Contains("east") || lowerName.Contains("west") ||
+                lowerName.Contains("sphere") || lowerName.Contains("cube") ||
+                lowerName.Contains("gameobject:") || lowerName.Contains("object:") ||
+                lowerName.Contains("position") || lowerName.Contains("rotation") || lowerName.Contains("scale") || // Common properties
+                lowerName.Contains("name") || lowerName.Contains("tag") || lowerName.Contains("layer") || // GameObject properties
+                System.Text.RegularExpressions.Regex.IsMatch(lowerName, @"\b\w+\s*\(\d+\)") || // Pattern like "Object (123)"
+                System.Text.RegularExpressions.Regex.IsMatch(operationName, @"\b[A-Z][a-z]+\b")) // Contains capitalized words (likely object names)
+            {
+                return true;
+            }
+            
+            return false;
         }
     }
 } 

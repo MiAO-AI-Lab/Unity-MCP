@@ -64,6 +64,15 @@
                     <ui:Button name="btnConfigure" text="Configure" class="Button-Primary" />
                 </ui:VisualElement>
             </ui:VisualElement>
+            <ui:VisualElement name="ConfigureClient-VisualStudio" class="Frame-Group" style="flex-grow: 1;">
+                <ui:Label text="Visual Studio" class="section-title" />
+                <ui:VisualElement class="row">
+                    <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" />
+                    <ui:Label text="Not configured" name="configureStatusText" style="flex-grow: 1;" />
+                    <ui:Button name="btnConfigure" text="Configure" class="Button-Primary" />
+                </ui:VisualElement>
+                <ui:EnumField label="Config Location" name="vsConfigLocation" type="com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation, com.MiAO.Unity.MCP.Editor" value="Global" class="ContentItem" />
+            </ui:VisualElement>
             <ui:VisualElement name="ConfigureClient-Custom" class="Frame-Group" style="flex-grow: 1;">
                 <ui:Label text="Manual configuration" class="section-title" />
                 <ui:Label text="Copy paste the json into your MCP Client to configure it." name="Label" class="section-desc" />
