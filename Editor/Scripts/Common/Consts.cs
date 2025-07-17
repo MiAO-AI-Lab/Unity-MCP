@@ -3,6 +3,27 @@ using System;
 namespace com.MiAO.Unity.MCP.Editor.Common
 {
     /// <summary>
+    /// Visual Studio MCP 配置文件位置
+    /// </summary>
+    public enum VisualStudioConfigLocation
+    {
+        /// <summary>
+        /// 用户全局配置 (%USERPROFILE%\.mcp.json)
+        /// </summary>
+        Global = 0,
+        
+        /// <summary>
+        /// 解决方案级配置 (<SOLUTIONDIR>\.mcp.json)
+        /// </summary>
+        Solution = 1,
+        
+        /// <summary>
+        /// Visual Studio特定配置 (<SOLUTIONDIR>\.vs\mcp.json)
+        /// </summary>
+        VisualStudioSpecific = 2
+    }
+
+    /// <summary>
     /// Project constants definition
     /// </summary>
     public static class Consts
