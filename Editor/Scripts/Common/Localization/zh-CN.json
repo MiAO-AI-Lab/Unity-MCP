@@ -56,7 +56,14 @@
     "manual_desc": "复制此 JSON 配置到您的 MCP 客户端中进行配置。",
     "manual_placeholder": "这是一个多行、只读、可选择的文本框。\n您可以从这里复制。",
     "rebuild_server": "重新构建 MCP 服务器",
-    "check_logs": "请查看日志以了解操作结果。"
+    "check_logs": "请查看日志以了解操作结果。",
+    "pinned_clients": "置顶客户端",
+    "more_clients": "更多客户端",
+    "drag_instruction": "拖拽任意客户端到上方置顶区域",
+    "drag_tooltip": "拖拽以在区域间移动",
+    "reconfigure": "重新配置",
+    "notification_pinned": "已置顶到顶部区域",
+    "notification_moved": "已移动到更多客户端区域"
   },
   "model": {
     "title": "AI 模型配置",

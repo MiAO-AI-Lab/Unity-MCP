@@ -56,7 +56,14 @@
     "manual_desc": "Copy paste the json into your MCP Client to configure it.",
     "manual_placeholder": "This is a multi-line, read-only, selectable text box.\nYou can copy from here.",
     "rebuild_server": "Rebuild MCP Server",
-    "check_logs": "Please check the logs to see the operation result."
+    "check_logs": "Please check the logs to see the operation result.",
+    "pinned_clients": "Pinned Clients (Drag to reorder)",
+    "more_clients": "More Clients (Click to expand, drag items up to pin)",
+    "drag_instruction": "Drag any client to the pinned area above",
+    "drag_tooltip": "Drag to move between areas",
+    "reconfigure": "Reconfigure",
+    "notification_pinned": "Pinned to top area",
+    "notification_moved": "Moved to More Clients"
   },
   "model": {
     "title": "AI Model Configuration",
