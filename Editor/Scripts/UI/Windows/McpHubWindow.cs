@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UIElements;
@@ -49,6 +50,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         
         // Data
         private List<ExtensionPackageInfo> m_AvailableExtensions = new List<ExtensionPackageInfo>();
+        private List<ExtensionPackageInfo> m_FilteredExtensions = new List<ExtensionPackageInfo>();
         private int m_SelectedTabIndex = 0;
         
         // Properties
@@ -142,6 +144,9 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_SearchField = new TextField("Search Extensions");
             m_SearchField.style.flexGrow = 1;
             m_SearchField.style.marginRight = 10;
+            
+            // Register search field callback
+            m_SearchField.RegisterCallback<ChangeEvent<string>>(evt => FilterExtensions(evt.newValue));
             
             // Refresh button
             m_RefreshButton = new Button(() => RefreshExtensionList())
@@ -244,7 +249,8 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             m_MainContent = new VisualElement { name = NAME_MAIN_CONTENT };
             m_MainContent.style.flexGrow = 1;
-            m_MainContent.style.padding = 10;
+            m_MainContent.style.paddingTop = 10;
+            m_MainContent.style.paddingTop = 10;
             
             // Extension list
             CreateExtensionList();
@@ -257,9 +263,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void CreateExtensionList()
         {
+            m_FilteredExtensions = new List<ExtensionPackageInfo>();
             m_ExtensionList = new ListView
             {
-                itemsSource = m_AvailableExtensions,
+                itemsSource = m_FilteredExtensions,
                 itemHeight = 80,
                 makeItem = MakeExtensionItem,
                 bindItem = BindExtensionItem
@@ -293,15 +300,18 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             content.style.flexGrow = 1;
             
             var title = new Label();
+            title.name = "title";
             title.style.fontSize = 14;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
             
             var description = new Label();
+            description.name = "description";
             description.style.fontSize = 12;
             description.style.color = new Color(0.7f, 0.7f, 0.7f);
             description.style.whiteSpace = WhiteSpace.Normal;
             
             var status = new Label();
+            status.name = "status";
             status.style.fontSize = 10;
             status.style.marginTop = 5;
             
@@ -332,15 +342,15 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void BindExtensionItem(VisualElement element, int index)
         {
-            if (index >= m_AvailableExtensions.Count) return;
+            if (index >= m_FilteredExtensions.Count) return;
             
-            var extension = m_AvailableExtensions[index];
+            var extension = m_FilteredExtensions[index];
             var container = element;
             
             // Get UI elements
-            var title = container.Q<Label>();
-            var description = container.Q<Label>("", className: null);
-            var status = container.Q<Label>("", className: null);
+            var title = container.Q<Label>("title");
+            var description = container.Q<Label>("description");
+            var status = container.Q<Label>("status");
             var actionButton = container.Q<Button>();
             
             if (title != null) title.text = extension.DisplayName;
@@ -407,10 +417,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void SetupEventHandlers()
         {
-            if (m_SearchField != null)
-            {
-                m_SearchField.RegisterValueChangedCallback(OnSearchChanged);
-            }
+            // The search field callback is now registered in CreateToolbar
         }
 
         /// <summary>
@@ -462,6 +469,13 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private void LoadData()
         {
             m_AvailableExtensions = ExtensionManager.GetAvailableExtensions();
+            Debug.Log($"{Consts.Log.Tag} Loaded {m_AvailableExtensions.Count} extensions");
+            
+            // Debug: 输出extension详情
+            foreach(var ext in m_AvailableExtensions)
+            {
+                Debug.Log($"{Consts.Log.Tag} Extension: {ext.DisplayName} - Installed: {ext.IsInstalled} - Category: {ext.ExtensionCategory}");
+            }
         }
 
         /// <summary>
@@ -496,9 +510,30 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void FilterExtensions(string query)
         {
-            // Implementation for filtering extensions based on search
-            // This would filter m_AvailableExtensions and rebuild the list
-            UpdateStatus($"Filtering extensions: {query}");
+            ApplySearchFilter(query);
+            FilterExtensionsByCategory(SelectedTabIndex);
+        }
+
+        /// <summary>
+        /// Applies search filter to current filtered extensions
+        /// </summary>
+        private void ApplySearchFilter(string query)
+        {
+            if (string.IsNullOrEmpty(query))
+            {
+                return;
+            }
+
+            query = query.ToLowerInvariant();
+            var searchFiltered = m_FilteredExtensions.Where(ext => 
+                ext.DisplayName.ToLowerInvariant().Contains(query) ||
+                ext.Description.ToLowerInvariant().Contains(query) ||
+                ext.Author.ToLowerInvariant().Contains(query) ||
+                ext.Id.ToLowerInvariant().Contains(query)
+            ).ToList();
+            
+            m_FilteredExtensions.Clear();
+            m_FilteredExtensions.AddRange(searchFiltered);
         }
 
         /// <summary>
@@ -506,32 +541,39 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void FilterExtensionsByCategory(int categoryIndex)
         {
-            // Implementation for filtering by category
+            m_FilteredExtensions.Clear();
+            
+            // Apply category filtering
             switch (categoryIndex)
             {
                 case 0: // All Extensions
-                    // Show all
+                    m_FilteredExtensions.AddRange(m_AvailableExtensions);
                     break;
                 case 1: // Installed
-                    // Show only installed
+                    m_FilteredExtensions.AddRange(m_AvailableExtensions.Where(ext => ext.IsInstalled));
                     break;
                 case 2: // Available
-                    // Show only available for install
+                    m_FilteredExtensions.AddRange(m_AvailableExtensions.Where(ext => !ext.IsInstalled));
                     break;
                 case 3: // Updates
-                    // Show only extensions with updates
-                    break;
-                case 4: // Essential Tools
-                case 5: // Vision Packs
-                case 6: // Programmer Packs
-                    // Filter by specific pack type
+                    m_FilteredExtensions.AddRange(m_AvailableExtensions.Where(ext => ext.HasUpdate));
                     break;
             }
             
+            // Apply search filter if search field has content
+            if (!string.IsNullOrEmpty(m_SearchField?.value))
+            {
+                ApplySearchFilter(m_SearchField.value);
+            }
+            
+            // Rebuild the list view
             if (m_ExtensionList != null)
             {
+                m_ExtensionList.itemsSource = m_FilteredExtensions;
                 m_ExtensionList.Rebuild();
             }
+            
+            UpdateStatus($"Showing {m_FilteredExtensions.Count} extensions");
         }
 
         /// <summary>

@@ -37,28 +37,6 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                         ExtensionCategory.Essential,
                         "https://github.com/MiAO-AI-LAB/Unity-MCP-Essential.git"
                     )
-                },
-                {
-                    "com.miao.unity.mcp.vision",
-                    new ExtensionRegistryEntry(
-                        "com.miao.unity.mcp.vision",
-                        "Unity MCP Vision Pack",
-                        "Advanced computer vision and AI-powered tools for Unity development.",
-                        "MCP Team",
-                        ExtensionCategory.Vision,
-                        "https://github.com/example/unity-mcp-vision.git"
-                    )
-                },
-                {
-                    "com.miao.unity.mcp.programmer",
-                    new ExtensionRegistryEntry(
-                        "com.miao.unity.mcp.programmer",
-                        "Unity MCP Programmer Pack",
-                        "Advanced programming tools and utilities for Unity development.",
-                        "MCP Team",
-                        ExtensionCategory.Programmer,
-                        "https://github.com/example/unity-mcp-programmer.git"
-                    )
                 }
             };
 
@@ -79,13 +57,16 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
         {
             RefreshExtensionCache();
             
-            // If no extensions found, create sample data for testing
+            // If no extensions found after refresh, create sample data for testing
             if (s_KnownExtensions.Count == 0)
             {
+                Debug.Log($"{Consts.Log.Tag} No extensions found in registry, creating sample data for testing");
                 CreateSampleData();
             }
             
-            return s_KnownExtensions.Values.ToList();
+            var result = s_KnownExtensions.Values.ToList();
+            Debug.Log($"{Consts.Log.Tag} GetAvailableExtensions returning {result.Count} extensions");
+            return result;
         }
 
         /// <summary>
@@ -274,25 +255,34 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
         /// <summary>
         /// Refreshes the extension cache by querying Unity Package Manager
         /// </summary>
-        public static async void RefreshExtensionCache()
+        public static void RefreshExtensionCache()
         {
             try
             {
-                // Get list of installed packages
+                Debug.Log($"{Consts.Log.Tag} Refreshing extension cache...");
+                
+                // Get list of installed packages synchronously
                 var listRequest = Client.List(true); // Include built-in packages
                 
+                // Wait for completion
                 while (!listRequest.IsCompleted)
                 {
-                    await Task.Delay(50);
+                    System.Threading.Thread.Sleep(10);
                 }
 
                 if (listRequest.Status == StatusCode.Success)
                 {
+                    Debug.Log($"{Consts.Log.Tag} Found {listRequest.Result.Count()} installed packages");
+                    
                     // Update installed packages cache
                     s_InstalledPackages.Clear();
                     foreach (var package in listRequest.Result)
                     {
                         s_InstalledPackages[package.name] = package;
+                        if (package.name.StartsWith("com.miao.unity.mcp"))
+                        {
+                            Debug.Log($"{Consts.Log.Tag} Found MCP package: {package.name} v{package.version}");
+                        }
                     }
 
                     // Update known extensions
@@ -376,23 +366,28 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
         /// </summary>
         public static void CreateSampleData()
         {
-            s_KnownExtensions.Clear();
-
-            // Create sample extensions for testing
-            var samples = new[]
+            Debug.Log($"{Consts.Log.Tag} Creating sample data for testing...");
+            
+            // Don't clear existing registry extensions, only add samples if needed
+            var samplesToAdd = new[]
             {
-                ExtensionPackageInfo.CreateSampleExtension("com.miao.unity.mcp.essential", "Essential Tools", ExtensionCategory.Essential, true),
-                ExtensionPackageInfo.CreateSampleExtension("com.miao.unity.mcp.vision", "Vision Pack", ExtensionCategory.Vision, false),
-                ExtensionPackageInfo.CreateSampleExtension("com.miao.unity.mcp.programmer", "Programmer Pack", ExtensionCategory.Programmer, false),
-                ExtensionPackageInfo.CreateSampleExtension("com.miao.unity.mcp.animation", "Animation Tools", ExtensionCategory.Essential, true),
-                ExtensionPackageInfo.CreateSampleExtension("com.miao.unity.mcp.physics", "Physics Tools", ExtensionCategory.Essential, false),
+                ("com.miao.unity.mcp.vision", "Vision Pack", ExtensionCategory.Vision, false),
+                ("com.miao.unity.mcp.programmer", "Programmer Pack", ExtensionCategory.Programmer, false),
+                ("com.miao.unity.mcp.animation", "Animation Tools", ExtensionCategory.Essential, true),
+                ("com.miao.unity.mcp.physics", "Physics Tools", ExtensionCategory.Essential, false),
             };
 
-            foreach (var sample in samples)
+            foreach (var (id, name, category, installed) in samplesToAdd)
             {
-                s_KnownExtensions[sample.Id] = sample;
+                if (!s_KnownExtensions.ContainsKey(id))
+                {
+                    var sample = ExtensionPackageInfo.CreateSampleExtension(id, name, category, installed);
+                    s_KnownExtensions[sample.Id] = sample;
+                    Debug.Log($"{Consts.Log.Tag} Added sample extension: {sample.DisplayName}");
+                }
             }
 
+            Debug.Log($"{Consts.Log.Tag} Sample data creation complete. Total extensions: {s_KnownExtensions.Count}");
             OnExtensionsUpdated?.Invoke();
         }
     }
