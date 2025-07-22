@@ -161,7 +161,7 @@ namespace com.MiAO.Unity.MCP.Editor
             // Use Environment.NewLine to ensure correct line break handling
             var lines = output.Split(new[] { Environment.NewLine, "\r\n", "\r", "\n" }, StringSplitOptions.None);
             
-            Debug.Log($"{Consts.Log.Tag} FormatBuildOutput: Original length: {output.Length}, Lines count: {lines.Length}");
+            // Debug.Log($"{Consts.Log.Tag} FormatBuildOutput: Original length: {output.Length}, Lines count: {lines.Length}");
             
             var formattedLines = new string[lines.Length];
 
@@ -188,7 +188,7 @@ namespace com.MiAO.Unity.MCP.Editor
                     formattedLines[i] = line;
                 }
             }
-            Debug.Log($"{Consts.Log.Tag} FormatBuildOutput: lines count: {formattedLines.Length}");
+            // Debug.Log($"{Consts.Log.Tag} FormatBuildOutput: lines count: {formattedLines.Length}");
             var result = string.Join("\n", formattedLines);
 
             
