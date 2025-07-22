@@ -2,22 +2,20 @@
 using com.MiAO.Unity.MCP.Common;
 using UnityEngine;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using System.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using BehaviorDesigner.Runtime;
-using dnlib.DotNet.Writer;
-using System.ComponentModel;
-using com.IvanMurzak.ReflectorNet.Utils;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
     [McpPluginToolType]
     public partial class Tool_BehaviorDesigner
     {
-
+        const float X_OFFSET = 100f;
+        const float Y_OFFSET = 20f;
+        
         public static class Error
         {
 
@@ -558,7 +556,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
             {
                 // Place as the leftmost child
                 float minX = children.Count > 0 ? children[0].NodeData.Offset.x : parentOffset.x;
-                float minY = children.Count > 0 ? children[0].NodeData.Offset.y : parentOffset.y + 30f;
+                float minY = children.Count > 0 ? children[0].NodeData.Offset.y : parentOffset.y + Y_OFFSET;
                 foreach (var child in children)
                 {
                     if (child.NodeData != null && child.NodeData.Offset.x < minX)
@@ -566,7 +564,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     if (child.NodeData != null && child.NodeData.Offset.y < minY)
                         minY = child.NodeData.Offset.y;
                 }
-                return new Vector2(children.Count > 0 ? minX - 200f : minX, minY);
+                return new Vector2(children.Count > 0 ? minX - X_OFFSET : minX, minY);
             }
             else
             {
@@ -574,7 +572,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 var elderBrother = children.FirstOrDefault(c => c.ID == elderBrotherTaskId.Value);
                 if (elderBrother?.NodeData != null)
                 {
-                    return new Vector2(elderBrother.NodeData.Offset.x + 200f, elderBrother.NodeData.Offset.y);
+                    return new Vector2(elderBrother.NodeData.Offset.x + X_OFFSET, elderBrother.NodeData.Offset.y);
                 }
                 else
                 {
