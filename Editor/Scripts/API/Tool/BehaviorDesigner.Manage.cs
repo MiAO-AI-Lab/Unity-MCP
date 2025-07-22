@@ -1,0 +1,261 @@
+#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+using com.MiAO.Unity.MCP.Common;
+using UnityEngine;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using System.Reflection;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using BehaviorDesigner.Runtime;
+using dnlib.DotNet.Writer;
+using System.ComponentModel;
+using com.IvanMurzak.ReflectorNet.Utils;
+
+namespace com.MiAO.Unity.MCP.Editor.API
+{    
+    public partial class Tool_BehaviorDesigner
+    {   
+        [McpPluginTool
+        (
+            "BehaviorDesigner_ManageBehaviorSource",
+            Title = "Manage BehaviorDesigner BehaviorSource - Read, Add, Delete, Move nodes"
+        )]
+        [Description(@"Manage comprehensive BehaviorSource operations including:
+- read: Read BehaviorDesigner content from asset path and return detailed node hierarchy
+- addNode: Add a new node to the BehaviorSource with specified parent and elder-brother task IDs, automatically calculate node offset
+- deleteNode: Delete a node by ID and recursively delete all child nodes
+- moveNode: Move a node to a new parent with automatic offset calculation, recursively move all child nodes")]
+        public string ManageBehaviorSource
+        (
+            [Description("Operation type: 'read', 'addNode', 'deleteNode', 'moveNode'")]
+            string operation,
+            [Description("Asset path to the BehaviorDesigner ExternalBehavior file. Starts with 'Assets/'. Ends with '.asset'.")]
+            string assetPath,
+            [Description("For addNode/deleteNode/moveNode: Target task ID")]
+            int? taskId = null,
+            [Description("For addNode/moveNode: the target parent task ID where the node should be attached")]
+            int? parentTaskId = null,
+            [Description("For addNode/moveNode: Elder-brother task ID (optional) - the node will be placed to the right of this elder-brother task. If not provided, the node will be placed as the leftmost child of the parent task.")]
+            int? elderBrotherTaskId = null,
+            [Description("For addNode: class name of the task type to create (e.g., 'BehaviorDesigner.Runtime.Tasks.Wait', 'Idle')")]
+            string? taskTypeName = null,
+            [Description("For addNode: Friendly name for the new task")]
+            string? friendlyName = null,
+            [Description("For read: Whether to include detailed task serialization information")]
+            bool includeDetails = false
+        )
+        {
+            return operation.ToLower() switch
+            {
+                "read" => ReadBehaviorSource(assetPath, includeDetails),
+                "addnode" => AddNode(assetPath, parentTaskId, elderBrotherTaskId, taskTypeName, friendlyName),
+                "deletenode" => DeleteNode(assetPath, taskId),
+                "movenode" => MoveNode(assetPath, taskId, parentTaskId, elderBrotherTaskId),
+                _ => Error.InvalidOperation()
+            };
+        }
+      
+        #region BehaviorSource Management Methods
+        
+        private static string ReadBehaviorSource(string assetPath, bool includeDetails)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    var (behaviorSource, _) = LoadBehaviorSourceFromAssetPath(assetPath, out string errorMessage);
+                    if (!string.IsNullOrEmpty(errorMessage))
+                        throw new Exception(errorMessage);
+
+                    var result = new System.Text.StringBuilder();
+                    result.AppendLine($"[Success] BehaviorSource content from: {assetPath}");
+                    result.AppendLine($"Entry Task: {GetTaskInfo(behaviorSource.EntryTask)}");
+                    result.AppendLine($"Root Task: {GetTaskInfo(behaviorSource.RootTask)}");
+                    result.AppendLine($"Detached Tasks Count: {behaviorSource.DetachedTasks?.Count ?? 0}");
+
+                    if (behaviorSource.RootTask != null)
+                    {
+                        result.AppendLine("\n=== Task Hierarchy ===");
+                        PrintTaskHierarchy(behaviorSource.RootTask, result, 0, includeDetails);
+                    }
+
+                    if (behaviorSource.DetachedTasks?.Count > 0)
+                    {
+                        result.AppendLine("\n=== Detached Tasks ===");
+                        foreach (var task in behaviorSource.DetachedTasks)
+                        {
+                            PrintTaskHierarchy(task, result, 0, includeDetails);
+                        }
+                    }
+
+                    return result.ToString();
+                }
+                catch (Exception ex)
+                {
+                    return Error.FailedToReadBehaviorSource(ex.Message);
+                }
+            });
+        }
+
+        private static string AddNode(string assetPath, int? parentTaskId, int? elderBrotherTaskId, string? taskTypeName, string? friendlyName)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    if (!parentTaskId.HasValue)
+                        return Error.ParentTaskIdRequired("adding a node");
+
+                    var (behaviorSource, externalBehavior) = LoadBehaviorSourceFromAssetPath(assetPath, out string errorMessage);
+                    if (!string.IsNullOrEmpty(errorMessage))
+                        throw new Exception(errorMessage);
+
+                    // Find parent task
+                    var parentTask = FindTaskById(behaviorSource, parentTaskId.Value);
+                    if (parentTask == null)
+                        return Error.ParentTaskNotFound(parentTaskId.Value);
+
+                    // Create new task
+                    var taskType = Type.GetType(taskTypeName);
+                    if (taskType == null)
+                    {
+                        // Try to find in BehaviorDesigner assemblies
+                        taskType = AppDomain.CurrentDomain.GetAssemblies()
+                            .SelectMany(a => a.GetTypes())
+                            .FirstOrDefault(t => t.FullName == taskTypeName || t.Name == taskTypeName);
+                    }
+
+                    if (taskType == null)
+                        return Error.TaskTypeNotFound(taskTypeName);
+
+                    var newTask = Activator.CreateInstance(taskType) as BehaviorDesigner.Runtime.Tasks.Task;
+                    if (newTask == null)
+                        return Error.FailedToCreateTaskInstance(taskTypeName);
+
+                    // Set task properties
+                    newTask.ID = GetNextAvailableTaskId(behaviorSource);
+                    newTask.FriendlyName = friendlyName ?? taskType.Name;
+                    
+                    // Create NodeData
+                    newTask.NodeData = new NodeData();
+                    newTask.NodeData.Offset = CalculateNodeOffset(parentTask, elderBrotherTaskId, behaviorSource);
+
+                    // Add to parent's children
+                    AddTaskToParent(parentTask, newTask, elderBrotherTaskId);
+
+                    // Save changes
+                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource, 
+                        behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
+
+                    // Debug.Log(behaviorSource.TaskData.JSONSerialization);
+
+                    return $"[Success] Added new task '{newTask.FriendlyName}' (ID: {newTask.ID}) to parent task ID {parentTaskId}.";
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError(ex.StackTrace);
+                    return Error.FailedToOperate("add a node", ex.Message);
+                }
+            });
+        }
+
+        private static string DeleteNode(string assetPath, int? taskId)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    if (!taskId.HasValue)
+                        return Error.TaskIdRequire("deleting a node");
+
+                    var (behaviorSource, externalBehavior) = LoadBehaviorSourceFromAssetPath(assetPath, out string errorMessage);
+                    if (!string.IsNullOrEmpty(errorMessage))
+                        throw new Exception(errorMessage);
+
+                    var taskToDelete = FindTaskById(behaviorSource, taskId.Value);
+                    if (taskToDelete == null)
+                        return Error.TaskNotFound(taskId.Value);
+
+                    // Count children that will be deleted
+                    int deletedCount = CountAllChildTasks(taskToDelete) + 1;
+
+                    // Remove task and all children
+                    RemoveTaskFromBehaviorSource(behaviorSource, taskToDelete);
+
+                    // Save changes
+                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource, 
+                        behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
+
+                    return $"[Success] Deleted task ID {taskId} and {deletedCount - 1} child tasks. Total deleted: {deletedCount}.";
+                }
+                catch (Exception ex)
+                {
+                    return Error.FailedToOperate("delete a node", ex.Message);
+                }
+            });
+        }
+
+        private static string MoveNode(string assetPath, int? taskId, int? parentTaskId, int? elderBrotherTaskId)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    if (!taskId.HasValue)
+                        return Error.TaskIdRequire("moving a node");
+
+                    if (!parentTaskId.HasValue)
+                        return Error.ParentTaskIdRequired("moving a node");
+
+                    var (behaviorSource, externalBehavior) = LoadBehaviorSourceFromAssetPath(assetPath, out string errorMessage);
+                    if (!string.IsNullOrEmpty(errorMessage))
+                        throw new Exception(errorMessage);
+
+                    var taskToMove = FindTaskById(behaviorSource, taskId.Value);
+                    if (taskToMove == null)
+                        return Error.TaskNotFound(taskId.Value);
+
+                    var newParentTask = FindTaskById(behaviorSource, parentTaskId.Value);
+                    if (newParentTask == null)
+                        return Error.NewParentTaskNotFound(parentTaskId.Value);
+
+                    // Check if the new parent task can accept children
+                    if (!CanTaskAcceptChildren(newParentTask))
+                        return Error.TaskCannotAcceptChildren(parentTaskId.Value, newParentTask.GetType().Name);
+
+                    // Check if trying to move task to its own child (circular reference)
+                    if (IsTaskDescendantOf(newParentTask, taskToMove))
+                        return Error.CircularReferenceDetected();
+
+                    // Remove from current parent
+                    RemoveTaskFromCurrentParent(behaviorSource, taskToMove);
+
+                    // Calculate new offset and position
+                    Vector2 newOffset = CalculateNodeOffset(newParentTask, elderBrotherTaskId, behaviorSource);
+                    Vector2 offsetDelta = newOffset - taskToMove.NodeData.Offset;
+                    
+                    // Move task and all its children
+                    MoveTaskAndChildren(taskToMove, offsetDelta);
+
+                    // Add to new parent
+                    AddTaskToParent(newParentTask, taskToMove, elderBrotherTaskId);
+
+                    // Save changes
+                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource, 
+                        behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
+
+                    int movedCount = CountAllChildTasks(taskToMove) + 1;
+                    return $"[Success] Moved task ID {taskId} and {movedCount - 1} child tasks to parent ID {parentTaskId}. Total moved: {movedCount}.";
+                }
+                catch (Exception ex)
+                {
+                    return Error.FailedToOperate("move a node", ex.Message);
+                }
+            });
+        }
+
+        #endregion
+
+    }
+}
