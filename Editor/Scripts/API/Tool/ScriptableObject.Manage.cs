@@ -1,5 +1,8 @@
 #pragma warning disable CS8632
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Reflection;
 using System.Text;
 using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
@@ -33,7 +36,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
             string? typeName = null,
             [Description("For find: If true, it will print only brief data.")]
             bool briefData = false,
-            [Description("For modify: Asset modification data")]
+            [Description(@"For modify: Asset modification data. For properties like name, use ""props"": {""typeName"": ""UnityEngine.ScriptableObject"", ""props"": [{""name"": ""name"", ""typeName"": ""System.String"", ""value"": ""NewName""}]}. For Transform position/rotation, use: {""typeName"": ""UnityEngine.Transform"", ""props"": [{""name"": ""position"", ""typeName"": ""UnityEngine.Vector3"", ""value"": {""x"": 1, ""y"": 2, ""z"": 3}}]}. For array (such as Transform[]), use: {""typeName"": ""UnityEngine.Transform"", ""fields"": [{""name"": ""publicArray"", ""typeName"": ""UnityEngine.Transform[]"", ""value"": [-42744, -42754, -42768]}]}.")]
             SerializedMember? assetDiff = null
         )
         {
@@ -131,15 +134,28 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 if (asset == null)
                     return Error.AssetNotFound(assetPath);
 
-                var stringBuilder = new StringBuilder();
+                // Check if the diff has neither fields nor props
+                if ((assetDiff.fields == null || assetDiff.fields.Count == 0) &&
+                    (assetDiff.props == null || assetDiff.props.Count == 0))
+                {
+                    return "[Error] Asset modification data has neither fields nor props - no modifications to apply.";
+                }
+
                 var objToModify = (object)asset;
-                Reflector.Instance.Populate(ref objToModify, assetDiff, stringBuilder);
+                var modificationResult = TypeConversionUtils.ProcessObjectModifications(objToModify, assetDiff);
 
-                EditorUtility.SetDirty(asset);
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
+                if (modificationResult.Success)
+                {
+                    EditorUtility.SetDirty(asset);
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
 
-                return $"[Success] Modified ScriptableObject asset at '{assetPath}'.\n{stringBuilder}";
+                    return $"[Success] Modified ScriptableObject asset at '{assetPath}'. {modificationResult.Message}";
+                }
+                else
+                {
+                    return $"[Error] Failed to modify ScriptableObject asset at '{assetPath}': {modificationResult.Message}";
+                }
             });
         }
     }

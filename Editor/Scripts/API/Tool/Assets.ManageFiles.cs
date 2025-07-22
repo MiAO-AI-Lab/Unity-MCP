@@ -37,7 +37,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
             string? assetPath = null,
             [Description("For read: Asset GUID.")]
             string? assetGuid = null,
-            [Description("For find: Search filter. See documentation for details.")]
+            [Description("For find: Search filter. See documentation for details. For example: 'ObjectName' 't:ScriptableObject'")]
             string? filter = null,
             [Description("For find: Search folders. If null, search all folders.")]
             string[]? searchInFolders = null,
