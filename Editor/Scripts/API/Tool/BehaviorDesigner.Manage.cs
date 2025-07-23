@@ -3,6 +3,7 @@ using com.MiAO.Unity.MCP.Common;
 using UnityEngine;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using BehaviorDesigner.Runtime;
 using System.ComponentModel;
 using com.IvanMurzak.ReflectorNet.Utils;
@@ -20,14 +21,15 @@ namespace com.MiAO.Unity.MCP.Editor.API
 - read: Read BehaviorDesigner content from asset path and return detailed node hierarchy
 - addNode: Add a new node to the BehaviorSource with specified parent and elder-brother task IDs, automatically calculate node offset
 - deleteNode: Delete a node by ID and recursively delete all child nodes
-- moveNode: Move a node to a new parent with automatic offset calculation, recursively move all child nodes")]
+- moveNode: Move a node to a new parent with automatic offset calculation, recursively move all child nodes
+- autoLayout: Auto layout the BehaviorSource, recursively layout all child nodes of the target task")]
         public string ManageBehaviorSource
         (
-            [Description("Operation type: 'read', 'addNode', 'deleteNode', 'moveNode'")]
+            [Description("Operation type: 'read', 'addNode', 'deleteNode', 'moveNode', 'autoLayout'")]
             string operation,
             [Description("Asset path to the BehaviorDesigner ExternalBehavior file. Starts with 'Assets/'. Ends with '.asset'.")]
             string assetPath,
-            [Description("For addNode/deleteNode/moveNode: Target task ID")]
+            [Description("For addNode/deleteNode/moveNode/autoLayout: Target task ID")]
             int? taskId = null,
             [Description("For addNode/moveNode: the target parent task ID where the node should be attached")]
             int? parentTaskId = null,
@@ -47,6 +49,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 "addnode" => AddNode(assetPath, parentTaskId, elderBrotherTaskId, taskTypeName, friendlyName),
                 "deletenode" => DeleteNode(assetPath, taskId),
                 "movenode" => MoveNode(assetPath, taskId, parentTaskId, elderBrotherTaskId),
+                "autolayout" => AutoLayout(assetPath, taskId),
                 _ => Error.InvalidOperation()
             };
         }
@@ -140,8 +143,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     AddTaskToParent(parentTask, newTask, elderBrotherTaskId);
 
                     // Save changes
-                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource, 
-                        behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
+                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
 
                     // Debug.Log(behaviorSource.TaskData.JSONSerialization);
 
@@ -179,8 +181,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     RemoveTaskFromBehaviorSource(behaviorSource, taskToDelete);
 
                     // Save changes
-                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource, 
-                        behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
+                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
 
                     return $"[Success] Deleted task ID {taskId} and {deletedCount - 1} child tasks. Total deleted: {deletedCount}.";
                 }
@@ -213,7 +214,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
                     var newParentTask = FindTaskById(behaviorSource, parentTaskId.Value);
                     if (newParentTask == null)
-                        return Error.NewParentTaskNotFound(parentTaskId.Value);
+                        return Error.ParentTaskNotFound(parentTaskId.Value);
 
                     // Check if the new parent task can accept children
                     if (!CanTaskAcceptChildren(newParentTask))
@@ -224,7 +225,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                         return Error.CircularReferenceDetected();
 
                     // Remove from current parent
-                    RemoveTaskFromCurrentParent(behaviorSource, taskToMove);
+                    RemoveTaskFromBehaviorSource(behaviorSource, taskToMove);
 
                     // Calculate new offset and position
                     Vector2 newOffset = CalculateNodeOffset(newParentTask, elderBrotherTaskId, behaviorSource);
@@ -237,8 +238,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     AddTaskToParent(newParentTask, taskToMove, elderBrotherTaskId);
 
                     // Save changes
-                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource, 
-                        behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
+                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
 
                     int movedCount = CountAllChildTasks(taskToMove) + 1;
                     return $"[Success] Moved task ID {taskId} and {movedCount - 1} child tasks to parent ID {parentTaskId}. Total moved: {movedCount}.";
@@ -248,6 +248,138 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     return Error.FailedToOperate("move a node", ex.Message);
                 }
             });
+        }
+
+        private static string AutoLayout(string assetPath, int? taskId)
+        {
+            return MainThread.Instance.Run(() =>
+            {
+                try
+                {
+                    var (behaviorSource, externalBehavior) = LoadBehaviorSourceFromAssetPath(assetPath, out string errorMessage);
+                    if (!string.IsNullOrEmpty(errorMessage))
+                        throw new Exception(errorMessage);
+
+                    // Determine the root task for layout
+                    BehaviorDesigner.Runtime.Tasks.Task rootTaskForLayout;
+                    if (taskId.HasValue)
+                    {
+                        // Layout specific task and its children
+                        rootTaskForLayout = FindTaskById(behaviorSource, taskId.Value);
+                        if (rootTaskForLayout == null)
+                            return Error.TaskNotFound(taskId.Value);
+                    }
+                    else
+                    {
+                        // Layout entire behavior tree starting from root
+                        rootTaskForLayout = behaviorSource.RootTask;
+                        if (rootTaskForLayout == null)
+                            return Error.NoRootTaskFound();
+                    }
+
+                    // Perform auto layout
+                    int layoutCount = PerformAutoLayout(rootTaskForLayout);
+
+                    // Save changes
+                    DumpBehaviorSourceToAsset(externalBehavior, behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
+
+                    return $"[Success] Auto layout completed. {layoutCount} tasks were repositioned.";
+                }
+                catch (Exception ex)
+                {
+                    return Error.FailedToOperate("perform auto layout", ex.Message);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Performs auto layout on a task and all its children recursively
+        /// </summary>
+        /// <param name="task">The root task to layout</param>
+        /// <returns>Number of tasks that were repositioned</returns>
+        private static int PerformAutoLayout(BehaviorDesigner.Runtime.Tasks.Task task)
+        {
+            if (task == null) return 0;
+
+            int layoutCount = 0;
+            
+            // Get children using the helper method
+            var children = GetTaskChildren(task);
+            
+            // Layout this task's children first (bottom-up approach)
+            if (children != null && children.Count > 0)
+            {
+                layoutCount += LayoutChildrenHorizontally(task);
+            }
+
+            // Recursively layout all children
+            if (children != null)
+            {
+                foreach (var child in children)
+                {
+                    layoutCount += PerformAutoLayout(child);
+                }
+            }
+
+            return layoutCount;
+        }
+
+        /// <summary>
+        /// Layouts children of a task horizontally with equal spacing
+        /// </summary>
+        /// <param name="parentTask">The parent task whose children will be laid out</param>
+        /// <returns>Number of tasks repositioned</returns>
+        private static int LayoutChildrenHorizontally(BehaviorDesigner.Runtime.Tasks.Task parentTask, float spacing = X_OFFSET)
+        {
+            var children = GetTaskChildren(parentTask);
+            if (children == null || children.Count == 0)
+                return 0;
+
+            int layoutCount = 0;
+            List<BehaviorDesigner.Runtime.Tasks.Task> childrenList = children.ToList(); // Create a copy to avoid modification issues
+
+            // Calculate total width needed for all children
+            float totalLayoutWidth = spacing * (childrenList.Count - 1);
+
+            totalLayoutWidth = Mathf.Max(totalLayoutWidth, 0f);
+
+            Debug.Log($"totalLayoutWidth: {totalLayoutWidth}");
+
+            // Calculate starting X position (center the layout under parent)
+            float parentX = parentTask.NodeData?.Offset.x ?? 0f;
+            float startX = parentX - (totalLayoutWidth / 2f) - spacing;
+
+            Debug.Log($"NodeName: {parentTask.FriendlyName}, parentX, startX: {parentX}, {startX}");
+            // Position each child
+            float currentX = startX;
+            float parentY = parentTask.NodeData?.Offset.y ?? 0f;
+            float childY = parentY + Y_OFFSET; // Children are positioned below parent
+
+            for (int i = 0; i < childrenList.Count; i++)
+            {
+                var child = childrenList[i];
+                if (child?.NodeData != null)
+                {
+                    // Calculate child center position
+                    float childCenterX = currentX + spacing;
+                    
+                    Debug.Log($"NodeName: {child.FriendlyName}, childCenterX: {childCenterX}");
+                    // Update child position
+                    Vector2 newOffset = new Vector2(childCenterX, childY);
+                    
+                    // Only count as layout if position actually changed
+                    if (Vector2.Distance(child.NodeData.Offset, newOffset) > 0.1f)
+                    {
+                        child.NodeData.Offset = newOffset;
+                        layoutCount++;
+                    }
+
+                    // Move to next child position
+                    currentX += spacing;
+                }
+            }
+
+            return layoutCount;
         }
 
         #endregion

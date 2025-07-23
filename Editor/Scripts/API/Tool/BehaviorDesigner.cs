@@ -7,13 +7,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BehaviorDesigner.Runtime;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Math;
 
 namespace com.MiAO.Unity.MCP.Editor.API
 {
     [McpPluginToolType]
     public partial class Tool_BehaviorDesigner
     {
-        const float X_OFFSET = 100f;
+        const float X_OFFSET = 200f;
         const float Y_OFFSET = 20f;
         
         public static class Error
@@ -61,14 +62,14 @@ namespace com.MiAO.Unity.MCP.Editor.API
             public static string TaskNotFound(int taskId)
                 => $"[Error] Task with ID {taskId} not found.";
 
-            public static string NewParentTaskNotFound(int parentTaskId)
-                => $"[Error] New parent task with ID {parentTaskId} not found.";
-
             public static string TaskCannotAcceptChildren(int parentTaskId, string taskTypeName)
                 => $"[Error] Task with ID {parentTaskId} ({taskTypeName}) cannot accept children. Only composite tasks (Sequence, Parallel, Selector, etc.) can have child tasks.";
 
             public static string CircularReferenceDetected()
                 => "[Error] Cannot move task to its own descendant (would create circular reference).";
+
+            public static string NoRootTaskFound()
+                => "[Error] No root task found in the behavior source.";
 
         }
 
@@ -109,8 +110,14 @@ namespace com.MiAO.Unity.MCP.Editor.API
             return (behaviorSource, externalBehavior);
         }
 
-        public static void DumpBehaviorSourceToAsset(ExternalBehavior externalBehavior, BehaviorSource behaviorSource, BehaviorDesigner.Runtime.Tasks.Task entryTask, BehaviorDesigner.Runtime.Tasks.Task rootTask, List<BehaviorDesigner.Runtime.Tasks.Task> detachedTaskList)
+        public static void DumpBehaviorSourceToAsset(ExternalBehavior externalBehavior, BehaviorDesigner.Runtime.Tasks.Task entryTask, BehaviorDesigner.Runtime.Tasks.Task rootTask, List<BehaviorDesigner.Runtime.Tasks.Task> detachedTaskList)
         {
+            var behaviorSource = externalBehavior.GetBehaviorSource();
+            if (behaviorSource == null)
+            {
+                throw new Exception(Error.NotFoundBehaviorSource(externalBehavior.name));
+            }
+
             // Save the modified BehaviorSource
             behaviorSource.Save(entryTask, rootTask, detachedTaskList);
 
@@ -572,7 +579,28 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 var elderBrother = children.FirstOrDefault(c => c.ID == elderBrotherTaskId.Value);
                 if (elderBrother?.NodeData != null)
                 {
-                    return new Vector2(elderBrother.NodeData.Offset.x + X_OFFSET, elderBrother.NodeData.Offset.y);
+                    // Find the next sibling to the right of elder brother
+                    var elderBrotherIndex = children.FindIndex(c => c.ID == elderBrotherTaskId.Value);
+                    var nextSibling = elderBrotherIndex >= 0 && elderBrotherIndex + 1 < children.Count 
+                        ? children[elderBrotherIndex + 1] 
+                        : null;
+                    
+                    if (nextSibling?.NodeData != null)
+                    {
+                        // Place between elder brother and next sibling
+                        float elderX = elderBrother.NodeData.Offset.x;
+                        float nextX = nextSibling.NodeData.Offset.x;
+                        float middleX = elderX + (nextX - elderX) * 0.5f;
+                        
+                        middleX = Mathf.Min(middleX, elderX + X_OFFSET);
+                        
+                        return new Vector2(middleX, elderBrother.NodeData.Offset.y);
+                    }
+                    else
+                    {
+                        // No next sibling, place to the right of elder brother
+                        return new Vector2(elderBrother.NodeData.Offset.x + X_OFFSET, elderBrother.NodeData.Offset.y);
+                    }
                 }
                 else
                 {
@@ -671,11 +699,6 @@ namespace com.MiAO.Unity.MCP.Editor.API
             {
                 RemoveTaskFromParentChildren(child, taskToRemove);
             }
-        }
-
-        private static void RemoveTaskFromCurrentParent(BehaviorSource behaviorSource, BehaviorDesigner.Runtime.Tasks.Task taskToMove)
-        {
-            RemoveTaskFromBehaviorSource(behaviorSource, taskToMove);
         }
 
         private static bool IsTaskDescendantOf(BehaviorDesigner.Runtime.Tasks.Task potentialDescendant, BehaviorDesigner.Runtime.Tasks.Task ancestor)
