@@ -36,7 +36,7 @@
   },
   "connector": {
     "title": "MCP Connector",
-    "loglevel": "Log Level",
+    "log_level": "Log Level",
     "connect_server": "Connect to MCP server",
     "server_url": "Server URL",
     "information": "Information",
@@ -63,7 +63,16 @@
     "drag_tooltip": "Drag to move between areas",
     "reconfigure": "Reconfigure",
     "notification_pinned": "Pinned to top area",
-    "notification_moved": "Moved to More Clients"
+    "notification_moved": "Moved to More Clients",
+    "client": {
+      "cursor": "Cursor",
+      "claude_desktop": "Claude Desktop",
+      "vscode": "VS Code",
+      "visual_studio": "Visual Studio",
+      "augment": "Augment",
+      "windsurf": "Windsurf",
+      "cline": "Cline"
+    }
   },
   "model": {
     "title": "AI Model Configuration",
@@ -140,9 +149,13 @@
   "userinput": {
     "title": "User Input Panel",
     "prompt_message": "Prompt Message:",
+    "prompt_label": "Prompt Message:",
     "user_input": "User Input:",
+    "input_label": "User Input:",
     "selected_objects": "Currently Selected Objects:",
+    "selected_objects_label": "Currently Selected Objects:",
     "no_objects": "No objects selected",
+    "placeholder": "Please enter...",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "waiting": "Waiting for user input request...",
@@ -151,6 +164,8 @@
   },
   "settings": {
     "title": "User Preferences",
+    "interface_language": "Interface Language",
+    "ui_theme": "UI Theme",
     "language": "Language",
     "theme": "Theme",
     "log_level": "Log Level",
@@ -170,10 +185,8 @@
     "light_theme": "Light Theme",
     "system_theme": "System Theme",
     "language_settings": "Language Settings",
-    "interface_language": "Interface Language",
     "language_desc": "Select the language for the user interface",
     "theme_settings": "Theme Settings",
-    "ui_theme": "UI Theme",
     "auto_refresh": "Auto-refresh UI",
     "theme_desc": "Choose the visual theme for the interface",
     "save": "Save",
@@ -200,6 +213,7 @@
     "apply": "Apply",
     "close": "Close",
     "save": "Save",
+    "save_config": "Save Configuration",
     "load": "Load",
     "delete": "Delete",
     "edit": "Edit",
@@ -233,6 +247,7 @@
     "connected": "Connected",
     "disconnected": "Disconnected",
     "online": "Online",
-    "offline": "Offline"
+    "offline": "Offline",
+    "not_configured": "Not configured"
   }
 } 

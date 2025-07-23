@@ -371,8 +371,9 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         
         private static void OnLanguageChanged(LocalizationManager.Language newLanguage)
         {
-            UnityEngine.Debug.Log($"[UILocalizationSystem] Language changed to {newLanguage}, clearing caches");
-            ClearTextCache();
+            UnityEngine.Debug.Log($"[UILocalizationSystem] Language changed to {newLanguage}, clearing all caches");
+            // 清理所有缓存，确保语言切换后重新处理所有元素
+            ClearAllCaches();
         }
         
         private static LocalizationContext CreateDefaultContext(VisualElement rootElement)
