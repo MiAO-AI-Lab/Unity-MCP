@@ -14,7 +14,7 @@ namespace com.MiAO.Unity.MCP.Common
 {
     public class McpRunner : IMcpRunner
     {
-        static readonly JsonElement EmptyInputSchema = JsonDocument.Parse("{\"type\":\"object\"}").RootElement;
+        static readonly JsonElement EmptyInputSchema = JsonDocument.Parse("{\"type\":\"object\",\"properties\":{},\"required\":[]}").RootElement;
 
         protected readonly ILogger<McpRunner> _logger;
         readonly ToolRunnerCollection _tools;

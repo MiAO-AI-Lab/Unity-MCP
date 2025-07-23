@@ -42,8 +42,8 @@ namespace com.MiAO.Unity.MCP.Editor.Common
 
         private static readonly Dictionary<Language, string> _resourceFilePaths = new Dictionary<Language, string>
         {
-            [Language.English] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/en.json",
-            [Language.ChineseSimplified] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/zh-CN.json"
+            [Language.English] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/Language/en.json",
+            [Language.ChineseSimplified] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/Language/zh-CN.json"
         };
 
         #endregion
@@ -327,36 +327,7 @@ namespace com.MiAO.Unity.MCP.Editor.Common
             Debug.Log("[LocalizationManager] All translations cleared");
         }
 
-        /// <summary>
-        /// Test method to verify localization system is working correctly
-        /// </summary>
-        public static void TestLocalization()
-        {
-            Debug.Log("=== LocalizationManager Test ===");
-            Debug.Log($"IsInitialized: {IsInitialized}");
-            Debug.Log($"CurrentLanguage: {CurrentLanguage}");
-            Debug.Log($"TranslationCount: {TranslationCount}");
-            
-            // Test common keys
-            string[] testKeys = {
-                "language.english",
-                "language.chinese", 
-                "tab.connector",
-                "tab.modelconfig",
-                "connector.title",
-                "model.title",
-                "operations.title",
-                "settings.title"
-            };
-            
-            foreach (var key in testKeys)
-            {
-                var value = GetText(key);
-                Debug.Log($"  '{key}' = '{value}'");
-            }
-            
-            Debug.Log("=== Test Complete ===");
-        }
+
 
         #endregion
 
@@ -475,27 +446,7 @@ namespace com.MiAO.Unity.MCP.Editor.Common
 
         #endregion
 
-        #region Backward Compatibility
-
-        /// <summary>
-        /// Legacy method for backward compatibility
-        /// </summary>
-        [Obsolete("Use GetText(key) instead")]
-        public static string GetLocalizedText(string key)
-        {
-            return GetText(key);
-        }
-
-        /// <summary>
-        /// Legacy method for backward compatibility
-        /// </summary>
-        [Obsolete("Use GetText(key, args) instead")]
-        public static string GetLocalizedText(string key, params object[] args)
-        {
-            return GetText(key, args);
-        }
-
-        #endregion
+        
     }
 
     #region Simple JSON Parser

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using com.IvanMurzak.ReflectorNet;
 using com.IvanMurzak.ReflectorNet.Model;
@@ -18,6 +19,60 @@ namespace com.MiAO.Unity.MCP.Common
     public partial class RunTool : MethodWrapper, IRunTool
     {
         public string? Title { get; protected set; }
+
+        /// <summary>
+        /// Override InputSchema to ensure it always contains required fields for MCP compliance
+        /// </summary>
+        public new JsonNode? InputSchema 
+        { 
+            get 
+            {
+                var baseSchema = base.InputSchema;
+                if (baseSchema == null)
+                {
+                    // Return null if no schema is available
+                    return null;
+                }
+
+                // Convert base schema to JsonObject to check and modify if needed
+                JsonObject schemaObject;
+                if (baseSchema is JsonObject jsonObj)
+                {
+                    schemaObject = jsonObj;
+                }
+                else
+                {
+                    // Parse the base schema if it's not already a JsonObject
+                    try
+                    {
+                        var baseSchemaString = baseSchema.ToString();
+                        schemaObject = JsonNode.Parse(baseSchemaString)?.AsObject() ?? new JsonObject();
+                    }
+                    catch
+                    {
+                        schemaObject = new JsonObject();
+                    }
+                }
+
+                // Ensure required fields exist
+                if (!schemaObject.ContainsKey("type"))
+                {
+                    schemaObject["type"] = "object";
+                }
+
+                if (!schemaObject.ContainsKey("properties"))
+                {
+                    schemaObject["properties"] = new JsonObject();
+                }
+
+                if (!schemaObject.ContainsKey("required"))
+                {
+                    schemaObject["required"] = new JsonArray();
+                }
+
+                return schemaObject;
+            }
+        }
 
         /// <summary>
         /// Initializes the Command with the target method information.
