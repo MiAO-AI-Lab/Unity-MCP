@@ -326,7 +326,7 @@
                     <ui:VisualElement class="config-group">
                         <ui:Foldout text="Language Settings" value="true" class="config-group-foldout">
                             <ui:DropdownField label="Interface Language" name="languageSelector" class="config-item" />
-                            <ui:Label text="Select your preferred language for the user interface." class="section-desc" />
+                            <ui:Label text="Select the language for the user interface" class="section-desc" />
                         </ui:Foldout>
                     </ui:VisualElement>
                     
@@ -335,7 +335,7 @@
                         <ui:Foldout text="Theme Settings" value="true" class="config-group-foldout">
                             <ui:DropdownField label="UI Theme" name="themeSelector" class="config-item" />
                             <ui:Toggle label="Auto-refresh UI" name="autoRefreshToggle" class="config-item" />
-                            <ui:Label text="Configure the appearance and behavior of the user interface." class="section-desc" />
+                            <ui:Label text="Choose the visual theme for the interface" class="section-desc" />
                         </ui:Foldout>
                     </ui:VisualElement>
                     
@@ -393,7 +393,7 @@
                 <ui:VisualElement class="container" style="min-width: 350px; padding: 15px;">
                     <!-- Title area -->
                     <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 20px;">
-                        <ui:Label text="Operations Panel" style="font-size: 18px; -unity-font-style: bold; flex-grow: 1; color: rgba(220, 220, 220, 0.95);" />
+                        <ui:Label text="Operations Monitor" style="font-size: 18px; -unity-font-style: bold; flex-grow: 1; color: rgba(220, 220, 220, 0.95);" />
                     </ui:VisualElement>
                     
                     <!-- Undo stack submodule -->
@@ -419,7 +419,7 @@
                             <ui:Label text="Operation History" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 10px; color: rgba(200, 200, 200, 0.9);" />
                             <ui:ScrollView name="undoStackList" class="undo-stack-scroll" style="max-height: 400px; margin-bottom: 15px;">
                                 <ui:VisualElement name="undoStackContainer" style="padding: 8px;">
-                                    <ui:Label name="emptyUndoStackLabel" text="No operation history" class="empty-state" />
+                                    <ui:Label name="emptyUndoStackLabel" text="No history available" class="empty-state" />
                                 </ui:VisualElement>
                             </ui:ScrollView>
                             

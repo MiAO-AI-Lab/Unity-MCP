@@ -445,7 +445,9 @@ namespace com.MiAO.Unity.MCP.Editor
                 ? USS_IndicatorClass_Connected
                 : USS_IndicatorClass_Disconnected);
 
-            statusText.text = isConfigured ? "Configured" : "Not Configured";
+            statusText.text = isConfigured 
+                ? LocalizationManager.GetText("connector.configured")
+                : LocalizationManager.GetText("connector.not_configured");
             btnConfigure.text = isConfigured 
                 ? LocalizationManager.GetText("connector.reconfigure") 
                 : LocalizationManager.GetText("connector.configure");

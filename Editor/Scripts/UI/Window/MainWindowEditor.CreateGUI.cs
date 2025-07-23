@@ -10,6 +10,7 @@ using R3;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using com.MiAO.Unity.MCP.Editor.Localization;
 
 namespace com.MiAO.Unity.MCP.Editor
 {
@@ -47,16 +48,27 @@ namespace com.MiAO.Unity.MCP.Editor
             var root = templateControlPanel.Instantiate();
             rootVisualElement.Add(root);
 
-            // Apply initial localization
+            // Apply initial localization using new system
             // -----------------------------------------------------------------
-            ApplyUILocalization(root);
+            LocalizationAdapter.Initialize();
+            LocalizationAdapter.LocalizeUITree(root);
 
             // Subscribe to language change events
             // -----------------------------------------------------------------
             LocalizationManager.OnLanguageChanged += (newLanguage) =>
             {
-                ApplyUILocalization(root);
-                // Connection status will update automatically through Observable
+                UnityEngine.Debug.Log($"[MainWindowEditor] Language changed to: {newLanguage}");
+                
+                // Use new localization system for comprehensive updates
+                LocalizationAdapter.LocalizeUITree(root);
+                
+                // Force refresh connection status after language change
+                RefreshConnectionStatus();
+                
+                // Debug: Check for unlocalized texts (only in debug builds)
+                #if UNITY_EDITOR && DEBUG
+                LocalizationAdapter.DebugUnlocalizedTexts(root);
+                #endif
             };
 
             // Initialize tab system
@@ -453,86 +465,7 @@ namespace com.MiAO.Unity.MCP.Editor
             dropdown.RegisterValueChangedCallback(evt => SaveAIConfigurationImmediate(root));
         }
 
-        /// <summary>
-        /// Set element text using localization key
-        /// </summary>
-        private void SetElementText<T>(VisualElement root, string elementName, string localizationKey) where T : TextElement
-        {
-            var element = root.Query<T>(elementName).First();
-            if (element != null)
-            {
-                element.text = LocalizationManager.GetText(localizationKey);
-            }
-        }
 
-        /// <summary>
-        /// Set element label using localization key
-        /// </summary>
-        private void SetElementLabel(VisualElement root, string elementName, string localizationKey)
-        {
-            var element = root.Query(elementName).First();
-            if (element == null) return;
-            
-            // Use reflection to set label property since different field types have different generic parameters
-            var labelProperty = element.GetType().GetProperty("label");
-            if (labelProperty != null && labelProperty.CanWrite)
-            {
-                labelProperty.SetValue(element, LocalizationManager.GetText(localizationKey));
-            }
-        }
-
-        /// <summary>
-        /// Set element text by finding elements with specific content
-        /// </summary>
-        private void SetElementTextByContent<T>(VisualElement root, string currentText, string localizationKey) where T : VisualElement
-        {
-            var elements = root.Query<T>().ToList();
-            foreach (var element in elements)
-            {
-                var currentElementText = GetElementText(element);
-                if (currentElementText == currentText)
-                {
-                    SetElementText(element, LocalizationManager.GetText(localizationKey));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Set element text by finding elements containing specific text
-        /// </summary>
-        private void SetElementTextByContentContains<T>(VisualElement root, string containsText, string localizationKey) where T : VisualElement
-        {
-            var elements = root.Query<T>().ToList();
-            foreach (var element in elements)
-            {
-                var currentElementText = GetElementText(element);
-                if (currentElementText != null && currentElementText.Contains(containsText))
-                {
-                    SetElementText(element, LocalizationManager.GetText(localizationKey));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get text from element using reflection for different element types
-        /// </summary>
-        private string GetElementText(VisualElement element)
-        {
-            var textProperty = element.GetType().GetProperty("text");
-            return textProperty?.GetValue(element) as string;
-        }
-
-        /// <summary>
-        /// Set text on element using reflection for different element types
-        /// </summary>
-        private void SetElementText(VisualElement element, string text)
-        {
-            var textProperty = element.GetType().GetProperty("text");
-            if (textProperty != null && textProperty.CanWrite)
-            {
-                textProperty.SetValue(element, text);
-            }
-        }
 
         [System.Serializable]
         private class AIConfigData
@@ -557,138 +490,7 @@ namespace com.MiAO.Unity.MCP.Editor
 
 
 
-        /// <summary>
-        /// Apply localized text to UXML elements
-        /// </summary>
-        private void ApplyUILocalization(VisualElement root)
-        {
-            // Apply tab page text
-            SetElementText<Button>(root, "TabConnector", "tab.connector");
-            SetElementText<Button>(root, "TabModelConfig", "tab.modelconfig");
-            SetElementText<Button>(root, "TabUserInput", "tab.userinput");
-            SetElementText<Button>(root, "TabUndoHistory", "tab.operations");
-            SetElementText<Button>(root, "TabSettings", "tab.settings");
 
-            // Connector page tab content
-            SetElementText<Label>(root, "labelSettings", "connector.title");
-            SetElementLabel(root, "dropdownLogLevel", "connector.loglevel");
-            SetElementTextByContent<Label>(root, "Connect to MCP server", "connector.connect_server");
-            SetElementLabel(root, "InputServerURL", "connector.server_url");
-            SetElementTextByContent<Foldout>(root, "Information", "connector.information");
-            
-            // Update server information and client configuration
-            SetElementTextByContentContains<Label>(root, "Usually the server is hosted locally", "connector.info_desc");
-            SetElementTextByContent<Label>(root, "Configure MCP Client", "connector.configure_client");
-            SetElementTextByContentContains<Label>(root, "At least one client", "connector.client_desc");
-            SetElementTextByContent<Button>(root, "Configure", "connector.configure");
-            SetElementTextByContent<Label>(root, "Not configured", "connector.not_configured");
-            
-            // Drag and drop related elements
-            SetElementTextByContentContains<Label>(root, "Pinned Clients", "connector.pinned_clients");
-            SetElementTextByContentContains<Foldout>(root, "More Clients", "connector.more_clients");
-            SetElementTextByContentContains<Label>(root, "Drag any client", "connector.drag_instruction");
-            
-            // Manual configuration and server management
-            SetElementTextByContent<Label>(root, "Manual configuration", "connector.manual_config");
-            SetElementTextByContentContains<Label>(root, "Copy paste the json", "connector.manual_desc");
-            SetElementText<Button>(root, "btnRebuildServer", "connector.rebuild_server");
-            SetElementTextByContentContains<Label>(root, "Please check the logs", "connector.check_logs");
-            
-            // Update manual configuration placeholder
-            var rawJsonField = root.Query<TextField>("rawJsonConfiguration").First();
-            if (rawJsonField != null && rawJsonField.value.Contains("This is a multi-line"))
-            {
-                rawJsonField.value = LocalizationManager.GetText("connector.manual_placeholder");
-            }
-
-            // Model Configuration page tab content
-            SetElementTextByContent<Label>(root, "AI Model Configuration", "model.title");
-            SetElementTextByContent<Foldout>(root, "AI Provider Settings", "model.provider_settings");
-            
-            // Various settings label
-            ApplyModelConfigLabels(root);
-            
-            // Settings page tab content  
-            ApplySettingsLabels(root);
-            
-            // Operations page tab content
-            ApplyOperationsLabels(root);
-        }
-
-        private void ApplyModelConfigLabels(VisualElement root)
-        {
-            // Provider settings foldouts
-            SetElementTextByContent<Foldout>(root, "OpenAI Settings", "model.openai_settings");
-            SetElementTextByContent<Foldout>(root, "Gemini Settings", "model.gemini_settings");
-            SetElementTextByContent<Foldout>(root, "Claude Settings", "model.claude_settings");
-            SetElementTextByContent<Foldout>(root, "Local Settings", "model.local_settings");
-            SetElementTextByContent<Foldout>(root, "Model Provider Selection", "model.provider_selection");
-            SetElementTextByContent<Foldout>(root, "General Settings", "model.general_settings");
-
-            // Provider field labels
-            SetProviderFieldLabels(root, "openai", "model.api_key", "model.model", "model.base_url");
-            SetProviderFieldLabels(root, "gemini", "model.api_key", "model.model", "model.base_url");
-            SetProviderFieldLabels(root, "claude", "model.api_key", "model.model", "model.base_url");
-            
-            SetElementLabel(root, "localApiUrl", "model.api_url");
-            SetElementLabel(root, "localModel", "model.model");
-            
-            // Model provider dropdowns
-            SetElementLabel(root, "visionModelProvider", "model.vision_provider");
-            SetElementLabel(root, "textModelProvider", "model.text_provider");
-            SetElementLabel(root, "codeModelProvider", "model.code_provider");
-            
-            // General settings
-            SetElementLabel(root, "timeoutSeconds", "model.timeout");
-            SetElementLabel(root, "maxTokens", "model.max_tokens");
-            SetElementText<Button>(root, "btnSaveConfig", "model.save_config");
-        }
-
-        /// <summary>
-        /// Set labels for provider field triplet (API key, model, base URL)
-        /// </summary>
-        private void SetProviderFieldLabels(VisualElement root, string provider, string apiKeyLoc, string modelLoc, string baseUrlLoc)
-        {
-            SetElementLabel(root, $"{provider}ApiKey", apiKeyLoc);
-            SetElementLabel(root, $"{provider}Model", modelLoc);
-            SetElementLabel(root, $"{provider}BaseUrl", baseUrlLoc);
-        }
-
-        private void ApplySettingsLabels(VisualElement root)
-        {
-            // Settings sections
-            SetElementTextByContent<Label>(root, "User Preferences", "settings.title");
-            SetElementTextByContent<Foldout>(root, "Language Settings", "settings.language_settings");
-            SetElementTextByContent<Foldout>(root, "Theme Settings", "settings.theme_settings");
-            
-            // Settings controls
-            SetElementLabel(root, "languageSelector", "settings.interface_language");
-            SetElementLabel(root, "themeSelector", "settings.ui_theme");
-            SetElementLabel(root, "autoRefreshToggle", "settings.auto_refresh");
-            
-            // Description texts
-            SetElementTextByContentContains<Label>(root, "Select your preferred language", "settings.language_desc");
-            SetElementTextByContentContains<Label>(root, "Configure the appearance", "settings.theme_desc");
-            
-            // Action buttons
-            SetElementText<Button>(root, "btnSaveSettings", "settings.save");
-            SetElementText<Button>(root, "btnResetSettings", "settings.reset");
-        }
-
-        private void ApplyOperationsLabels(VisualElement root)
-        {
-            // Operations sections
-            SetElementTextByContent<Label>(root, "Operations Panel", "operations.title");
-            SetElementTextByContent<Foldout>(root, "Undo Stack", "operations.undo_stack");
-            SetElementTextByContent<Label>(root, "Operation History", "operations.history");
-            SetElementTextByContent<Label>(root, "No operation history", "operations.no_history");
-            
-            // Operation buttons
-            SetElementText<Button>(root, "btnRefreshUndoStack", "operations.refresh");
-            SetElementText<Button>(root, "btnUndoLast", "operations.undo");
-            SetElementText<Button>(root, "btnRedoLast", "operations.redo");
-            SetElementText<Button>(root, "btnClearUndoStack", "operations.clear_stack");
-        }
 
         /// <summary>
         /// Setup draggable client configuration interface
@@ -1154,6 +956,63 @@ namespace com.MiAO.Unity.MCP.Editor
 #else
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "Claude", "claude_desktop_config.json");
 #endif
+        }
+        
+        /// <summary>
+        /// Force refresh connection status text and button after language change
+        /// </summary>
+        private void RefreshConnectionStatus()
+        {
+            // Force trigger connection state change to refresh localized text
+            EditorApplication.delayCall += () =>
+            {
+                // Manually update connection status elements with current localized text
+                var root = rootVisualElement;
+                var connectionStatusText = root?.Query<Label>("connectionStatusText").First();
+                var btnConnectOrDisconnect = root?.Query<Button>("btnConnectOrDisconnect").First();
+                
+                if (connectionStatusText != null && btnConnectOrDisconnect != null)
+                {
+                    var connectionState = McpPluginUnity.ConnectionState.CurrentValue;
+                    var keepConnected = McpPluginUnity.KeepConnected;
+                    
+                    // Update status text with current language
+                    connectionStatusText.text = connectionState switch
+                    {
+                        HubConnectionState.Connected => keepConnected
+                            ? LocalizationManager.GetText("connector.connected")
+                            : LocalizationManager.GetText("connector.disconnected"),
+                        HubConnectionState.Disconnected => keepConnected
+                            ? LocalizationManager.GetText("connector.connecting")
+                            : LocalizationManager.GetText("connector.disconnected"),
+                        HubConnectionState.Reconnecting => keepConnected
+                            ? LocalizationManager.GetText("connector.connecting")
+                            : LocalizationManager.GetText("connector.disconnected"),
+                        HubConnectionState.Connecting => keepConnected
+                            ? LocalizationManager.GetText("connector.connecting")
+                            : LocalizationManager.GetText("connector.disconnected"),
+                        _ => McpPluginUnity.IsConnected.CurrentValue.ToString() ?? "Unknown"
+                    };
+                    
+                    // Update button text with current language
+                    btnConnectOrDisconnect.text = connectionState switch
+                    {
+                        HubConnectionState.Connected => keepConnected
+                            ? LocalizationManager.GetText("connector.disconnect")
+                            : LocalizationManager.GetText("connector.connect"),
+                        HubConnectionState.Disconnected => keepConnected
+                            ? LocalizationManager.GetText("connector.stop")
+                            : LocalizationManager.GetText("connector.connect"),
+                        HubConnectionState.Reconnecting => keepConnected
+                            ? LocalizationManager.GetText("connector.stop")
+                            : LocalizationManager.GetText("connector.connect"),
+                        HubConnectionState.Connecting => keepConnected
+                            ? LocalizationManager.GetText("connector.stop")
+                            : LocalizationManager.GetText("connector.connect"),
+                        _ => McpPluginUnity.IsConnected.CurrentValue.ToString() ?? "Unknown"
+                    };
+                }
+            };
         }
     }
 }

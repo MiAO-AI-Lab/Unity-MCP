@@ -131,8 +131,8 @@
     "redo_stack_header": "Redo Stack",
     "latest": "Latest",
     "history": "History",
-    "undo": "Undo",
-    "redo": "Redo",
+    "undo": "< Undo",
+    "redo": "Redo >",
     "no_history": "No history available",
     "clear_stack": "Clear Stack",
     "stack_status": "Total operations: {0}"
@@ -145,10 +145,12 @@
     "no_objects": "No objects selected",
     "confirm": "Confirm",
     "cancel": "Cancel",
-    "waiting": "Waiting for user input request..."
+    "waiting": "Waiting for user input request...",
+    "waiting_for_input": "Waiting for user input...",
+    "waiting_for_prompt": "Waiting for prompt..."
   },
   "settings": {
-    "title": "Settings",
+    "title": "User Preferences",
     "language": "Language",
     "theme": "Theme",
     "log_level": "Log Level",
@@ -172,7 +174,7 @@
     "language_desc": "Select the language for the user interface",
     "theme_settings": "Theme Settings",
     "ui_theme": "UI Theme",
-    "auto_refresh": "Auto Refresh",
+    "auto_refresh": "Auto-refresh UI",
     "theme_desc": "Choose the visual theme for the interface",
     "save": "Save",
     "reset": "Reset"
@@ -181,7 +183,7 @@
     "title": "Settings Summary",
     "language": "Language",
     "theme": "Theme",
-    "auto_refresh": "Auto Refresh"
+    "auto_refresh": "Auto-refresh UI"
   },
   "text": {
     "enabled": "Enabled",
