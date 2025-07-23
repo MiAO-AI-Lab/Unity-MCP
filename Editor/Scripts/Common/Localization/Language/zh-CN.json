@@ -36,7 +36,7 @@
   },
   "connector": {
     "title": "MCP连接",
-    "loglevel": "日志级别",
+    "log_level": "日志级别",
     "connect_server": "连接到 MCP 服务器",
     "server_url": "服务器地址",
     "information": "信息",
@@ -63,7 +63,16 @@
     "drag_tooltip": "拖拽以在区域间移动",
     "reconfigure": "重新配置",
     "notification_pinned": "已置顶到顶部区域",
-    "notification_moved": "已移动到更多客户端区域"
+    "notification_moved": "已移动到更多客户端区域",
+    "client": {
+      "cursor": "Cursor",
+      "claude_desktop": "Claude 桌面版",
+      "vscode": "VS Code",
+      "visual_studio": "Visual Studio",
+      "augment": "Augment",
+      "windsurf": "Windsurf",
+      "cline": "Cline"
+    }
   },
   "model": {
     "title": "AI 模型配置",
@@ -140,9 +149,13 @@
   "userinput": {
     "title": "用户输入面板",
     "prompt_message": "提示消息：",
+    "prompt_label": "提示消息：",
     "user_input": "用户输入：",
+    "input_label": "用户输入：",
     "selected_objects": "当前选定对象：",
+    "selected_objects_label": "当前选定对象：",
     "no_objects": "没有选定对象",
+    "placeholder": "请输入...",
     "confirm": "确认",
     "cancel": "取消",
     "waiting": "等待用户输入请求...",
@@ -151,6 +164,8 @@
   },
   "settings": {
     "title": "用户偏好",
+    "interface_language": "界面语言",
+    "ui_theme": "UI主题",
     "language": "语言",
     "theme": "主题",
     "log_level": "日志级别",
@@ -170,10 +185,8 @@
     "light_theme": "浅色主题",
     "system_theme": "系统主题",
     "language_settings": "语言设置",
-    "interface_language": "界面语言",
     "language_desc": "选择用户界面的语言",
     "theme_settings": "主题设置",
-    "ui_theme": "界面主题",
     "auto_refresh": "自动刷新界面",
     "theme_desc": "选择界面的视觉主题",
     "save": "保存",
@@ -200,6 +213,7 @@
     "apply": "应用",
     "close": "关闭",
     "save": "保存",
+    "save_config": "保存配置",
     "load": "加载",
     "delete": "删除",
     "edit": "编辑",
@@ -233,6 +247,7 @@
     "connected": "已连接",
     "disconnected": "已断开",
     "online": "在线",
-    "offline": "离线"
+    "offline": "离线",
+    "not_configured": "未配置"
   }
 } 

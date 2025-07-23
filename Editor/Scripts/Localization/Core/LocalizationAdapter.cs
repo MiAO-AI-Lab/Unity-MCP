@@ -71,6 +71,8 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                 
                 // === 连接器页面 ===
                 ["AI Connector (MCP)"] = "connector.title",
+                ["Log Level"] = "connector.log_level",
+                ["Server URL"] = "connector.server_url",
                 ["Connect to MCP server"] = "connector.connect_server",
                 ["Information"] = "connector.information",
                 ["Configure MCP Client"] = "connector.configure_client",
@@ -116,6 +118,15 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                 ["Local Settings"] = "model.local_settings",
                 ["Model Provider Selection"] = "model.provider_selection",
                 ["General Settings"] = "model.general_settings",
+                ["API Key"] = "model.api_key",
+                ["Model"] = "model.model",
+                ["Base URL"] = "model.base_url",
+                ["API URL"] = "model.api_url",
+                ["Vision Provider"] = "model.vision_provider",
+                ["Text Provider"] = "model.text_provider",
+                ["Code Provider"] = "model.code_provider",
+                ["Timeout (seconds)"] = "model.timeout",
+                ["Max Tokens"] = "model.max_tokens",
                 
                 // === 操作监控页面 ===
                 ["Operations Monitor"] = "operations.title",
@@ -154,6 +165,8 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                 ["Select the language for the user interface"] = "settings.language_desc",
                 ["Choose the visual theme for the interface"] = "settings.theme_desc",
                 ["Auto-refresh UI"] = "settings.auto_refresh",
+                ["Interface Language"] = "settings.interface_language",
+                ["UI Theme"] = "settings.ui_theme",
                 ["Language"] = "settings.language",
                 ["Theme"] = "settings.theme",
                 ["Save Settings"] = "settings.save",
@@ -237,6 +250,9 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             
             try
             {
+                // 强制清理所有缓存以确保语言切换时重新处理
+                UILocalizationSystem.ClearAllCaches();
+                
                 // 首先应用文本映射
                 ApplyMappingsToTree(root);
                 
