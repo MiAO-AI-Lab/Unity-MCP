@@ -35,7 +35,18 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                         "Essential tools for basic Unity MCP operations including GameObject, Scene, Assets, Component, and Editor manipulation.",
                         "MCP Team",
                         ExtensionCategory.Essential,
-                        "https://github.com/MiAO-AI-LAB/Unity-MCP-Essential.git"
+                        "https://github.com/MiAO-AI-LAB/Unity-MCP-Tools-Essential.git"
+                    )
+                },
+                {
+                    "com.miao.unity.mcp.behavior-designer-tools",
+                    new ExtensionRegistryEntry(
+                        "com.miao.unity.mcp.behavior-designer-tools",
+                        "Unity MCP Behavior Designer Tools",
+                        "Behavior Designer Tools for Unity MCP",
+                        "MCP Team",
+                        ExtensionCategory.Essential,
+                        "https://github.com/MiAO-AI-LAB/Unity-MCP-Tools-Behavior-Designer.git"
                     )
                 }
             };
