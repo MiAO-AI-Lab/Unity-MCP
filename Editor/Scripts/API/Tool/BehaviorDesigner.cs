@@ -75,6 +75,7 @@ namespace com.MiAO.Unity.MCP.Editor.API
 
         public static (BehaviorSource, ExternalBehavior) LoadBehaviorSourceFromAssetPath(string assetPath, out string errorMessage)
         {
+            errorMessage = "";
             if (string.IsNullOrEmpty(assetPath))
             {
                 errorMessage = Error.SourcePathIsEmpty();
@@ -103,9 +104,18 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 return (null, null);
             }
 
-            JSONDeserialization.Load(behaviorSource.TaskData, behaviorSource, true);
-
-            errorMessage = "";
+            if (behaviorSource.TaskData != null && !string.IsNullOrWhiteSpace(behaviorSource.TaskData.JSONSerialization))
+            {
+                try
+                {
+                    JSONDeserialization.Load(behaviorSource.TaskData, behaviorSource, true);
+                }
+                catch (Exception ex)
+                {
+                    // For empty or corrupted BehaviorTrees, continue without deserialization
+                    Debug.LogWarning($"Failed to deserialize BehaviorSource JSON at {assetPath}: {ex.Message}. This might be an empty BehaviorTree.");
+                }
+            }
 
             return (behaviorSource, externalBehavior);
         }
@@ -179,10 +189,10 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 nodeDataDict["Offset"] = $"({nodeData.Offset.x},{nodeData.Offset.y})";
             }
 
-            if (!string.IsNullOrEmpty(task.FriendlyName))
-            {
-                nodeDataDict["FriendlyName"] = task.FriendlyName;
-            }
+            // if (!string.IsNullOrEmpty(task.FriendlyName))
+            // {
+            //     nodeDataDict["FriendlyName"] = task.FriendlyName;
+            // }
 
             if (!string.IsNullOrEmpty(nodeData.Comment))
             {

@@ -72,18 +72,27 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     result.AppendLine($"Root Task: {GetTaskInfo(behaviorSource.RootTask)}");
                     result.AppendLine($"Detached Tasks Count: {behaviorSource.DetachedTasks?.Count ?? 0}");
 
-                    if (behaviorSource.RootTask != null)
+                    // Check if BehaviorTree is empty
+                    if (behaviorSource.RootTask == null && (behaviorSource.DetachedTasks == null || behaviorSource.DetachedTasks.Count == 0))
                     {
-                        result.AppendLine("\n=== Task Hierarchy ===");
-                        PrintTaskHierarchy(behaviorSource.RootTask, result, 0, includeDetails);
+                        result.AppendLine("\n=== Empty BehaviorTree ===");
+                        result.AppendLine("This BehaviorTree is empty. You can add the first node by using parentTaskId = -1 or null.");
                     }
-
-                    if (behaviorSource.DetachedTasks?.Count > 0)
+                    else
                     {
-                        result.AppendLine("\n=== Detached Tasks ===");
-                        foreach (var task in behaviorSource.DetachedTasks)
+                        if (behaviorSource.RootTask != null)
                         {
-                            PrintTaskHierarchy(task, result, 0, includeDetails);
+                            result.AppendLine("\n=== Task Hierarchy ===");
+                            PrintTaskHierarchy(behaviorSource.RootTask, result, 0, includeDetails);
+                        }
+
+                        if (behaviorSource.DetachedTasks?.Count > 0)
+                        {
+                            result.AppendLine("\n=== Detached Tasks ===");
+                            foreach (var task in behaviorSource.DetachedTasks)
+                            {
+                                PrintTaskHierarchy(task, result, 0, includeDetails);
+                            }
                         }
                     }
 
@@ -91,6 +100,14 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 }
                 catch (Exception ex)
                 {
+                    Debug.LogError(ex.StackTrace);
+                    // Provide helpful error message for empty or corrupted BehaviorTree
+                    if (ex.Message.Contains("character") || ex.Message.Contains("deserialization"))
+                    {
+                        return $"[Warning] BehaviorSource appears to be empty or corrupted: {ex.Message}\n" +
+                               $"This might be an empty BehaviorTree. You can try adding the first node with parentTaskId = -1 or null.";
+                    }
+                    
                     return Error.FailedToReadBehaviorSource(ex.Message);
                 }
             });
@@ -102,17 +119,23 @@ namespace com.MiAO.Unity.MCP.Editor.API
             {
                 try
                 {
-                    if (!parentTaskId.HasValue)
-                        return Error.ParentTaskIdRequired("adding a node");
-
                     var (behaviorSource, externalBehavior) = LoadBehaviorSourceFromAssetPath(assetPath, out string errorMessage);
                     if (!string.IsNullOrEmpty(errorMessage))
                         throw new Exception(errorMessage);
 
-                    // Find parent task
-                    var parentTask = FindTaskById(behaviorSource, parentTaskId.Value);
-                    if (parentTask == null)
-                        return Error.ParentTaskNotFound(parentTaskId.Value);
+                    // Special handling for empty BehaviorTree
+                    bool isEmptyBehaviorTree = behaviorSource.RootTask == null;
+                    bool createAsRootTask = !parentTaskId.HasValue || parentTaskId.Value == -1 || isEmptyBehaviorTree;
+
+                    BehaviorDesigner.Runtime.Tasks.Task parentTask = null;
+                    
+                    if (!createAsRootTask)
+                    {
+                        // Find parent task for normal node addition
+                        parentTask = FindTaskById(behaviorSource, parentTaskId.Value);
+                        if (parentTask == null)
+                            return Error.ParentTaskNotFound(parentTaskId.Value);
+                    }
 
                     // Create new task
                     var taskType = Type.GetType(taskTypeName);
@@ -137,17 +160,73 @@ namespace com.MiAO.Unity.MCP.Editor.API
                     
                     // Create NodeData
                     newTask.NodeData = new NodeData();
-                    newTask.NodeData.Offset = CalculateNodeOffset(parentTask, elderBrotherTaskId, behaviorSource);
-
-                    // Add to parent's children
-                    AddTaskToParent(parentTask, newTask, elderBrotherTaskId);
+                    
+                    if (createAsRootTask)
+                    {
+                        // Creating as root task (for empty BehaviorTree or when parentTaskId is -1)
+                        newTask.NodeData.Offset = new Vector2(0, 20); // Position at origin
+                        
+                        if (isEmptyBehaviorTree)
+                        {
+                            // Set as the root task
+                            behaviorSource.RootTask = newTask;
+                            
+                            // Also create an entry task if it doesn't exist
+                            if (behaviorSource.EntryTask == null)
+                            {
+                                var entryTaskType = AppDomain.CurrentDomain.GetAssemblies()
+                                    .SelectMany(a => a.GetTypes())
+                                    .FirstOrDefault(t => t.FullName == "BehaviorDesigner.Runtime.Tasks.EntryTask" || t.Name == "EntryTask");
+                                
+                                if (entryTaskType != null)
+                                {
+                                    var entryTask = Activator.CreateInstance(entryTaskType) as BehaviorDesigner.Runtime.Tasks.Task;
+                                    if (entryTask != null)
+                                    {
+                                        entryTask.ID = 0; // Entry task typically has ID 0
+                                        entryTask.FriendlyName = "Entry";
+                                        entryTask.NodeData = new NodeData();
+                                        entryTask.NodeData.Offset = new Vector2(0, -100); // Position above root
+                                        behaviorSource.EntryTask = entryTask;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Adding as detached task when parentTaskId is -1 but root exists
+                            if (behaviorSource.DetachedTasks == null)
+                                behaviorSource.DetachedTasks = new List<BehaviorDesigner.Runtime.Tasks.Task>();
+                            
+                            newTask.NodeData.Offset = new Vector2(300, 0); // Position to the right
+                            behaviorSource.DetachedTasks.Add(newTask);
+                        }
+                    }
+                    else
+                    {
+                        // Normal node addition to existing parent
+                        newTask.NodeData.Offset = CalculateNodeOffset(parentTask, elderBrotherTaskId, behaviorSource);
+                        AddTaskToParent(parentTask, newTask, elderBrotherTaskId);
+                    }
 
                     // Save changes
                     DumpBehaviorSourceToAsset(externalBehavior, behaviorSource.EntryTask, behaviorSource.RootTask, behaviorSource.DetachedTasks);
 
-                    // Debug.Log(behaviorSource.TaskData.JSONSerialization);
+                    string successMessage;
+                    if (createAsRootTask && isEmptyBehaviorTree)
+                    {
+                        successMessage = $"[Success] Created first root task '{newTask.FriendlyName}' (ID: {newTask.ID}) in empty BehaviorTree.";
+                    }
+                    else if (createAsRootTask)
+                    {
+                        successMessage = $"[Success] Added detached task '{newTask.FriendlyName}' (ID: {newTask.ID}) to BehaviorTree.";
+                    }
+                    else
+                    {
+                        successMessage = $"[Success] Added new task '{newTask.FriendlyName}' (ID: {newTask.ID}) to parent task ID {parentTaskId}.";
+                    }
 
-                    return $"[Success] Added new task '{newTask.FriendlyName}' (ID: {newTask.ID}) to parent task ID {parentTaskId}.";
+                    return successMessage;
                 }
                 catch (Exception ex)
                 {
