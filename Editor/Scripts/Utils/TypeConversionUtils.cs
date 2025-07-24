@@ -1312,41 +1312,6 @@ namespace com.MiAO.Unity.MCP.Utils
                 return instance;
             }, "Custom type conversion", targetType);
         }
-
-        #region Unified Null and Default Value Handling
-        
-        /// <summary>
-        /// Enhanced default value provider with type-specific defaults
-        /// </summary>
-        private static object GetDefaultValue(Type type)
-        {
-            // Handle nullable types
-            if (Nullable.GetUnderlyingType(type) != null)
-                return null;
-
-            // Handle value types
-            if (type.IsValueType)
-            {
-                // Special defaults for common Unity types
-                if (type == typeof(Color))
-                    return Color.white;
-                if (type == typeof(Vector3))
-                    return Vector3.zero;
-                if (type == typeof(Vector2))
-                    return Vector2.zero;
-                if (type == typeof(Quaternion))
-                    return Quaternion.identity;
-                
-                return Activator.CreateInstance(type);
-            }
-            
-            // Handle reference types
-            if (type == typeof(string))
-                return string.Empty;
-                
-            return null;
-        }
-        #endregion
     }
 }
 
