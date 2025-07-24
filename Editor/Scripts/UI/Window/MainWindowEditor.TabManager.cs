@@ -6,6 +6,7 @@ using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Utils;
 using com.MiAO.Unity.MCP.Editor.API;
 using com.MiAO.Unity.MCP.Editor.Common;
+using com.MiAO.Unity.MCP.Editor.Localization;
 using Unity.MCP;
 using UnityEditor;
 using UnityEngine;
@@ -467,19 +468,10 @@ namespace com.MiAO.Unity.MCP.Editor
                     _tabSettingsButton.text = LocalizationManager.GetText("tab.settings");
                 
                 // Update MCP Connector tab content
-                UpdateConnectorTabTexts();
+                // Use new localization system instead of manual text updates
+                LocalizationAdapter.LocalizeUITree(rootVisualElement);
                 
-                // Update Model Config tab content
-                UpdateModelConfigTabTexts();
-                
-                // Update User Input tab content
-                UpdateUserInputTabTexts();
-                
-                // Update Settings tab content
-                UpdateSettingsTabTexts();
-                
-                // Update Operations tab content
-                UpdateOperationsTabTexts();
+                // All UI text updates (including Model Config) are now handled by the new localization system
                 
                 // Reload settings to update dropdown options
                 if (_languageSelector != null && _themeSelector != null)
@@ -493,365 +485,298 @@ namespace com.MiAO.Unity.MCP.Editor
             }
         }
 
-        private void UpdateConnectorTabTexts()
+        /// <summary>
+        /// Refresh all client configuration status to update localized text
+        /// </summary>
+        private void RefreshAllClientConfigurationStatus()
         {
-            var root = rootVisualElement;
-            
-            // Elements located by name
-            var labelSettings = root.Query<Label>("labelSettings").First();
-            if (labelSettings != null)
-                labelSettings.text = LocalizationManager.GetText("connector.title");
+            try
+            {
+                // This method ensures that all client status buttons and labels 
+                // are updated with the correct localized text when language changes
                 
-            var dropdownLogLevel = root.Query<EnumField>("dropdownLogLevel").First();
-            if (dropdownLogLevel != null)
-                dropdownLogLevel.label = LocalizationManager.GetText("connector.loglevel");
+                var root = rootVisualElement;
                 
-            var inputServerURL = root.Query<TextField>("InputServerURL").First();
-            if (inputServerURL != null)
-                inputServerURL.label = LocalizationManager.GetText("connector.server_url");
+                // Update all "Configured"/"Not Configured" status labels
+                var configuredLabels = root.Query<Label>().Where(l => 
+                    l.text == "Configured" || 
+                    l.text == "Not Configured" ||
+                    l.text == "已配置" || 
+                    l.text == "未配置").ToList();
                 
-            var rebuildButton = root.Query<Button>("btnRebuildServer").First();
-            if (rebuildButton != null)
-                rebuildButton.text = LocalizationManager.GetText("connector.rebuild_server");
-            
-            // Use dual check (English and Chinese) to find elements
-            var connectServerLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Connect to MCP server") || 
-                l.text.Contains("连接到 MCP 服务器")).ToList();
-            foreach (var label in connectServerLabels)
-            {
-                label.text = LocalizationManager.GetText("connector.connect_server");
+                foreach (var label in configuredLabels)
+                {
+                    // Update status text based on current state
+                    if (label.text == "Configured" || label.text == "已配置")
+                    {
+                        label.text = LocalizationManager.GetText("connector.configured");
+                    }
+                    else if (label.text == "Not Configured" || label.text == "未配置")
+                    {
+                        label.text = LocalizationManager.GetText("connector.not_configured");
+                    }
+                }
+                
+                // Update all "Configure"/"Reconfigure" buttons
+                var configButtons = root.Query<Button>().Where(b => 
+                    b.text == "Configure" || 
+                    b.text == "Reconfigure" ||
+                    b.text == "配置" || 
+                    b.text == "重新配置").ToList();
+                
+                foreach (var button in configButtons)
+                {
+                    // Update button text based on current state
+                    if (button.text == "Reconfigure" || button.text == "重新配置")
+                    {
+                        button.text = LocalizationManager.GetText("connector.reconfigure");
+                    }
+                    else if (button.text == "Configure" || button.text == "配置")
+                    {
+                        button.text = LocalizationManager.GetText("connector.configure");
+                    }
+                }
             }
-            
-            var infoFoldouts = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Information") || 
-                f.text.Contains("信息")).ToList();
-            foreach (var foldout in infoFoldouts)
+            catch (System.Exception ex)
             {
-                foldout.text = LocalizationManager.GetText("connector.information");
-            }
-            
-            var infoDescs = root.Query<Label>().Where(l => 
-                l.text.Contains("Usually the server is hosted locally") || 
-                l.text.Contains("通常服务器运行在本地地址")).ToList();
-            foreach (var label in infoDescs)
-            {
-                label.text = LocalizationManager.GetText("connector.info_desc");
-            }
-            
-            var configureClientLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Configure MCP Client") || 
-                l.text.Contains("配置 MCP 客户端")).ToList();
-            foreach (var label in configureClientLabels)
-            {
-                label.text = LocalizationManager.GetText("connector.configure_client");
-            }
-            
-            var clientDescLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("At least one client should be configured") || 
-                l.text.Contains("至少需要配置一个客户端")).ToList();
-            foreach (var label in clientDescLabels)
-            {
-                label.text = LocalizationManager.GetText("connector.client_desc");
-            }
-            
-            var manualConfigLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Manual configuration") || 
-                l.text.Contains("手动配置")).ToList();
-            foreach (var label in manualConfigLabels)
-            {
-                label.text = LocalizationManager.GetText("connector.manual_config");
-            }
-            
-            var manualDescLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Copy paste the json") || 
-                l.text.Contains("复制此 JSON 配置")).ToList();
-            foreach (var label in manualDescLabels)
-            {
-                label.text = LocalizationManager.GetText("connector.manual_desc");
-            }
-            
-            var checkLogsLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Please check the logs") || 
-                l.text.Contains("请查看日志")).ToList();
-            foreach (var label in checkLogsLabels)
-            {
-                label.text = LocalizationManager.GetText("connector.check_logs");
+                Debug.LogWarning($"[RefreshClientConfigurationStatus] Error refreshing client configuration status: {ex.Message}");
             }
         }
 
-        private void UpdateModelConfigTabTexts()
-        {
-            var root = rootVisualElement;
-            
-            // Use dual check (English and Chinese) to find elements
-            var modelTitles = root.Query<Label>().Where(l => 
-                l.text.Contains("AI Model Configuration") || 
-                l.text.Contains("AI 模型配置")).ToList();
-            foreach (var label in modelTitles)
-            {
-                label.text = LocalizationManager.GetText("model.title");
-            }
-            
-            // Elements located by name
-            var configFoldout = root.Query<Foldout>("configFoldout").First();
-            if (configFoldout != null)
-                configFoldout.text = LocalizationManager.GetText("model.provider_settings");
-                
-            var saveConfigButton = root.Query<Button>("btnSaveConfig").First();
-            if (saveConfigButton != null)
-                saveConfigButton.text = LocalizationManager.GetText("model.save_config");
-            
-            // Use dual check to find settings foldouts
-            var openaiSettings = root.Query<Foldout>().Where(f => 
-                f.text.Contains("OpenAI Settings") || 
-                f.text.Contains("OpenAI 设置")).ToList();
-            foreach (var foldout in openaiSettings)
-            {
-                foldout.text = LocalizationManager.GetText("model.openai_settings");
-            }
-            
-            var geminiSettings = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Gemini Settings") || 
-                f.text.Contains("Gemini 设置")).ToList();
-            foreach (var foldout in geminiSettings)
-            {
-                foldout.text = LocalizationManager.GetText("model.gemini_settings");
-            }
-            
-            var claudeSettings = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Claude Settings") || 
-                f.text.Contains("Claude 设置")).ToList();
-            foreach (var foldout in claudeSettings)
-            {
-                foldout.text = LocalizationManager.GetText("model.claude_settings");
-            }
-            
-            var localSettings = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Local Settings") || 
-                f.text.Contains("本地设置")).ToList();
-            foreach (var foldout in localSettings)
-            {
-                foldout.text = LocalizationManager.GetText("model.local_settings");
-            }
-            
-            UpdateModelConfigFieldLabels(root);
-        }
+        // ==================== User Input Tab ====================
         
-        private void UpdateModelConfigFieldLabels(VisualElement root)
+        // User Input UI elements
+        private VisualElement _promptMessageSection;
+        private Label _promptMessageText;
+        private VisualElement _userInputSection;
+        private TextField _userInputField;
+        private VisualElement _objectSelectionSection;
+        private Label _selectedObjectsText;
+        private VisualElement _buttonSection;
+        private Button _btnConfirmInput;
+        private Button _btnCancelInput;
+        private Label _statusText;
+        
+        // User Input state
+        private bool _userInputActive = false;
+        private string _currentWindowId = "";
+        private System.Action<string> _userInputCallback;
+        private string _mode = "full";
+
+        private void InitializeUserInputUI(VisualElement root)
         {
-            // Update API Key labels
-            var apiKeyFields = root.Query<TextField>().Where(f => f.name.Contains("ApiKey")).ToList();
-            foreach (var field in apiKeyFields)
-            {
-                field.label = LocalizationManager.GetText("model.api_key");
-            }
+            // Get UI elements
+            _promptMessageSection = root.Query<VisualElement>("promptMessageSection").First();
+            _promptMessageText = root.Query<Label>("promptMessageText").First();
+            _userInputSection = root.Query<VisualElement>("userInputSection").First();
+            _userInputField = root.Query<TextField>("userInputField").First();
+            _objectSelectionSection = root.Query<VisualElement>("objectSelectionSection").First();
+            _selectedObjectsText = root.Query<Label>("selectedObjectsText").First();
+            _buttonSection = root.Query<VisualElement>("buttonSection").First();
+            _btnConfirmInput = root.Query<Button>("btnConfirmInput").First();
+            _btnCancelInput = root.Query<Button>("btnCancelInput").First();
+            _statusText = root.Query<Label>("statusText").First();
             
-            // Update Model labels
-            var modelFields = root.Query<TextField>().Where(f => f.name.Contains("Model") && !f.name.Contains("Provider")).ToList();
-            foreach (var field in modelFields)
-            {
-                if (field.name == "localModel")
-                    field.label = LocalizationManager.GetText("model.model");
-                else if (field.name.EndsWith("Model"))
-                    field.label = LocalizationManager.GetText("model.model");
-            }
+            // Register button events
+            _btnConfirmInput.RegisterCallback<ClickEvent>(evt => OnConfirmInputClicked());
+            _btnCancelInput.RegisterCallback<ClickEvent>(evt => OnCancelInputClicked());
             
-            // Update Base URL labels
-            var baseUrlFields = root.Query<TextField>().Where(f => f.name.Contains("BaseUrl")).ToList();
-            foreach (var field in baseUrlFields)
-            {
-                field.label = LocalizationManager.GetText("model.base_url");
-            }
+            // Update selected objects display periodically
+            EditorApplication.update += UpdateSelectedObjectsDisplay;
             
-            // Update API URL labels
-            var apiUrlFields = root.Query<TextField>().Where(f => f.name.Contains("localApiUrl")).ToList();
-            foreach (var field in apiUrlFields)
+            // Initialize UI state
+            RefreshUserInputUI();
+        }
+
+        private void RefreshUserInputUI()
+        {
+            if (_userInputActive)
             {
-                field.label = LocalizationManager.GetText("model.api_url");
+                _promptMessageSection.style.display = DisplayStyle.Flex;
+                _userInputSection.style.display = DisplayStyle.Flex;
+                _objectSelectionSection.style.display = DisplayStyle.Flex;
+                _buttonSection.style.display = DisplayStyle.Flex;
+                _statusText.text = LocalizationManager.GetText("userinput.waiting_for_input");
+                
+                // Update selected objects display
+                UpdateSelectedObjectsDisplay();
             }
-            
-            // Update Provider Selection
-            var providerFoldouts = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Model Provider Selection") || 
-                f.text.Contains("模型提供商选择")).ToList();
-            foreach (var foldout in providerFoldouts)
+            else
             {
-                foldout.text = LocalizationManager.GetText("model.provider_selection");
-            }
-            
-            // Update General Settings
-            var generalFoldouts = root.Query<Foldout>().Where(f => 
-                f.text.Contains("General Settings") || 
-                f.text.Contains("通用设置")).ToList();
-            foreach (var foldout in generalFoldouts)
-            {
-                foldout.text = LocalizationManager.GetText("model.general_settings");
+                _promptMessageSection.style.display = DisplayStyle.None;
+                _userInputSection.style.display = DisplayStyle.None;
+                _objectSelectionSection.style.display = DisplayStyle.None;
+                _buttonSection.style.display = DisplayStyle.None;
+                _statusText.text = LocalizationManager.GetText("userinput.waiting_for_prompt");
             }
         }
 
-        private void UpdateUserInputTabTexts()
+        private void OnConfirmInputClicked()
         {
-            var root = rootVisualElement;
-            
-            // Update User Input tab content
-            var userInputTitles = root.Query<Label>().Where(l => 
-                l.text.Contains("User Input Panel") || 
-                l.text.Contains("用户输入面板")).ToList();
-            foreach (var label in userInputTitles)
+            var userInputText = _userInputField.value ?? "";
+            var selectedObjects = Selection.objects;
+
+            var result = "";
+            if (_mode == "full")
             {
-                label.text = LocalizationManager.GetText("userinput.title");
-            }
-            
-            var promptLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Prompt Message:") || 
-                l.text.Contains("提示信息:")).ToList();
-            foreach (var label in promptLabels)
-            {
-                label.text = LocalizationManager.GetText("userinput.prompt_message");
-            }
-            
-            var inputLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("User Input:") || 
-                l.text.Contains("用户输入:")).ToList();
-            foreach (var label in inputLabels)
-            {
-                label.text = LocalizationManager.GetText("userinput.user_input");
-            }
-            
-            var objectLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Currently Selected Objects:") || 
-                l.text.Contains("当前选中的对象:")).ToList();
-            foreach (var label in objectLabels)
-            {
-                label.text = LocalizationManager.GetText("userinput.selected_objects");
-            }
-            
-            var confirmButton = root.Query<Button>("btnConfirmInput").First();
-            if (confirmButton != null)
-                confirmButton.text = LocalizationManager.GetText("userinput.confirm");
+                result = $"[Success] User input completed.";
+                result += $"\nUser input text: '{userInputText}'";
                 
-            var cancelButton = root.Query<Button>("btnCancelInput").First();
-            if (cancelButton != null)
-                cancelButton.text = LocalizationManager.GetText("userinput.cancel");
+                if (selectedObjects.Length > 0)
+                {
+                    result += $"\nSelected objects count: {selectedObjects.Length}";
+                    result += $"\nSelected objects list:";
+                    for (int i = 0; i < selectedObjects.Length; i++)
+                    {
+                        if (selectedObjects[i] != null)
+                        {
+                            var obj = selectedObjects[i];
+                            var path = "";
+                            if (obj is GameObject go)
+                            {
+                                path = GetGameObjectPath(go);
+                            }
+                            result += $"\n  [{i + 1}] {obj.name} ({obj.GetType().Name}) - InstanceID: {obj.GetInstanceID()}";
+                            if (!string.IsNullOrEmpty(path))
+                            {
+                                result += $" - Path: {path}";
+                            }
+                        }
+                    }
+                }
+            }
+            else if (_mode == "clean")
+            {
+                result = userInputText;
+            }
+            else if (_mode == "json")
+            {
+                result = JsonSerializer.Serialize(new {
+                    userInput = userInputText,
+                    selectedObjects = selectedObjects.Select(obj => new {
+                        name = obj.name,
+                        type = obj.GetType().Name,
+                        instanceId = obj.GetInstanceID()
+                    }).ToArray()
+                });
+            }
+            
+            CompleteUserInput(result);
         }
 
-        private void UpdateSettingsTabTexts()
+        private void OnCancelInputClicked()
         {
-            var root = rootVisualElement;
-            
-            // Use dual check (English and Chinese) to find elements
-            var settingsTitles = root.Query<Label>().Where(l => 
-                l.text.Contains("User Preferences") || 
-                l.text.Contains("用户偏好")).ToList();
-            foreach (var label in settingsTitles)
-            {
-                label.text = LocalizationManager.GetText("settings.title");
-            }
-            
-            var languageFoldouts = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Language Settings") || 
-                f.text.Contains("语言设置")).ToList();
-            foreach (var foldout in languageFoldouts)
-            {
-                foldout.text = LocalizationManager.GetText("settings.language_settings");
-            }
-            
-            // Elements located by reference
-            if (_languageSelector != null)
-                _languageSelector.label = LocalizationManager.GetText("settings.interface_language");
-                
-            var languageDescs = root.Query<Label>().Where(l => 
-                l.text.Contains("Select your preferred language") || 
-                l.text.Contains("选择您的首选语言")).ToList();
-            foreach (var label in languageDescs)
-            {
-                label.text = LocalizationManager.GetText("settings.language_desc");
-            }
-            
-            var themeFoldouts = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Theme Settings") || 
-                f.text.Contains("主题设置")).ToList();
-            foreach (var foldout in themeFoldouts)
-            {
-                foldout.text = LocalizationManager.GetText("settings.theme_settings");
-            }
-            
-            if (_themeSelector != null)
-                _themeSelector.label = LocalizationManager.GetText("settings.ui_theme");
-                
-            if (_autoRefreshToggle != null)
-                _autoRefreshToggle.label = LocalizationManager.GetText("settings.auto_refresh");
-                
-            var themeDescs = root.Query<Label>().Where(l => 
-                l.text.Contains("Configure the appearance") || 
-                l.text.Contains("配置界面外观")).ToList();
-            foreach (var label in themeDescs)
-            {
-                label.text = LocalizationManager.GetText("settings.theme_desc");
-            }
-            
-            // Buttons located by name
-            var saveButton = root.Query<Button>("btnSaveSettings").First();
-            if (saveButton != null)
-                saveButton.text = LocalizationManager.GetText("settings.save");
-            
-            var resetButton = root.Query<Button>("btnResetSettings").First();
-            if (resetButton != null)
-                resetButton.text = LocalizationManager.GetText("settings.reset");
+            CompleteUserInput("[Cancelled] User cancelled the input.");
         }
 
-        private void UpdateOperationsTabTexts()
+        private void CompleteUserInput(string result)
         {
-            var root = rootVisualElement;
+            _userInputActive = false;
+            _userInputCallback?.Invoke(result);
+            _userInputCallback = null;
+            _currentWindowId = "";
             
-            // Use dual check (English and Chinese) to find elements
-            var operationsTitles = root.Query<Label>().Where(l => 
-                l.text.Contains("Operations Panel") || 
-                l.text.Contains("操作面板")).ToList();
-            foreach (var label in operationsTitles)
+            // Clear input field
+            _userInputField.value = "";
+            
+            // Refresh UI
+            RefreshUserInputUI();
+        }
+
+        private void UpdateSelectedObjectsDisplay()
+        {
+            if (_selectedObjectsText != null)
             {
-                label.text = LocalizationManager.GetText("operations.title");
+                var selectedObjects = Selection.objects;
+                if (selectedObjects.Length > 0)
+                {
+                    var text = $"Selected {selectedObjects.Length} objects:\n";
+                    for (int i = 0; i < selectedObjects.Length && i < 10; i++)
+                    {
+                        if (selectedObjects[i] != null)
+                        {
+                            text += $"• {selectedObjects[i].name} ({selectedObjects[i].GetType().Name})\n";
+                        }
+                    }
+                    if (selectedObjects.Length > 10)
+                    {
+                        text += $"... and {selectedObjects.Length - 10} more objects";
+                    }
+                    _selectedObjectsText.text = text;
+                }
+                else
+                {
+                    _selectedObjectsText.text = LocalizationManager.GetText("userinput.no_objects");
+                }
+            }
+        }
+
+        private string GetGameObjectPath(GameObject go)
+        {
+            if (go == null) return "";
+            
+            var path = go.name;
+            var parent = go.transform.parent;
+            
+            while (parent != null)
+            {
+                path = parent.name + "/" + path;
+                parent = parent.parent;
             }
             
-            var undoStackFoldouts = root.Query<Foldout>().Where(f => 
-                f.text.Contains("Undo Stack") || 
-                f.text.Contains("撤销栈")).ToList();
-            foreach (var foldout in undoStackFoldouts)
-            {
-                foldout.text = LocalizationManager.GetText("operations.undo_stack");
-            }
+            return path;
+        }
+
+        /// <summary>
+        /// Show user input UI and switch to UserInput tab
+        /// </summary>
+        public void ShowUserInputUI(string promptMessage, string windowId, string mode, System.Action<string> callback)
+        {
+            _userInputActive = true;
+            _currentWindowId = windowId;
+            _userInputCallback = callback;
+            _promptMessageText.text = promptMessage;
+            _mode = mode;
             
-            var historyLabels = root.Query<Label>().Where(l => 
-                l.text.Contains("Operation History") || 
-                l.text.Contains("操作历史")).ToList();
-            foreach (var label in historyLabels)
-            {
-                label.text = LocalizationManager.GetText("operations.history");
-            }
+            // Switch to UserInput tab
+            SwitchTab(TabType.UserInput);
             
-            // Elements located by reference
-            if (_btnRefreshUndoStack != null)
-                _btnRefreshUndoStack.text = LocalizationManager.GetText("operations.refresh");
-                
-            if (_btnUndoLast != null)
-                _btnUndoLast.text = LocalizationManager.GetText("operations.undo");
-                
-            if (_btnRedoLast != null)
-                _btnRedoLast.text = LocalizationManager.GetText("operations.redo");
-                
-            if (_emptyUndoStackLabel != null)
-                _emptyUndoStackLabel.text = LocalizationManager.GetText("operations.no_history");
-                
-            if (_btnClearUndoStack != null)
-                _btnClearUndoStack.text = LocalizationManager.GetText("operations.clear_stack");
-                
-            // Update status text
-            if (_undoStackStatusText != null)
-            {
-                var count = UnityUndoMonitor.GetUndoCount() + UnityUndoMonitor.GetRedoCount();
-                _undoStackStatusText.text = LocalizationManager.GetText("operations.stack_status", count);
-            }
+            // Focus the window
+            Focus();
+            
+            // Refresh UI
+            RefreshUserInputUI();
+            
+            // Focus the input field
+            _userInputField.Focus();
+        }
+
+        /// <summary>
+        /// Hide user input UI
+        /// </summary>
+        public void HideUserInputUI()
+        {
+            _userInputActive = false;
+            _userInputCallback = null;
+            _currentWindowId = "";
+            _userInputField.value = "";
+            RefreshUserInputUI();
+        }
+
+        /// <summary>
+        /// Get current user input window ID
+        /// </summary>
+        public string GetCurrentUserInputWindowId()
+        {
+            return _currentWindowId;
+        }
+
+        /// <summary>
+        /// Check if user input is active
+        /// </summary>
+        public bool IsUserInputActive()
+        {
+            return _userInputActive;
         }
 
         // Settings page UI element references
@@ -996,7 +921,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 if (!ValidateSettings())
                 {
                     var errorMessage = LocalizationManager.GetText("dialog.invalid_settings");
-                    EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.settings_error"), errorMessage, "OK");
+                    EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.settings_error"), errorMessage, LocalizationManager.GetText("common.ok"));
                     return;
                 }
 
@@ -1027,14 +952,14 @@ namespace com.MiAO.Unity.MCP.Editor
                 var settingsSummary = GetSettingsSummary();
                 var successTitle = LocalizationManager.GetText("dialog.settings");
                 var successMessage = LocalizationManager.GetText("dialog.save_success", new object[] { settingsSummary });
-                EditorUtility.DisplayDialog(successTitle, successMessage, "OK");
+                EditorUtility.DisplayDialog(successTitle, successMessage, LocalizationManager.GetText("common.ok"));
             }
             catch (Exception e)
             {
                 Debug.LogError($"[Settings] Failed to save settings: {e.Message}");
                 var errorTitle = LocalizationManager.GetText("dialog.settings_error");
                 var errorMessage = LocalizationManager.GetText("dialog.save_failed", e.Message);
-                EditorUtility.DisplayDialog(errorTitle, errorMessage, "OK");
+                EditorUtility.DisplayDialog(errorTitle, errorMessage, LocalizationManager.GetText("common.ok"));
             }
         }
         
@@ -1053,14 +978,14 @@ namespace com.MiAO.Unity.MCP.Editor
                     
                     var successTitle = LocalizationManager.GetText("dialog.settings");
                     var successMessage = LocalizationManager.GetText("dialog.reset_success");
-                    EditorUtility.DisplayDialog(successTitle, successMessage, "OK");
+                    EditorUtility.DisplayDialog(successTitle, successMessage, LocalizationManager.GetText("common.ok"));
                 }
                 catch (Exception e)
                 {
                     Debug.LogError($"[Settings] Failed to reset settings: {e.Message}");
                     var errorTitle = LocalizationManager.GetText("dialog.settings_error");
                     var errorMessage = LocalizationManager.GetText("dialog.reset_failed", e.Message);
-                    EditorUtility.DisplayDialog(errorTitle, errorMessage, "OK");
+                    EditorUtility.DisplayDialog(errorTitle, errorMessage, LocalizationManager.GetText("common.ok"));
                 }
             }
         }
@@ -1168,242 +1093,6 @@ namespace com.MiAO.Unity.MCP.Editor
                          $"{themeLabel}{displayTheme}\n" +
                          $"{autoRefreshLabel}{(GetAutoRefreshEnabled() ? enabledText : disabledText)}";
             return summary;
-        }
-        
-        // ==================== User Input Tab ====================
-        
-        // User Input UI elements
-        private VisualElement _promptMessageSection;
-        private Label _promptMessageText;
-        private VisualElement _userInputSection;
-        private TextField _userInputField;
-        private VisualElement _objectSelectionSection;
-        private Label _selectedObjectsText;
-        private VisualElement _buttonSection;
-        private Button _btnConfirmInput;
-        private Button _btnCancelInput;
-        private Label _statusText;
-        
-        // User Input state
-        private bool _userInputActive = false;
-        private string _currentWindowId = "";
-        private System.Action<string> _userInputCallback;
-        private string _mode = "full";
-
-        private void InitializeUserInputUI(VisualElement root)
-        {
-            // Get UI elements
-            _promptMessageSection = root.Query<VisualElement>("promptMessageSection").First();
-            _promptMessageText = root.Query<Label>("promptMessageText").First();
-            _userInputSection = root.Query<VisualElement>("userInputSection").First();
-            _userInputField = root.Query<TextField>("userInputField").First();
-            _objectSelectionSection = root.Query<VisualElement>("objectSelectionSection").First();
-            _selectedObjectsText = root.Query<Label>("selectedObjectsText").First();
-            _buttonSection = root.Query<VisualElement>("buttonSection").First();
-            _btnConfirmInput = root.Query<Button>("btnConfirmInput").First();
-            _btnCancelInput = root.Query<Button>("btnCancelInput").First();
-            _statusText = root.Query<Label>("statusText").First();
-            
-            // Register button events
-            _btnConfirmInput.RegisterCallback<ClickEvent>(evt => OnConfirmInputClicked());
-            _btnCancelInput.RegisterCallback<ClickEvent>(evt => OnCancelInputClicked());
-            
-            // Update selected objects display periodically
-            EditorApplication.update += UpdateSelectedObjectsDisplay;
-            
-            // Initialize UI state
-            RefreshUserInputUI();
-        }
-
-        private void RefreshUserInputUI()
-        {
-            if (_userInputActive)
-            {
-                _promptMessageSection.style.display = DisplayStyle.Flex;
-                _userInputSection.style.display = DisplayStyle.Flex;
-                _objectSelectionSection.style.display = DisplayStyle.Flex;
-                _buttonSection.style.display = DisplayStyle.Flex;
-                _statusText.text = "Waiting for user input...";
-                
-                // Update selected objects display
-                UpdateSelectedObjectsDisplay();
-            }
-            else
-            {
-                _promptMessageSection.style.display = DisplayStyle.None;
-                _userInputSection.style.display = DisplayStyle.None;
-                _objectSelectionSection.style.display = DisplayStyle.None;
-                _buttonSection.style.display = DisplayStyle.None;
-                _statusText.text = "Waiting for prompt...";
-            }
-        }
-
-        private void OnConfirmInputClicked()
-        {
-            var userInputText = _userInputField.value ?? "";
-            var selectedObjects = Selection.objects;
-
-            var result = "";
-            if (_mode == "full")
-            {
-                result = $"[Success] User input completed.";
-                result += $"\nUser input text: '{userInputText}'";
-                
-                if (selectedObjects.Length > 0)
-                {
-                    result += $"\nSelected objects count: {selectedObjects.Length}";
-                    result += $"\nSelected objects list:";
-                    for (int i = 0; i < selectedObjects.Length; i++)
-                    {
-                        if (selectedObjects[i] != null)
-                        {
-                            var obj = selectedObjects[i];
-                            var path = "";
-                            if (obj is GameObject go)
-                            {
-                                path = GetGameObjectPath(go);
-                            }
-                            result += $"\n  [{i + 1}] {obj.name} ({obj.GetType().Name}) - InstanceID: {obj.GetInstanceID()}";
-                            if (!string.IsNullOrEmpty(path))
-                            {
-                                result += $" - Path: {path}";
-                            }
-                        }
-                    }
-                }
-            }
-            else if (_mode == "clean")
-            {
-                result = userInputText;
-            }
-            else if (_mode == "json")
-            {
-                result = JsonSerializer.Serialize(new {
-                    userInput = userInputText,
-                    selectedObjects = selectedObjects.Select(obj => new {
-                        name = obj.name,
-                        type = obj.GetType().Name,
-                        instanceId = obj.GetInstanceID()
-                    }).ToArray()
-                });
-            }
-            
-            CompleteUserInput(result);
-        }
-
-        private void OnCancelInputClicked()
-        {
-            CompleteUserInput("[Cancelled] User cancelled the input.");
-        }
-
-        private void CompleteUserInput(string result)
-        {
-            _userInputActive = false;
-            _userInputCallback?.Invoke(result);
-            _userInputCallback = null;
-            _currentWindowId = "";
-            
-            // Clear input field
-            _userInputField.value = "";
-            
-            // Refresh UI
-            RefreshUserInputUI();
-        }
-
-        private void UpdateSelectedObjectsDisplay()
-        {
-            if (_selectedObjectsText != null)
-            {
-                var selectedObjects = Selection.objects;
-                if (selectedObjects.Length > 0)
-                {
-                    var text = $"Selected {selectedObjects.Length} objects:\n";
-                    for (int i = 0; i < selectedObjects.Length && i < 10; i++)
-                    {
-                        if (selectedObjects[i] != null)
-                        {
-                            text += $"• {selectedObjects[i].name} ({selectedObjects[i].GetType().Name})\n";
-                        }
-                    }
-                    if (selectedObjects.Length > 10)
-                    {
-                        text += $"... and {selectedObjects.Length - 10} more objects";
-                    }
-                    _selectedObjectsText.text = text;
-                }
-                else
-                {
-                    _selectedObjectsText.text = "No objects selected";
-                }
-            }
-        }
-
-        private string GetGameObjectPath(GameObject go)
-        {
-            if (go == null) return "";
-            
-            var path = go.name;
-            var parent = go.transform.parent;
-            
-            while (parent != null)
-            {
-                path = parent.name + "/" + path;
-                parent = parent.parent;
-            }
-            
-            return path;
-        }
-
-        /// <summary>
-        /// Show user input UI and switch to UserInput tab
-        /// </summary>
-        public void ShowUserInputUI(string promptMessage, string windowId, string mode, System.Action<string> callback)
-        {
-            _userInputActive = true;
-            _currentWindowId = windowId;
-            _userInputCallback = callback;
-            _promptMessageText.text = promptMessage;
-            _mode = mode;
-            
-            // Switch to UserInput tab
-            SwitchTab(TabType.UserInput);
-            
-            // Focus the window
-            Focus();
-            
-            // Refresh UI
-            RefreshUserInputUI();
-            
-            // Focus the input field
-            _userInputField.Focus();
-        }
-
-        /// <summary>
-        /// Hide user input UI
-        /// </summary>
-        public void HideUserInputUI()
-        {
-            _userInputActive = false;
-            _userInputCallback = null;
-            _currentWindowId = "";
-            _userInputField.value = "";
-            RefreshUserInputUI();
-        }
-
-        /// <summary>
-        /// Get current user input window ID
-        /// </summary>
-        public string GetCurrentUserInputWindowId()
-        {
-            return _currentWindowId;
-        }
-
-        /// <summary>
-        /// Check if user input is active
-        /// </summary>
-        public bool IsUserInputActive()
-        {
-            return _userInputActive;
         }
     }
 } 
