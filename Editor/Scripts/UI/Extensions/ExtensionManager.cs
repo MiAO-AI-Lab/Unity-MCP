@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -8,6 +10,7 @@ using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
 using com.MiAO.Unity.MCP.Common;
+using Debug = UnityEngine.Debug;
 
 namespace com.MiAO.Unity.MCP.Editor.Extensions
 {
@@ -122,30 +125,69 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                     throw new InvalidOperationException($"Extension {extension.Id} not found in registry");
                 }
 
-                // Use Unity Package Manager to add the package
-                var addRequest = Client.Add(registryEntry.PackageUrl);
-                
-                while (!addRequest.IsCompleted)
+                // Check if this is a local package installation
+                if (IsLocalPackageInstallation(registryEntry))
                 {
-                    await Task.Delay(100);
-                }
-
-                if (addRequest.Status == StatusCode.Success)
-                {
-                    Debug.Log($"{Consts.Log.Tag} Successfully installed {extension.DisplayName}");
+                    Debug.Log($"{Consts.Log.Tag} Installing as local package: {extension.DisplayName}");
                     
-                    // Update extension status
-                    extension.UpdateInstallationStatus(true, addRequest.Result.version);
+                    // Get the actual directory name for this package
+                    var actualDirectoryName = GetPackageDirectoryName(extension.Id);
+                    var packagePath = Path.Combine("Packages", actualDirectoryName);
                     
-                    // Trigger events
-                    OnExtensionInstalled?.Invoke(extension, true);
-                    OnExtensionsUpdated?.Invoke();
+                    // Check if package already exists
+                    if (Directory.Exists(packagePath))
+                    {
+                        Debug.Log($"{Consts.Log.Tag} Package already exists locally: {extension.DisplayName}");
+                        extension.UpdateInstallationStatus(true, "local");
+                        OnExtensionInstalled?.Invoke(extension, true);
+                        OnExtensionsUpdated?.Invoke();
+                        return true;
+                    }
                     
-                    return true;
+                    // Clone the package from Git repository
+                    Debug.Log($"{Consts.Log.Tag} Cloning package from Git: {registryEntry.PackageUrl}");
+                    var cloneResult = await ClonePackageFromGit(registryEntry.PackageUrl, packagePath, actualDirectoryName);
+                    
+                    if (cloneResult)
+                    {
+                        Debug.Log($"{Consts.Log.Tag} Successfully cloned package: {extension.DisplayName}");
+                        extension.UpdateInstallationStatus(true, "local");
+                        OnExtensionInstalled?.Invoke(extension, true);
+                        OnExtensionsUpdated?.Invoke();
+                        return true;
+                    }
+                    else
+                    {
+                        throw new Exception($"Failed to clone package from Git: {registryEntry.PackageUrl}");
+                    }
                 }
                 else
                 {
-                    throw new Exception($"Package Manager error: {addRequest.Error?.message}");
+                    // Use Unity Package Manager to add the package
+                    var addRequest = Client.Add(registryEntry.PackageUrl);
+                    
+                    while (!addRequest.IsCompleted)
+                    {
+                        await Task.Delay(100);
+                    }
+
+                    if (addRequest.Status == StatusCode.Success)
+                    {
+                        Debug.Log($"{Consts.Log.Tag} Successfully installed {extension.DisplayName}");
+                        
+                        // Update extension status
+                        extension.UpdateInstallationStatus(true, addRequest.Result.version);
+                        
+                        // Trigger events
+                        OnExtensionInstalled?.Invoke(extension, true);
+                        OnExtensionsUpdated?.Invoke();
+                        
+                        return true;
+                    }
+                    else
+                    {
+                        throw new Exception($"Package Manager error: {addRequest.Error?.message}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -165,29 +207,130 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
             {
                 Debug.Log($"{Consts.Log.Tag} Uninstalling extension: {extension.DisplayName}");
 
-                // Use Unity Package Manager to remove the package
-                var removeRequest = Client.Remove(extension.Id);
-                
-                while (!removeRequest.IsCompleted)
+                // Check if this is a local package (installed in Packages directory)
+                if (IsLocalPackage(extension.Id))
                 {
-                    await Task.Delay(100);
-                }
-
-                if (removeRequest.Status == StatusCode.Success)
-                {
-                    Debug.Log($"{Consts.Log.Tag} Successfully uninstalled {extension.DisplayName}");
+                    Debug.Log($"{Consts.Log.Tag} Detected local package: {extension.Id}, removing from Packages directory");
                     
-                    // Update extension status
-                    extension.UpdateInstallationStatus(false);
+                    // Get the actual directory name for this package
+                    var actualDirectoryName = GetPackageDirectoryName(extension.Id);
+                    var packagePath = Path.Combine("Packages", actualDirectoryName);
                     
-                    // Trigger events
-                    OnExtensionsUpdated?.Invoke();
-                    
-                    return true;
+                    if (Directory.Exists(packagePath))
+                    {
+                        try
+                        {
+                            // Check if this is a Git submodule
+                            if (IsGitSubmodule(packagePath))
+                            {
+                                Debug.Log($"{Consts.Log.Tag} Detected Git submodule: {actualDirectoryName}");
+                                
+                                // For Git submodules, we need to use Git commands
+                                // First, try to remove the submodule using Git
+                                var gitRemoveResult = RemoveGitSubmodule(packagePath, actualDirectoryName);
+                                if (gitRemoveResult)
+                                {
+                                    Debug.Log($"{Consts.Log.Tag} Successfully removed Git submodule: {extension.DisplayName}");
+                                    
+                                    // Update extension status
+                                    extension.UpdateInstallationStatus(false);
+                                    
+                                    // Trigger events
+                                    OnExtensionsUpdated?.Invoke();
+                                    
+                                    return true;
+                                }
+                                else
+                                {
+                                    throw new Exception("Failed to remove Git submodule");
+                                }
+                            }
+                            else
+                            {
+                                // Use Unity's AssetDatabase to delete the package directory
+                                // This is safer than direct file system operations
+                                if (AssetDatabase.DeleteAsset($"Packages/{actualDirectoryName}"))
+                                {
+                                    Debug.Log($"{Consts.Log.Tag} Successfully removed local package: {extension.DisplayName}");
+                                    
+                                    // Update extension status
+                                    extension.UpdateInstallationStatus(false);
+                                    
+                                    // Trigger events
+                                    OnExtensionsUpdated?.Invoke();
+                                    
+                                    return true;
+                                }
+                                else
+                                {
+                                    throw new Exception("AssetDatabase.DeleteAsset failed");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // If AssetDatabase.DeleteAsset fails, try direct file system deletion
+                            try
+                            {
+                                Debug.Log($"{Consts.Log.Tag} AssetDatabase deletion failed, trying direct file system deletion: {ex.Message}");
+                                
+                                // Remove the package directory
+                                Directory.Delete(packagePath, true);
+                                
+                                // Also remove the .meta file if it exists
+                                var metaPath = packagePath + ".meta";
+                                if (File.Exists(metaPath))
+                                {
+                                    File.Delete(metaPath);
+                                }
+                                
+                                Debug.Log($"{Consts.Log.Tag} Successfully removed local package via file system: {extension.DisplayName}");
+                                
+                                // Update extension status
+                                extension.UpdateInstallationStatus(false);
+                                
+                                // Trigger events
+                                OnExtensionsUpdated?.Invoke();
+                                
+                                return true;
+                            }
+                            catch (Exception fsEx)
+                            {
+                                throw new Exception($"Failed to remove local package directory: {fsEx.Message}. Original error: {ex.Message}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception($"Local package directory not found: {packagePath}");
+                    }
                 }
                 else
                 {
-                    throw new Exception($"Package Manager error: {removeRequest.Error?.message}");
+                    // Use Unity Package Manager to remove the package
+                    var removeRequest = Client.Remove(extension.Id);
+                    
+                    while (!removeRequest.IsCompleted)
+                    {
+                        await Task.Delay(100);
+                    }
+
+                    if (removeRequest.Status == StatusCode.Success)
+                    {
+                        Debug.Log($"{Consts.Log.Tag} Successfully uninstalled {extension.DisplayName}");
+                        
+                        // Update extension status
+                        extension.UpdateInstallationStatus(false);
+                        
+                        // Trigger events
+                        OnExtensionsUpdated?.Invoke();
+                        
+                        return true;
+                    }
+                    else
+                    {
+                        throw new Exception($"Package Manager error: {removeRequest.Error?.message}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -400,6 +543,332 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
 
             Debug.Log($"{Consts.Log.Tag} Sample data creation complete. Total extensions: {s_KnownExtensions.Count}");
             OnExtensionsUpdated?.Invoke();
+        }
+
+        /// <summary>
+        /// Checks if a package is installed as a local package in the Packages directory
+        /// </summary>
+        private static bool IsLocalPackage(string packageId)
+        {
+            // Check if the package directory exists
+            var packagePath = Path.Combine("Packages", packageId);
+            if (Directory.Exists(packagePath))
+            {
+                return true;
+            }
+            
+            // Check if it's a local package with a different directory name
+            var actualDirectoryName = GetPackageDirectoryName(packageId);
+            var actualPackagePath = Path.Combine("Packages", actualDirectoryName);
+            if (Directory.Exists(actualPackagePath))
+            {
+                return true;
+            }
+            
+            // Check if it's listed in packages-lock.json as a local package
+            return IsPackageInLockFile(packageId);
+        }
+
+        /// <summary>
+        /// Checks if a package is listed in packages-lock.json as a local package
+        /// </summary>
+        private static bool IsPackageInLockFile(string packageId)
+        {
+            try
+            {
+                var lockFilePath = Path.Combine("Packages", "packages-lock.json");
+                if (!File.Exists(lockFilePath))
+                {
+                    return false;
+                }
+                
+                var lockFileContent = File.ReadAllText(lockFilePath);
+                // Simple check - if the package is mentioned with "file:" source, it's a local package
+                return lockFileContent.Contains($"\"{packageId}\"") && 
+                       lockFileContent.Contains($"\"source\": \"embedded\"");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"{Consts.Log.Tag} Error checking packages-lock.json: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a package directory is a Git submodule
+        /// </summary>
+        private static bool IsGitSubmodule(string packagePath)
+        {
+            var gitPath = Path.Combine(packagePath, ".git");
+            return Directory.Exists(gitPath);
+        }
+
+        /// <summary>
+        /// Gets the actual directory name for a package ID
+        /// </summary>
+        private static string GetPackageDirectoryName(string packageId)
+        {
+            // Map package IDs to actual directory names
+            var packageIdToDirectoryMap = new Dictionary<string, string>
+            {
+                { "com.miao.unity.mcp.behavior-designer-tools", "Unity-MCP-Tools-Behavior-Designer" },
+                { "com.miao.unity.mcp.essential", "Unity-MCP-Essential" },
+                { "com.miao.unity.mcp", "Unity-MCP" }
+            };
+
+            return packageIdToDirectoryMap.TryGetValue(packageId, out var directoryName) ? directoryName : packageId;
+        }
+
+        /// <summary>
+        /// Checks if a registry entry represents a local package installation
+        /// </summary>
+        private static bool IsLocalPackageInstallation(ExtensionRegistryEntry registryEntry)
+        {
+            // Check if the package URL points to a local path or if it's a known local package
+            return registryEntry.PackageUrl.Contains("github.com/MiAO-AI-LAB") || 
+                   registryEntry.PackageUrl.Contains("github.com/MiAO-AI-Lab");
+        }
+
+        /// <summary>
+        /// Removes a Git submodule from the project
+        /// </summary>
+        private static bool RemoveGitSubmodule(string packagePath, string directoryName)
+        {
+            try
+            {
+                Debug.Log($"{Consts.Log.Tag} Removing Git submodule: {directoryName}");
+                
+                // Change to the project root directory
+                var projectRoot = Path.GetFullPath(".");
+                
+                // Execute Git commands to remove the submodule
+                var gitCommands = new[]
+                {
+                    $"submodule deinit -f Packages/{directoryName}",
+                    $"rm -f Packages/{directoryName}",
+                    $"rm -rf .git/modules/Packages/{directoryName}"
+                };
+                
+                foreach (var command in gitCommands)
+                {
+                    Debug.Log($"{Consts.Log.Tag} Executing: git {command}");
+                    
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = "git",
+                        Arguments = command,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        WorkingDirectory = projectRoot
+                    };
+                    
+                    using (var process = new Process { StartInfo = startInfo })
+                    {
+                        process.Start();
+                        var output = process.StandardOutput.ReadToEnd();
+                        var error = process.StandardError.ReadToEnd();
+                        process.WaitForExit();
+                        
+                        if (process.ExitCode != 0)
+                        {
+                            Debug.LogWarning($"{Consts.Log.Tag} Git command failed: {error}");
+                        }
+                        else
+                        {
+                            Debug.Log($"{Consts.Log.Tag} Git command successful: {output}");
+                        }
+                    }
+                }
+                
+                // Also remove the directory manually as a fallback
+                if (Directory.Exists(packagePath))
+                {
+                    try
+                    {
+                        Directory.Delete(packagePath, true);
+                        Debug.Log($"{Consts.Log.Tag} Manually removed Git submodule directory: {directoryName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"{Consts.Log.Tag} Could not remove directory manually: {ex.Message}");
+                        // Try to remove read-only attributes first
+                        try
+                        {
+                            RemoveReadOnlyAttributes(packagePath);
+                            Directory.Delete(packagePath, true);
+                            Debug.Log($"{Consts.Log.Tag} Successfully removed directory after removing read-only attributes: {directoryName}");
+                        }
+                        catch (Exception fallbackEx)
+                        {
+                            Debug.LogError($"{Consts.Log.Tag} Failed to remove directory even after removing read-only attributes: {fallbackEx.Message}");
+                        }
+                    }
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{Consts.Log.Tag} Failed to remove Git submodule {directoryName}: {ex.Message}");
+                
+                // Fallback: just remove the directory
+                try
+                {
+                    if (Directory.Exists(packagePath))
+                    {
+                        Directory.Delete(packagePath, true);
+                        Debug.Log($"{Consts.Log.Tag} Fallback: removed directory manually: {directoryName}");
+                        return true;
+                    }
+                }
+                catch (Exception fallbackEx)
+                {
+                    Debug.LogError($"{Consts.Log.Tag} Fallback removal also failed: {fallbackEx.Message}");
+                }
+                
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Removes read-only attributes from all files in a directory recursively
+        /// </summary>
+        private static void RemoveReadOnlyAttributes(string directoryPath)
+        {
+            try
+            {
+                // Remove read-only attribute from all files in the directory
+                var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var attributes = File.GetAttributes(file);
+                        if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                        {
+                            File.SetAttributes(file, attributes & ~FileAttributes.ReadOnly);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"{Consts.Log.Tag} Could not remove read-only attribute from {file}: {ex.Message}");
+                    }
+                }
+                
+                // Remove read-only attribute from all directories
+                var directories = Directory.GetDirectories(directoryPath, "*", SearchOption.AllDirectories);
+                foreach (var dir in directories)
+                {
+                    try
+                    {
+                        var attributes = File.GetAttributes(dir);
+                        if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                        {
+                            File.SetAttributes(dir, attributes & ~FileAttributes.ReadOnly);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"{Consts.Log.Tag} Could not remove read-only attribute from directory {dir}: {ex.Message}");
+                    }
+                }
+                
+                // Remove read-only attribute from the main directory
+                try
+                {
+                    var attributes = File.GetAttributes(directoryPath);
+                    if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                    {
+                        File.SetAttributes(directoryPath, attributes & ~FileAttributes.ReadOnly);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"{Consts.Log.Tag} Could not remove read-only attribute from main directory {directoryPath}: {ex.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{Consts.Log.Tag} Error removing read-only attributes: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Clones a package from Git repository to the Packages directory
+        /// </summary>
+        private static async Task<bool> ClonePackageFromGit(string gitUrl, string targetPath, string directoryName)
+        {
+            try
+            {
+                Debug.Log($"{Consts.Log.Tag} Starting Git clone: {gitUrl} -> {targetPath}");
+                
+                // Ensure the Packages directory exists
+                var packagesDir = Path.GetDirectoryName(targetPath);
+                if (!Directory.Exists(packagesDir))
+                {
+                    Directory.CreateDirectory(packagesDir);
+                }
+                
+                // Remove target directory if it exists
+                if (Directory.Exists(targetPath))
+                {
+                    Directory.Delete(targetPath, true);
+                }
+                
+                // Execute Git clone command
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "git",
+                    Arguments = $"clone {gitUrl} \"{directoryName}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.GetFullPath("Packages")
+                };
+                
+                Debug.Log($"{Consts.Log.Tag} Working directory: {Path.GetFullPath("Packages")}");
+                Debug.Log($"{Consts.Log.Tag} Clone target: {directoryName}");
+                
+                using (var process = new System.Diagnostics.Process { StartInfo = startInfo })
+                {
+                    Debug.Log($"{Consts.Log.Tag} Executing: git clone {gitUrl} \"{targetPath}\"");
+                    
+                    process.Start();
+                    
+                    // Read output asynchronously
+                    var outputTask = process.StandardOutput.ReadToEndAsync();
+                    var errorTask = process.StandardError.ReadToEndAsync();
+                    
+                    // Wait for completion
+                    await Task.Run(() => process.WaitForExit());
+                    
+                    var output = await outputTask;
+                    var error = await errorTask;
+                    
+                    if (process.ExitCode == 0)
+                    {
+                        Debug.Log($"{Consts.Log.Tag} Git clone successful: {output}");
+                        
+                        // Refresh AssetDatabase to detect the new package
+                        AssetDatabase.Refresh();
+                        
+                        return true;
+                    }
+                    else
+                    {
+                        Debug.LogError($"{Consts.Log.Tag} Git clone failed: {error}");
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{Consts.Log.Tag} Failed to clone package from Git: {ex.Message}");
+                return false;
+            }
         }
     }
 
