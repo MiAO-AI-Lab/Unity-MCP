@@ -16,7 +16,6 @@ namespace com.MiAO.Unity.MCP.Editor.UI
     /// </summary>
     public class McpHubWindow : EditorWindow
     {
-        private const string MENU_ITEM = "Window/MCP Hub/MCP Hub Manager";
         private const string MENU_TITLE = "MCP Hub Manager";
         
         private const int MIN_WIDTH = 900;
@@ -66,7 +65,6 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         }
 
         // Menu Items
-        [MenuItem(MENU_ITEM)]
         public static void ShowWindow()
         {
             s_Instance = GetWindow<McpHubWindow>(false, MENU_TITLE, true);
