@@ -192,22 +192,6 @@ namespace com.MiAO.Unity.MCP.Utils
             return true;
         }
 
-        /// <summary>
-        /// Safe execution wrapper that catches exceptions and returns null
-        /// </summary>
-        private static T TryExecute<T>(Func<T> action) where T : class
-        {
-            try
-            {
-                return action();
-            }
-            catch (Exception ex)
-            {
-                UnityEngine.Debug.LogError($"[TypeConversionUtils] Failed to execute action: {ex.Message}\n\n{ex.StackTrace}");
-                throw new Exception($"Failed to execute action. ErrorMessage: {ex.Message}\n\n{ex.StackTrace}");
-            }
-
-        }
 
         #endregion
 
@@ -233,171 +217,12 @@ namespace com.MiAO.Unity.MCP.Utils
 
         private static object ConvertValueInternal(SerializedMember member, Type targetType, object existingInstance = null)
         {
-            // Handle array types
-            if (targetType.IsArray)
-            {
-                return ConvertArray(member, targetType);
-            }
 
-            // Handle Unity Object references by instance ID
-            if (typeof(UnityEngine.Object).IsAssignableFrom(targetType))
-            {
-                return ConvertToUnityObject(member, targetType, enableTransformSpecialHandling: false);
-            }
+            var jsonElement = member.GetValue<JsonElement>();
 
-            // Handle enums with strict validation
-            if (targetType.IsEnum)
-            {
-                return ConvertToEnumWithValidation(member, targetType);
-            }
-
-            // Handle List and other generic types
-            if (targetType.IsGenericType)
-            {
-                return ConvertGenericType(member, targetType);
-            }
-
-            // Handle custom types (classes/structs)
-            if (IsCustomType(targetType))
-            {
-                return ConvertCustomType(member, targetType, existingInstance);
-            }
-
-            // Handle basic types
-            return ConvertFromSerializedMember(member, targetType);
+            return ConvertJsonElementToTargetType(jsonElement, targetType, existingInstance);
         }
 
-        private static object ConvertToEnumWithValidation(SerializedMember member, Type targetType)
-        {
-            // Extract the raw value from SerializedMember
-            object rawValue = member.GetValue<object>();
-
-            // Check if the enum value is valid
-            if (!CheckEnum(rawValue, targetType, out string errorMessage))
-            {
-                throw new InvalidCastException(errorMessage);
-            }
-
-            return ConvertToEnum(rawValue, targetType);
-        }
-
-        /// <summary>
-        /// Convert array from SerializedMember (now uses unified JsonElement flow)
-        /// </summary>
-        public static object ConvertArray(SerializedMember member, Type arrayType)
-        {
-            try
-            {
-                // Try to get JsonElement and use the unified conversion flow
-                var jsonElement = member.GetValue<JsonElement>();
-                if (jsonElement.ValueKind == JsonValueKind.Array)
-                {
-                    return ConvertJsonToArray(jsonElement, arrayType);
-                }
-            }
-            catch
-            {
-                throw new Exception($"Failed to convert array {member.name} from SerializedMember. arrayType: {arrayType.Name}");
-            }
-            // Return empty array if all strategies fail
-            return Array.CreateInstance(arrayType.GetElementType(), 0);
-        }
-
-        /// <summary>
-        /// Try to get array from JsonElement
-        /// </summary>
-        private static object[] TryGetJsonElementArray(SerializedMember member)
-        {
-            return TryExecute(() =>
-            {
-                var jsonElement = member.GetValue<JsonElement>();
-                if (jsonElement.ValueKind == JsonValueKind.Array)
-                {
-                    return jsonElement.EnumerateArray()
-                        .Select(ConvertJsonElementBasicValue)
-                        .ToArray();
-                }
-                return null;
-            });
-        }
-
-        /// <summary>
-        /// Try to get generic array from SerializedMember
-        /// </summary>
-        private static object[] TryGetGenericArray(SerializedMember member, Type arrayType)
-        {
-            return TryExecute(() =>
-            {
-                var methodInfo = typeof(SerializedMember).GetMethod("GetValue").MakeGenericMethod(arrayType);
-                var result = methodInfo.Invoke(member, null);
-                if (result is Array genericArray)
-                {
-                    var objectArray = new object[genericArray.Length];
-                    for (int i = 0; i < genericArray.Length; i++)
-                    {
-                        objectArray[i] = genericArray.GetValue(i);
-                    }
-                    return objectArray;
-                }
-                return null;
-            });
-        }
-
-        /// <summary>
-        /// Convert object array to typed array
-        /// </summary>
-        private static Array ConvertToTypedArray(object[] sourceArray, Type targetElementType)
-        {
-            var typedArray = Array.CreateInstance(targetElementType, sourceArray.Length);
-            
-            for (int i = 0; i < sourceArray.Length; i++)
-            {
-                var convertedElement = ConvertArrayElement(sourceArray[i], targetElementType);
-                typedArray.SetValue(convertedElement, i);
-            }
-            
-            return typedArray;
-        }
-
-        /// <summary>
-        /// Convert object array to typed array using unified conversion flow
-        /// </summary>
-        private static Array ConvertToTypedArrayWithUnifiedFlow(object[] sourceArray, Type targetElementType)
-        {
-            var typedArray = Array.CreateInstance(targetElementType, sourceArray.Length);
-            
-            for (int i = 0; i < sourceArray.Length; i++)
-            {
-                var convertedElement = ConvertObjectToTargetType(sourceArray[i], targetElementType);
-                typedArray.SetValue(convertedElement, i);
-            }
-            
-            return typedArray;
-        }
-        
-        /// <summary>
-        /// Convert array element to target type
-        /// </summary>
-        private static object ConvertArrayElement(object elementValue, Type targetElementType)
-        {
-            if (elementValue == null)
-                return null;
-
-            // Handle Unity Object references by instance ID
-            if (typeof(UnityEngine.Object).IsAssignableFrom(targetElementType))
-            {
-                var result = ConvertToUnityObject(elementValue, targetElementType);
-                // Check if the result is an error string
-                if (result is string errorString && errorString.StartsWith("[Error]"))
-                {
-                    throw new InvalidCastException(errorString);
-                }
-                return result;
-            }
-
-            // Handle basic types
-            return ConvertToBasicType(elementValue, targetElementType);
-        }
 
         #region Unified JSON Conversion Core
 
@@ -425,37 +250,16 @@ namespace com.MiAO.Unity.MCP.Utils
         /// <summary>
         /// Extract instance ID from various value types
         /// </summary>
-        private static int ExtractInstanceId(object value)
+        private static int ExtractInstanceId(JsonElement jsonElement)
         {
-            return value switch
+            return jsonElement.ValueKind switch
             {
-                int intValue => intValue,
-                SerializedMember member => ExtractInstanceIdFromSerializedMember(member),
-                JsonElement jsonElement when jsonElement.ValueKind == JsonValueKind.Number => jsonElement.GetInt32(),
-                JsonElement jsonElement when jsonElement.ValueKind == JsonValueKind.Object &&
-                    jsonElement.TryGetProperty("instanceID", out var instanceIdProperty) => instanceIdProperty.GetInt32(),
-                string strValue when int.TryParse(strValue, out int parsedId) => parsedId,
+                JsonValueKind.Number => jsonElement.GetInt32(),
+                JsonValueKind.Object when jsonElement.TryGetProperty("instanceID", out var instanceIdProperty) => instanceIdProperty.GetInt32(),
                 _ => 0
             };
         }
 
-        /// <summary>
-        /// Extract instance ID from SerializedMember
-        /// </summary>
-        private static int ExtractInstanceIdFromSerializedMember(SerializedMember member)
-        {
-            try
-            {
-                // First try to get the instanceID directly
-                return member.GetValue<int>();
-            }
-            catch
-            {
-                // Try to get from ObjectRef
-                var objectRef = TryExecute(() => member.GetValue<ObjectRef>());
-                return objectRef?.instanceID ?? 0;
-            }
-        }
 
         /// <summary>
         /// Unified numeric value extraction with optional target type conversion
@@ -513,9 +317,9 @@ namespace com.MiAO.Unity.MCP.Utils
         /// <summary>
         /// Convert to Unity Object by instance ID
         /// </summary>
-        private static object ConvertToUnityObject(object value, Type targetType, bool enableTransformSpecialHandling = true)
+        private static object ConvertToUnityObject(JsonElement jsonElement, Type targetType, bool enableTransformSpecialHandling = true)
         {
-            var instanceId = ExtractInstanceId(value);
+            var instanceId = ExtractInstanceId(jsonElement);
             
             if (instanceId == 0)
                 return null;
@@ -541,64 +345,6 @@ namespace com.MiAO.Unity.MCP.Utils
             {
                 throw new InvalidCastException($"[Error] Object '{foundObject.name}' is not compatible with the target type '{targetType.Name}'.");
             }
-        }
-
-        /// <summary>
-        /// Convert to basic type
-        /// </summary>
-        private static object ConvertToBasicType(object value, Type targetType)
-        {
-            // Direct type assignment if compatible
-            if (targetType.IsAssignableFrom(value.GetType()))
-                return value;
-
-            // Handle enum conversion specially
-            if (targetType.IsEnum)
-            {
-                return ConvertToEnum(value, targetType);
-            }
-
-            // Convert using System.Convert
-            try
-            {
-                return Convert.ChangeType(value, targetType);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Convert value to enum with proper validation and conversion
-        /// </summary>
-        private static object ConvertToEnum(object value, Type enumType)
-        {
-            // Validate enum value first
-            if (!CheckEnum(value, enumType, out string errorMessage))
-            {
-                throw new InvalidCastException(errorMessage);
-            }
-
-            // Extract actual value from JsonElement if needed
-            value = ExtractActualValue(value);
-
-            // Perform the actual conversion based on value type
-            return value switch
-            {
-                string stringValue => ConvertStringToEnum(stringValue, enumType),
-                var numericValue when IsNumericType(numericValue.GetType()) => Enum.ToObject(enumType, numericValue),
-                _ => throw new InvalidCastException($"Cannot convert value '{value}' of type '{value.GetType().Name}' to enum type '{enumType.Name}'")
-            };
-        }
-
-        /// <summary>
-        /// Convert string to enum
-        /// </summary>
-        private static object ConvertStringToEnum(string stringValue, Type enumType)
-        {
-            var enumName = ExtractEnumName(stringValue);
-            return Enum.Parse(enumType, enumName, true);
         }
 
         /// <summary>
@@ -771,45 +517,6 @@ namespace com.MiAO.Unity.MCP.Utils
         }
 
         /// <summary>
-        /// Convert from SerializedMember using reflection
-        /// </summary>
-        private static object ConvertFromSerializedMember(SerializedMember member, Type targetType)
-        {
-            try
-            {
-                var methodInfo = typeof(SerializedMember).GetMethod("GetValue").MakeGenericMethod(targetType);
-                return methodInfo.Invoke(member, null);
-            }
-            catch (Exception ex)
-            {
-                LogConversionError("ConvertFromSerializedMember", targetType, ex);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Centralized logging for conversion errors
-        /// </summary>
-        private static void LogConversionError(string methodName, Type targetType, Exception ex)
-        {
-            UnityEngine.Debug.LogError($"[TypeConversionUtils] Exception in {methodName} for type '{targetType.Name}': {ex.Message}");
-        }
-
-        /// <summary>
-        /// Check if type is a custom type (not primitive, not Unity built-in)
-        /// </summary>
-        private static bool IsCustomType(Type type)
-        {
-            return !type.IsPrimitive && 
-                   !type.IsEnum && 
-                   type != typeof(string) && 
-                   type != typeof(decimal) && 
-                   type != typeof(DateTime) &&
-                   !typeof(UnityEngine.Object).IsAssignableFrom(type) &&
-                   !IsUnityBuiltInType(type);
-        }
-
-        /// <summary>
         /// Check if type is Unity built-in type (Vector3, Color, etc.)
         /// </summary>
         private static bool IsUnityBuiltInType(Type type)
@@ -822,105 +529,6 @@ namespace com.MiAO.Unity.MCP.Utils
                    type == typeof(Rect) ||
                    type == typeof(Bounds) ||
                    type.IsValueType && type.Namespace == "UnityEngine";
-        }
-
-        /// <summary>
-        /// Convert generic types (List, Dictionary, etc.)
-        /// </summary>
-        private static object ConvertGenericType(SerializedMember member, Type targetType)
-        {
-            try
-            {
-                // Handle List<T> specifically
-                if (IsListType(targetType))
-                {
-                    return ConvertToList(member, targetType);
-                }
-                
-                // For other generic types, try the default method
-                return ConvertFromSerializedMember(member, targetType);
-            }
-            catch (Exception ex)
-            {
-                LogConversionError("ConvertGenericType", targetType, ex);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Check if type is List&lt;T&gt;
-        /// </summary>
-        private static bool IsListType(Type type)
-        {
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>);
-        }
-
-        /// <summary>
-        /// Convert to List<T>
-        /// </summary>
-        private static object ConvertToList(SerializedMember member, Type listType)
-        {
-            var elementType = listType.GetGenericArguments()[0];
-            var listInstance = Activator.CreateInstance(listType);
-            var addMethod = listType.GetMethod("Add");
-
-            // Try to get JsonElement array
-            var jsonElementArray = TryGetJsonElementArray(member);
-            if (jsonElementArray != null)
-            {
-                foreach (var element in jsonElementArray)
-                {
-                    var convertedElement = ConvertObjectToTargetType(element, elementType);
-                    addMethod.Invoke(listInstance, new[] { convertedElement });
-                }
-                return listInstance;
-            }
-
-            // Try to get generic array
-            var genericArray = TryGetGenericArray(member, elementType.MakeArrayType());
-            if (genericArray != null)
-            {
-                foreach (var element in genericArray)
-                {
-                    var convertedElement = ConvertObjectToTargetType(element, elementType);
-                    addMethod.Invoke(listInstance, new[] { convertedElement });
-                }
-                return listInstance;
-            }
-
-            return listInstance;
-        }
-
-        /// <summary>
-        /// Convert custom types from JSON
-        /// </summary>
-        private static object ConvertCustomType(SerializedMember member, Type targetType)
-        {
-            return ConvertCustomType(member, targetType, null);
-        }
-
-        /// <summary>
-        /// Convert custom types from JSON, optionally using existing instance
-        /// </summary>
-        private static object ConvertCustomType(SerializedMember member, Type targetType, object existingInstance)
-        {
-            try
-            {
-                // Try to get JsonElement
-                var jsonElement = member.GetValue<JsonElement>();
-                if (jsonElement.ValueKind == JsonValueKind.Object)
-                {
-                    return ConvertJsonElementToTargetType(jsonElement, targetType, existingInstance);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Re-throw the exception to ensure it's properly handled
-                throw new Exception($"Failed to convert custom type '{targetType.Name}': {ex.Message}", ex);
-            }
-
-            // Fallback to default method
-            return ConvertFromSerializedMember(member, targetType);
         }
 
         /// <summary>
@@ -939,6 +547,11 @@ namespace com.MiAO.Unity.MCP.Utils
             // Handle null values
             if (jsonElement.ValueKind == JsonValueKind.Null)
                 return null;
+
+            if (typeof(UnityEngine.Object).IsAssignableFrom(targetType))
+            {
+                return ConvertToUnityObject(jsonElement, targetType);
+            }
 
             // Handle primitive types first
             if (targetType.IsPrimitive || targetType == typeof(string) || targetType == typeof(decimal))
@@ -980,21 +593,7 @@ namespace com.MiAO.Unity.MCP.Utils
             return ConvertJsonElementBasicValue(jsonElement);
         }
 
-        /// <summary>
-        /// Convert object to target type
-        /// </summary>
-        private static object ConvertObjectToTargetType(object value, Type targetType)
-        {
-            if (value == null) return null;
-            
-            if (targetType.IsAssignableFrom(value.GetType()))
-                return value;
 
-            if (value is JsonElement jsonElement)
-                return ConvertJsonElementToTargetType(jsonElement, targetType);
-
-            return ConvertToBasicType(value, targetType);
-        }
 
         #region Unified Unity Type Conversion
         /// <summary>
@@ -1002,7 +601,6 @@ namespace com.MiAO.Unity.MCP.Utils
         /// </summary>
         private static object ConvertJsonToUnityType(JsonElement jsonElement, Type targetType)
         {
-            UnityEngine.Debug.Log("ConvertJsonToUnityType: " + targetType.Name + " JSON: " + jsonElement.GetRawText());
             if (targetType == typeof(Vector2))
             {
                 return new Vector2((float)jsonElement.GetProperty("x").GetSingle(), (float)jsonElement.GetProperty("y").GetSingle());
@@ -1181,11 +779,21 @@ namespace com.MiAO.Unity.MCP.Utils
                 if (jsonElement.ValueKind == JsonValueKind.String)
                 {
                     var enumName = ExtractEnumName(jsonElement.GetString());
+                    // Validate the enum
+                    if (!CheckEnum(enumName, enumType, out string errorMessage))
+                    {
+                        throw new Exception(errorMessage);
+                    }
                     return Enum.Parse(enumType, enumName, true);
                 }
                 else if (jsonElement.ValueKind == JsonValueKind.Number)
                 {
                     var numericValue = jsonElement.GetInt64();
+                    // Validate the enum
+                    if (!CheckEnum(numericValue, enumType, out string errorMessage))
+                    {
+                        throw new Exception(errorMessage);
+                    }
                     return Enum.ToObject(enumType, numericValue);
                 }
                 
