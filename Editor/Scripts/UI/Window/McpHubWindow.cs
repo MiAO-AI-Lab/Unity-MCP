@@ -16,7 +16,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
     /// </summary>
     public class McpHubWindow : EditorWindow
     {
-        private const string MENU_ITEM = "Window/MCP Hub Manager";
+        private const string MENU_ITEM = "Window/MCP Hub/MCP Hub Manager";
         private const string MENU_TITLE = "MCP Hub Manager";
         
         private const int MIN_WIDTH = 900;
@@ -55,7 +55,6 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         // Data
         private List<ExtensionPackageInfo> m_AvailableExtensions = new List<ExtensionPackageInfo>();
         private List<ExtensionPackageInfo> m_FilteredExtensions = new List<ExtensionPackageInfo>();
-        private int m_SelectedTabIndex = 0;
         
         // Properties
         public static McpHubWindow Instance => s_Instance;
@@ -271,7 +270,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_ExtensionList = new ListView
             {
                 itemsSource = m_FilteredExtensions,
-                itemHeight = 70,
+                fixedItemHeight = 70,
                 makeItem = MakeExtensionItem,
                 bindItem = BindExtensionItem
             };

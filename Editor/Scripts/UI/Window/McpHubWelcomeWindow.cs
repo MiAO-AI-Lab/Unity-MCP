@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEngine.UIElements;
 using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Editor.Extensions;
+using com.MiAO.Unity.MCP.Editor;
 
 namespace com.MiAO.Unity.MCP.Editor.UI
 {
@@ -37,7 +38,6 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private Label m_StatusLabel;
         private VisualElement m_QuickActionsPanel;
         private VisualElement m_RecentExtensionsPanel;
-        private VisualElement m_ResourcesPanel;
         
         private Toggle m_ShowOnStartupToggle;
 
@@ -186,18 +186,16 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_Content.style.paddingLeft = 30;
             m_Content.style.paddingRight = 30;
             
-            // Create three-column layout
+            // Create two-column layout
             var columnsContainer = new VisualElement();
             columnsContainer.style.flexDirection = FlexDirection.Row;
             columnsContainer.style.flexGrow = 1;
             
             CreateQuickActionsPanel();
             CreateRecentExtensionsPanel();
-            CreateResourcesPanel();
             
             columnsContainer.Add(m_QuickActionsPanel);
             columnsContainer.Add(m_RecentExtensionsPanel);
-            columnsContainer.Add(m_ResourcesPanel);
             
             m_Content.Add(columnsContainer);
             m_Root.Add(m_Content);
@@ -213,9 +211,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             var actions = new (string, string, System.Action)[]
             {
                 ("Open Hub Manager", "Manage extensions and settings", () => McpHubWindow.ShowWindow()),
+                ("Open MCP Main Window", "Open MCP main interface", () => OpenMcpMainWindow()),
+                ("Tutorial", "View MCP Hub tutorial", () => OpenTutorial()),
+                ("Community", "Join the MCP Hub community", () => OpenCommunity()),
                 ("Hub Settings", "Configure MCP Hub preferences", () => McpHubSettingsWindow.ShowWindow()),
-                ("Start MCP Server", "Start the MCP server", () => McpPluginUnity.BuildAndStart()),
-                ("View Documentation", "Open MCP Hub documentation", () => OpenDocumentation()),
             };
 
             foreach (var (title, description, action) in actions)
@@ -246,27 +245,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             // Extension list will be populated by UpdateContent()
         }
 
-        /// <summary>
-        /// Creates the resources panel
-        /// </summary>
-        private void CreateResourcesPanel()
-        {
-            m_ResourcesPanel = CreatePanel("Resources & Links");
-            
-            var resources = new (string, string, System.Action)[]
-            {
-                ("📖 Documentation", "View complete MCP Hub documentation", () => OpenDocumentation()),
-                ("🐛 Report Issue", "Report bugs or request features", () => OpenIssueTracker()),
-                ("💬 Community", "Join the MCP Hub community", () => OpenCommunity()),
-                ("📦 Extension Store", "Browse available extensions", () => OpenExtensionStore()),
-            };
 
-            foreach (var (title, description, action) in resources)
-            {
-                var resourceButton = CreateActionButton(title, description, action);
-                m_ResourcesPanel.Add(resourceButton);
-            }
-        }
 
         /// <summary>
         /// Creates a panel with title
@@ -474,24 +453,21 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         }
 
         // Action methods
-        private void OpenDocumentation()
+        private void OpenMcpMainWindow()
         {
-            Application.OpenURL("https://docs.example.com/mcp-hub");
+            // Open the main MCP window
+            var window = EditorWindow.GetWindow<MainWindowEditor>();
+            window.Show();
         }
 
-        private void OpenIssueTracker()
+        private void OpenTutorial()
         {
-            Application.OpenURL("https://github.com/example/unity-mcp/issues");
+            Application.OpenURL("https://github.com/MiAO-AI-Lab/Unity-MCP");
         }
 
         private void OpenCommunity()
         {
-            Application.OpenURL("https://discord.gg/example");
-        }
-
-        private void OpenExtensionStore()
-        {
-            McpHubWindow.ShowWindow();
+            Application.OpenURL("https://discord.gg/JC6xvWAh3F");
         }
     }
 }

@@ -12,13 +12,13 @@ namespace com.MiAO.Unity.MCP.Editor
 {
     public static class MenuItems
     {
-        [MenuItem("Window/MCP Hub", priority = 1006)]
+        [MenuItem("Window/MCP Hub/MCP Main Window", priority = 1006)]
         public static void ShowWindow() => MainWindowEditor.ShowWindow();
 
-        [MenuItem("Window/MCP Hub Manager", priority = 1007)]
+        [MenuItem("Window/MCP Hub/MCP Hub Manager", priority = 1007)]
         public static void ShowHubManager() => McpHubWindow.ShowWindow();
 
-        [MenuItem("Window/MCP Hub Welcome", priority = 1008)]
+        [MenuItem("Window/MCP Hub/Welcome", priority = 1008)]
         public static void ShowWelcome() => McpHubWelcomeWindow.ShowWindow();
 
         [MenuItem("Tools/MCP Hub/DotNet/Get Version", priority = 1010)]
