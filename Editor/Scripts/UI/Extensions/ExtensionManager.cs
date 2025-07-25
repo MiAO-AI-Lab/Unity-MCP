@@ -630,105 +630,123 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
         }
 
         /// <summary>
-        /// Removes a Git submodule from the project
+        /// Removes a Git repository from the project
         /// </summary>
         private static bool RemoveGitSubmodule(string packagePath, string directoryName)
         {
             try
             {
-                Debug.Log($"{Consts.Log.Tag} Removing Git submodule: {directoryName}");
+                Debug.Log($"{Consts.Log.Tag} Removing Git repository: {directoryName}");
                 
-                // Change to the project root directory
-                var projectRoot = Path.GetFullPath(".");
-                
-                // Execute Git commands to remove the submodule
-                var gitCommands = new[]
+                // Check if the directory exists
+                if (!Directory.Exists(packagePath))
                 {
-                    $"submodule deinit -f Packages/{directoryName}",
-                    $"rm -f Packages/{directoryName}",
-                    $"rm -rf .git/modules/Packages/{directoryName}"
-                };
-                
-                foreach (var command in gitCommands)
-                {
-                    Debug.Log($"{Consts.Log.Tag} Executing: git {command}");
-                    
-                    var startInfo = new ProcessStartInfo
-                    {
-                        FileName = "git",
-                        Arguments = command,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                        WorkingDirectory = projectRoot
-                    };
-                    
-                    using (var process = new Process { StartInfo = startInfo })
-                    {
-                        process.Start();
-                        var output = process.StandardOutput.ReadToEnd();
-                        var error = process.StandardError.ReadToEnd();
-                        process.WaitForExit();
-                        
-                        if (process.ExitCode != 0)
-                        {
-                            Debug.LogWarning($"{Consts.Log.Tag} Git command failed: {error}");
-                        }
-                        else
-                        {
-                            Debug.Log($"{Consts.Log.Tag} Git command successful: {output}");
-                        }
-                    }
+                    Debug.LogWarning($"{Consts.Log.Tag} Package directory does not exist: {packagePath}");
+                    return true; // Consider it already removed
                 }
                 
-                // Also remove the directory manually as a fallback
-                if (Directory.Exists(packagePath))
+                // First, try to remove read-only attributes to avoid permission issues
+                try
                 {
+                    RemoveReadOnlyAttributes(packagePath);
+                    Debug.Log($"{Consts.Log.Tag} Removed read-only attributes from: {directoryName}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"{Consts.Log.Tag} Could not remove read-only attributes: {ex.Message}");
+                }
+                
+                // Try to remove the directory directly
+                try
+                {
+                    Directory.Delete(packagePath, true);
+                    Debug.Log($"{Consts.Log.Tag} Successfully removed directory: {directoryName}");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"{Consts.Log.Tag} Could not remove directory directly: {ex.Message}");
+                    
+                    // Try alternative approach: remove files one by one
                     try
                     {
-                        Directory.Delete(packagePath, true);
-                        Debug.Log($"{Consts.Log.Tag} Manually removed Git submodule directory: {directoryName}");
+                        RemoveDirectoryRecursively(packagePath);
+                        Debug.Log($"{Consts.Log.Tag} Successfully removed directory recursively: {directoryName}");
+                        return true;
                     }
-                    catch (Exception ex)
+                    catch (Exception recursiveEx)
                     {
-                        Debug.LogWarning($"{Consts.Log.Tag} Could not remove directory manually: {ex.Message}");
-                        // Try to remove read-only attributes first
-                        try
-                        {
-                            RemoveReadOnlyAttributes(packagePath);
-                            Directory.Delete(packagePath, true);
-                            Debug.Log($"{Consts.Log.Tag} Successfully removed directory after removing read-only attributes: {directoryName}");
-                        }
-                        catch (Exception fallbackEx)
-                        {
-                            Debug.LogError($"{Consts.Log.Tag} Failed to remove directory even after removing read-only attributes: {fallbackEx.Message}");
-                        }
+                        Debug.LogError($"{Consts.Log.Tag} Failed to remove directory recursively: {recursiveEx.Message}");
+                        return false;
                     }
                 }
-                
-                return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"{Consts.Log.Tag} Failed to remove Git submodule {directoryName}: {ex.Message}");
+                Debug.LogError($"{Consts.Log.Tag} Failed to remove Git repository {directoryName}: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Removes a directory recursively by deleting files one by one
+        /// </summary>
+        private static void RemoveDirectoryRecursively(string directoryPath)
+        {
+            try
+            {
+                // First, remove read-only attributes from all files and directories
+                RemoveReadOnlyAttributes(directoryPath);
                 
-                // Fallback: just remove the directory
-                try
+                // Delete all files first
+                var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
+                foreach (var file in files)
                 {
-                    if (Directory.Exists(packagePath))
+                    try
                     {
-                        Directory.Delete(packagePath, true);
-                        Debug.Log($"{Consts.Log.Tag} Fallback: removed directory manually: {directoryName}");
-                        return true;
+                        File.Delete(file);
+                        Debug.Log($"{Consts.Log.Tag} Deleted file: {file}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"{Consts.Log.Tag} Could not delete file {file}: {ex.Message}");
                     }
                 }
-                catch (Exception fallbackEx)
+                
+                // Delete all directories (in reverse order to handle nested directories)
+                var directories = Directory.GetDirectories(directoryPath, "*", SearchOption.AllDirectories)
+                    .OrderByDescending(d => d.Length) // Delete deepest directories first
+                    .ToList();
+                
+                foreach (var dir in directories)
                 {
-                    Debug.LogError($"{Consts.Log.Tag} Fallback removal also failed: {fallbackEx.Message}");
+                    try
+                    {
+                        Directory.Delete(dir);
+                        Debug.Log($"{Consts.Log.Tag} Deleted directory: {dir}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"{Consts.Log.Tag} Could not delete directory {dir}: {ex.Message}");
+                    }
                 }
                 
-                return false;
+                // Finally, delete the main directory
+                try
+                {
+                    Directory.Delete(directoryPath);
+                    Debug.Log($"{Consts.Log.Tag} Deleted main directory: {directoryPath}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"{Consts.Log.Tag} Could not delete main directory {directoryPath}: {ex.Message}");
+                    throw; // Re-throw to indicate failure
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{Consts.Log.Tag} Error removing directory recursively: {ex.Message}");
+                throw;
             }
         }
 

@@ -32,6 +32,9 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         // Cache keys for persistent data
         private const string KEY_SELECTED_TAB = "mcp-hub:selected-tab";
         private const string KEY_LAST_REFRESH = "mcp-hub:last-refresh";
+        
+        // Special package IDs that should be treated differently
+        private const string HUB_CORE_FRAMEWORK_ID = "com.miao.unity.mcp";
 
         private static McpHubWindow s_Instance;
         
@@ -47,6 +50,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private Button m_RefreshButton;
         private Button m_SettingsButton;
         private Label m_StatusLabel;
+        private ProgressBar m_ProgressBar;
         
         // Data
         private List<ExtensionPackageInfo> m_AvailableExtensions = new List<ExtensionPackageInfo>();
@@ -267,7 +271,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_ExtensionList = new ListView
             {
                 itemsSource = m_FilteredExtensions,
-                itemHeight = 80,
+                itemHeight = 70,
                 makeItem = MakeExtensionItem,
                 bindItem = BindExtensionItem
             };
@@ -281,39 +285,35 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             var container = new VisualElement();
             container.style.flexDirection = FlexDirection.Row;
-            container.style.paddingTop = 5;
-            container.style.paddingBottom = 5;
+            container.style.paddingTop = 8;
+            container.style.paddingBottom = 8;
             container.style.paddingLeft = 10;
             container.style.paddingRight = 10;
             container.style.borderBottomWidth = 1;
             container.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
             
-            // Icon placeholder
-            var icon = new VisualElement();
-            icon.style.width = 60;
-            icon.style.height = 60;
-            icon.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
-            icon.style.marginRight = 10;
-            
             // Content area
             var content = new VisualElement();
             content.style.flexGrow = 1;
+            content.style.marginRight = 10;
             
             var title = new Label();
             title.name = "title";
             title.style.fontSize = 14;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            title.style.marginBottom = 4;
             
             var description = new Label();
             description.name = "description";
             description.style.fontSize = 12;
             description.style.color = new Color(0.7f, 0.7f, 0.7f);
             description.style.whiteSpace = WhiteSpace.Normal;
+            description.style.marginBottom = 4;
             
             var status = new Label();
             status.name = "status";
             status.style.fontSize = 10;
-            status.style.marginTop = 5;
+            status.style.color = new Color(0.6f, 0.6f, 0.6f);
             
             content.Add(title);
             content.Add(description);
@@ -324,13 +324,28 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             buttonContainer.style.flexDirection = FlexDirection.Column;
             buttonContainer.style.justifyContent = Justify.Center;
             buttonContainer.style.minWidth = 100;
+            buttonContainer.style.alignSelf = Align.FlexEnd;
             
             var actionButton = new Button();
             actionButton.style.minWidth = 90;
+            actionButton.style.height = 30;
+            actionButton.name = "action-button";
+            
+            // Loading indicator (hidden by default)
+            var loadingIndicator = new VisualElement();
+            loadingIndicator.name = "loading-indicator";
+            loadingIndicator.style.width = 16;
+            loadingIndicator.style.height = 16;
+            loadingIndicator.style.borderLeftWidth = 2;
+            loadingIndicator.style.borderLeftColor = Color.white;
+            loadingIndicator.style.display = DisplayStyle.None;
+            loadingIndicator.style.marginLeft = 5;
+            loadingIndicator.style.marginRight = 5;
+            loadingIndicator.style.alignSelf = Align.Center;
             
             buttonContainer.Add(actionButton);
+            buttonContainer.Add(loadingIndicator);
             
-            container.Add(icon);
             container.Add(content);
             container.Add(buttonContainer);
             
@@ -370,6 +385,33 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             button.clicked -= null; // Clear existing handlers
             
+            // Special handling for Hub Core Framework
+            if (extension.Id == HUB_CORE_FRAMEWORK_ID)
+            {
+                if (extension.IsInstalled)
+                {
+                    if (extension.HasUpdate)
+                    {
+                        button.text = "Update";
+                        button.clicked += () => UpdateExtension(extension);
+                    }
+                    else
+                    {
+                        button.text = "Up to Date";
+                        button.SetEnabled(false);
+                        button.style.opacity = 0.5f;
+                    }
+                }
+                else
+                {
+                    button.text = "Core Package";
+                    button.SetEnabled(false);
+                    button.style.opacity = 0.5f;
+                }
+                return;
+            }
+            
+            // Normal extension handling
             if (extension.IsInstalled)
             {
                 if (extension.HasUpdate)
@@ -388,6 +430,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 button.text = "Install";
                 button.clicked += () => InstallExtension(extension);
             }
+            
+            // Reset button state
+            button.SetEnabled(true);
+            button.style.opacity = 1f;
         }
 
         /// <summary>
@@ -396,7 +442,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private void CreateStatusBar()
         {
             m_StatusBar = new VisualElement { name = NAME_STATUS_BAR };
-            m_StatusBar.style.flexDirection = FlexDirection.Row;
+            m_StatusBar.style.flexDirection = FlexDirection.Column;
             m_StatusBar.style.paddingTop = 5;
             m_StatusBar.style.paddingBottom = 5;
             m_StatusBar.style.paddingLeft = 10;
@@ -404,11 +450,21 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_StatusBar.style.borderTopWidth = 1;
             m_StatusBar.style.borderTopColor = Color.gray;
             
+            // Status label
             m_StatusLabel = new Label("Ready");
-            m_StatusLabel.style.flexGrow = 1;
             m_StatusLabel.style.fontSize = 12;
+            m_StatusLabel.style.marginBottom = 2;
+            
+            // Progress bar (hidden by default)
+            m_ProgressBar = new ProgressBar();
+            m_ProgressBar.style.height = 4;
+            m_ProgressBar.style.display = DisplayStyle.None;
+            m_ProgressBar.value = 0f;
+            m_ProgressBar.lowValue = 0f;
+            m_ProgressBar.highValue = 100f;
             
             m_StatusBar.Add(m_StatusLabel);
+            m_StatusBar.Add(m_ProgressBar);
             m_Root.Add(m_StatusBar);
         }
 
@@ -581,6 +637,19 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private string GetExtensionStatusText(ExtensionPackageInfo extension)
         {
+            // Special status for Hub Core Framework
+            if (extension.Id == HUB_CORE_FRAMEWORK_ID)
+            {
+                if (extension.IsInstalled)
+                {
+                    if (extension.HasUpdate)
+                        return $"Core Framework v{extension.InstalledVersion} (Update available: v{extension.LatestVersion})";
+                    return $"Core Framework v{extension.InstalledVersion} (Required)";
+                }
+                return $"Core Framework v{extension.LatestVersion} (Required)";
+            }
+            
+            // Normal extension status
             if (extension.IsInstalled)
             {
                 if (extension.HasUpdate)
@@ -595,6 +664,22 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private async void InstallExtension(ExtensionPackageInfo extension)
         {
+            // Prevent installation of Hub Core Framework
+            if (extension.Id == HUB_CORE_FRAMEWORK_ID)
+            {
+                EditorUtility.DisplayDialog("Core Package", 
+                    "Hub Core Framework is a required core package and cannot be installed separately.", 
+                    "OK");
+                return;
+            }
+            
+            // Find the button for this extension
+            var button = FindExtensionButton(extension);
+            if (button == null) return;
+            
+            var originalText = button.text;
+            SetButtonLoadingState(button, true, originalText);
+            ShowProgressBar();
             UpdateStatus($"Installing {extension.DisplayName}...");
             
             try
@@ -608,6 +693,11 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 UpdateStatus($"Failed to install {extension.DisplayName}: {ex.Message}");
                 Debug.LogError($"{Consts.Log.Tag} Installation failed: {ex}");
             }
+            finally
+            {
+                SetButtonLoadingState(button, false, originalText);
+                HideProgressBar();
+            }
         }
 
         /// <summary>
@@ -615,6 +705,15 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private async void UninstallExtension(ExtensionPackageInfo extension)
         {
+            // Prevent uninstallation of Hub Core Framework
+            if (extension.Id == HUB_CORE_FRAMEWORK_ID)
+            {
+                EditorUtility.DisplayDialog("Core Package", 
+                    "Hub Core Framework is a required core package and cannot be uninstalled.", 
+                    "OK");
+                return;
+            }
+            
             if (!EditorUtility.DisplayDialog("Uninstall Extension", 
                 $"Are you sure you want to uninstall {extension.DisplayName}?", 
                 "Uninstall", "Cancel"))
@@ -622,6 +721,13 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 return;
             }
             
+            // Find the button for this extension
+            var button = FindExtensionButton(extension);
+            if (button == null) return;
+            
+            var originalText = button.text;
+            SetButtonLoadingState(button, true, originalText);
+            ShowProgressBar();
             UpdateStatus($"Uninstalling {extension.DisplayName}...");
             
             try
@@ -635,6 +741,11 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 UpdateStatus($"Failed to uninstall {extension.DisplayName}: {ex.Message}");
                 Debug.LogError($"{Consts.Log.Tag} Uninstallation failed: {ex}");
             }
+            finally
+            {
+                SetButtonLoadingState(button, false, originalText);
+                HideProgressBar();
+            }
         }
 
         /// <summary>
@@ -642,6 +753,13 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private async void UpdateExtension(ExtensionPackageInfo extension)
         {
+            // Find the button for this extension
+            var button = FindExtensionButton(extension);
+            if (button == null) return;
+            
+            var originalText = button.text;
+            SetButtonLoadingState(button, true, originalText);
+            ShowProgressBar();
             UpdateStatus($"Updating {extension.DisplayName}...");
             
             try
@@ -654,6 +772,140 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             {
                 UpdateStatus($"Failed to update {extension.DisplayName}: {ex.Message}");
                 Debug.LogError($"{Consts.Log.Tag} Update failed: {ex}");
+            }
+            finally
+            {
+                SetButtonLoadingState(button, false, originalText);
+                HideProgressBar();
+            }
+        }
+
+        /// <summary>
+        /// Finds the button for a specific extension in the list
+        /// </summary>
+        private Button FindExtensionButton(ExtensionPackageInfo extension)
+        {
+            if (m_ExtensionList == null) return null;
+            
+            // Find the index of the extension in the filtered list
+            var index = m_FilteredExtensions.IndexOf(extension);
+            if (index < 0 || index >= m_ExtensionList.itemsSource.Count) return null;
+            
+            // Get the visual element for this item
+            var itemElement = m_ExtensionList.GetRootElementForIndex(index);
+            if (itemElement == null) return null;
+            
+            // Find the button in the item
+            return itemElement.Q<Button>();
+        }
+
+        /// <summary>
+        /// Sets the loading state of a button
+        /// </summary>
+        private void SetButtonLoadingState(Button button, bool isLoading, string originalText = "")
+        {
+            if (isLoading)
+            {
+                button.SetEnabled(false);
+                button.style.opacity = 0.6f;
+                button.text = "Loading...";
+                
+                // Show loading indicator
+                var loadingIndicator = button.parent?.Q<VisualElement>("loading-indicator");
+                if (loadingIndicator != null)
+                {
+                    loadingIndicator.style.display = DisplayStyle.Flex;
+                    StartLoadingAnimation(loadingIndicator);
+                }
+            }
+            else
+            {
+                button.SetEnabled(true);
+                button.style.opacity = 1f;
+                button.text = originalText;
+                
+                // Hide loading indicator
+                var loadingIndicator = button.parent?.Q<VisualElement>("loading-indicator");
+                if (loadingIndicator != null)
+                {
+                    loadingIndicator.style.display = DisplayStyle.None;
+                    StopLoadingAnimation(loadingIndicator);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Starts the loading animation for a visual element
+        /// </summary>
+        private void StartLoadingAnimation(VisualElement element)
+        {
+            if (element == null) return;
+            
+            // Create a simple pulsing animation instead of rotation
+            var alpha = 0.3f;
+            var increasing = true;
+            element.schedule.Execute(() =>
+            {
+                if (increasing)
+                {
+                    alpha += 0.1f;
+                    if (alpha >= 1.0f)
+                    {
+                        alpha = 1.0f;
+                        increasing = false;
+                    }
+                }
+                else
+                {
+                    alpha -= 0.1f;
+                    if (alpha <= 0.3f)
+                    {
+                        alpha = 0.3f;
+                        increasing = true;
+                    }
+                }
+                element.style.opacity = alpha;
+            }).Every(100);
+        }
+
+        /// <summary>
+        /// Stops the loading animation for a visual element
+        /// </summary>
+        private void StopLoadingAnimation(VisualElement element)
+        {
+            if (element == null) return;
+            
+            // Reset opacity
+            element.style.opacity = 1f;
+        }
+
+        /// <summary>
+        /// Shows the progress bar with indeterminate progress
+        /// </summary>
+        private void ShowProgressBar()
+        {
+            if (m_ProgressBar != null)
+            {
+                m_ProgressBar.style.display = DisplayStyle.Flex;
+                m_ProgressBar.value = 0f;
+                
+                // Start indeterminate progress animation
+                m_ProgressBar.schedule.Execute(() =>
+                {
+                    m_ProgressBar.value = (m_ProgressBar.value + 5f) % 100f;
+                }).Every(100);
+            }
+        }
+
+        /// <summary>
+        /// Hides the progress bar
+        /// </summary>
+        private void HideProgressBar()
+        {
+            if (m_ProgressBar != null)
+            {
+                m_ProgressBar.style.display = DisplayStyle.None;
+                m_ProgressBar.value = 0f;
             }
         }
 
