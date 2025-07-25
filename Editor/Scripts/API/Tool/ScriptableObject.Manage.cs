@@ -105,18 +105,50 @@ namespace com.MiAO.Unity.MCP.Editor.API
                 if (asset == null)
                     return Error.AssetNotFound(assetPath);
 
-                var serializedAsset = Reflector.Instance.Serialize(
-                    asset,
-                    name: asset.name,
-                    recursive: !briefData,
-                    logger: McpPlugin.Instance.Logger
-                );
+                try
+                {
+                    // Use the new advanced serialization utility
+                    var config = ObjectSerializationUtils.CreateScriptableObjectConfig();
+                    if (briefData)
+                    {
+                        // For brief data, reduce depth and exclude Unity object references
+                        config.MaxDepth = 5;
+                        config.IncludeUnityObjectReferences = false;
+                        config.IncludeProperties = false;
+                    }
 
-                return @$"[Success] Found ScriptableObject asset.
+                    var serializedJson = ObjectSerializationUtils.SerializeToJson(asset, config);
+
+                    return @$"[Success] Found ScriptableObject asset using advanced serialization.
+# Asset Info:
+- Name: {asset.name}
+- Type: {asset.GetType().Name}
+- Path: {assetPath}
+- Brief Mode: {briefData}
+
+# Serialized Data:
+```json
+{serializedJson}
+```";
+                }
+                catch (Exception ex)
+                {
+                    // Fallback to original method if new serialization fails
+                    var serializedAsset = Reflector.Instance.Serialize(
+                        asset,
+                        name: asset.name,
+                        recursive: !briefData,
+                        logger: McpPlugin.Instance.Logger
+                    );
+
+                    return @$"[Success] Found ScriptableObject asset (fallback serialization).
+# Warning: Advanced serialization failed: {ex.Message}
+
 # Data:
 ```json
 {JsonUtils.Serialize(serializedAsset)}
 ```";
+                }
             });
         }
 
