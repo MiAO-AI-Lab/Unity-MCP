@@ -639,6 +639,16 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             m_FilteredExtensions.Clear();
             
+            // If switching to workflows, show workflows and return
+            if (categoryIndex == 4)
+            {
+                ShowWorkflows();
+                return;
+            }
+            
+            // Ensure the extension list is visible for non-workflow categories
+            RestoreExtensionListView();
+            
             // Apply category filtering
             switch (categoryIndex)
             {
@@ -654,10 +664,6 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 case 3: // Updates
                     m_FilteredExtensions.AddRange(m_AvailableExtensions.Where(ext => ext.HasUpdate));
                     break;
-                case 4: // Workflows
-                    // For workflows, we'll show them in a different way
-                    ShowWorkflows();
-                    return;
             }
             
             // Apply search filter if search field has content
@@ -674,6 +680,21 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             }
             
             UpdateStatus($"Showing {m_FilteredExtensions.Count} extensions");
+        }
+
+        /// <summary>
+        /// Restores the extension list view when switching back from workflows
+        /// </summary>
+        private void RestoreExtensionListView()
+        {
+            // Check if the main content contains the extension list
+            if (m_MainContent.Q<ListView>() == null)
+            {
+                // Clear main content and recreate extension list
+                m_MainContent.Clear();
+                CreateExtensionList();
+                m_MainContent.Add(m_ExtensionList);
+            }
         }
 
         /// <summary>
