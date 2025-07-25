@@ -1,11 +1,14 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UIElements;
 using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Editor.Extensions;
+using Debug = UnityEngine.Debug;
 
 namespace com.MiAO.Unity.MCP.Editor.UI
 {
@@ -481,15 +484,42 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         }
 
         /// <summary>
-        /// Stops the MCP server
+        /// Stops the MCP server by force closing all related processes
         /// </summary>
         private void StopMcpServer()
         {
             try
             {
                 UpdateStatus("Stopping MCP server...");
-                // Implementation would depend on how server shutdown is handled
-                UpdateStatus("MCP server stopped");
+                
+                // Find and kill all MCP server processes
+                var mcpProcesses = FindMcpServerProcesses();
+                
+                if (mcpProcesses.Count == 0)
+                {
+                    UpdateStatus("No MCP server processes found");
+                    return;
+                }
+                
+                int killedCount = 0;
+                foreach (var process in mcpProcesses)
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            process.Kill();
+                            killedCount++;
+                            Debug.Log($"{Consts.Log.Tag} Killed MCP server process: {process.ProcessName} (PID: {process.Id})");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"{Consts.Log.Tag} Failed to kill process {process.ProcessName} (PID: {process.Id}): {ex.Message}");
+                    }
+                }
+                
+                UpdateStatus($"Force closed {killedCount} MCP server processes");
             }
             catch (Exception ex)
             {
@@ -499,20 +529,106 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         }
 
         /// <summary>
-        /// Checks MCP server status
+        /// Checks MCP server status by detecting running processes
         /// </summary>
         private void CheckServerStatus()
         {
             try
             {
                 UpdateStatus("Checking server status...");
-                // Implementation would check if server is running
-                UpdateStatus("Server status: Running");
+                
+                var mcpProcesses = FindMcpServerProcesses();
+                
+                if (mcpProcesses.Count == 0)
+                {
+                    UpdateStatus("Server status: Not running");
+                    return;
+                }
+                
+                var processInfo = mcpProcesses.Select(p => $"{p.ProcessName} (PID: {p.Id})").ToArray();
+                var statusMessage = $"Server status: Running - {mcpProcesses.Count} process(es) detected\n" +
+                                  $"Processes: {string.Join(", ", processInfo)}";
+                
+                UpdateStatus(statusMessage);
+                Debug.Log($"{Consts.Log.Tag} MCP Server Status: {statusMessage}");
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error checking server status: {ex.Message}");
                 UpdateStatus("Error checking server status");
+            }
+        }
+
+        /// <summary>
+        /// Finds all MCP server related processes
+        /// </summary>
+        private List<Process> FindMcpServerProcesses()
+        {
+            var mcpProcesses = new List<Process>();
+            
+            try
+            {
+                // Get all running processes
+                var allProcesses = Process.GetProcesses();
+                
+                // Look for MCP server related processes
+                foreach (var process in allProcesses)
+                {
+                    try
+                    {
+                        var processName = process.ProcessName.ToLowerInvariant();
+                        
+                        // Check for common MCP server process names
+                        if (processName.Contains("mcp") || 
+                            processName.Contains("unity-mcp") ||
+                            processName.Contains("dotnet") && IsMcpServerProcess(process))
+                        {
+                            mcpProcesses.Add(process);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Skip processes that can't be accessed
+                        Debug.LogWarning($"{Consts.Log.Tag} Could not access process: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{Consts.Log.Tag} Error finding MCP server processes: {ex.Message}");
+            }
+            
+            return mcpProcesses;
+        }
+
+        /// <summary>
+        /// Determines if a dotnet process is likely an MCP server
+        /// </summary>
+        private bool IsMcpServerProcess(Process process)
+        {
+            try
+            {
+                // Check if the process has command line arguments that suggest it's an MCP server
+                var startInfo = process.StartInfo;
+                if (startInfo != null && !string.IsNullOrEmpty(startInfo.Arguments))
+                {
+                    var args = startInfo.Arguments.ToLowerInvariant();
+                    return args.Contains("mcp") || args.Contains("unity-mcp");
+                }
+                
+                // Check process title
+                if (!string.IsNullOrEmpty(process.MainWindowTitle))
+                {
+                    var title = process.MainWindowTitle.ToLowerInvariant();
+                    return title.Contains("mcp") || title.Contains("unity-mcp");
+                }
+                
+                return false;
+            }
+            catch
+            {
+                // If we can't access process details, assume it's not an MCP server
+                return false;
             }
         }
 
