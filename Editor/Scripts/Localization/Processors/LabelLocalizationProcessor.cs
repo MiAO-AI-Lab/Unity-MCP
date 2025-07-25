@@ -5,7 +5,7 @@ using com.MiAO.Unity.MCP.Editor.Common;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
 {
     /// <summary>
-    /// Label控件本地化处理器
+    /// Label control localization processor
     /// </summary>
     public class LabelLocalizationProcessor : ILocalizationProcessor
     {
@@ -20,7 +20,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var label = (Label)element;
             
-            // 处理主文本
+            // Process main text
             if (!string.IsNullOrEmpty(config.TextKey))
             {
                 var textKey = config.GetConditionalTextKey(context);
@@ -28,14 +28,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
                 label.text = localizedText;
             }
             
-            // 处理工具提示
+            // Process tooltip
             if (!string.IsNullOrEmpty(config.TooltipKey))
             {
                 var tooltipText = GetLocalizedText(config.TooltipKey, config, context);
                 label.tooltip = tooltipText;
             }
             
-            // 处理自定义属性
+            // Process custom properties
             ProcessCustomProperties(label, config, context);
         }
         
@@ -43,14 +43,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var text = LocalizationManager.GetText(key);
             
-            // 处理格式化参数
+            // Process formatting parameters
             if (config.Parameters != null && config.Parameters.Count > 0)
             {
                 var args = config.Parameters.Select(p => p.GetValue(context)).ToArray();
                 text = string.Format(text, args);
             }
             
-            // 处理富文本
+            // Process rich text
             if (config.EnableRichText)
             {
                 text = ProcessRichText(text, context);
@@ -65,7 +65,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
             {
                 var localizedValue = LocalizationManager.GetText(kvp.Value);
                 
-                // 根据属性名处理不同的自定义属性
+                // Process different custom properties based on property name
                 switch (kvp.Key.ToLower())
                 {
                     case "class":
@@ -76,7 +76,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
                         ApplyStyle(label, localizedValue);
                         break;
                     default:
-                        // 其他自定义属性可以在这里扩展
+                        // Other custom properties can be extended here
                         UnityEngine.Debug.Log($"[LabelLocalizationProcessor] Unsupported custom property: {kvp.Key}");
                         break;
                 }
@@ -93,22 +93,22 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         
         private void ApplyStyle(Label label, string styleValue)
         {
-            // 这里可以根据需要解析和应用内联样式
-            // 暂时留空，可以根据具体需求扩展
+            // Style parsing and application can be implemented here as needed
+            // Currently left empty, can be extended based on specific requirements
         }
         
         private string ProcessRichText(string text, LocalizationContext context)
         {
             if (string.IsNullOrEmpty(text)) return text;
             
-            // 处理简单的富文本标签
-            // 例如：{b}bold{/b} -> <b>bold</b>
+            // Process simple rich text tags
+            // Example: {b}bold{/b} -> <b>bold</b>
             text = text.Replace("{b}", "<b>").Replace("{/b}", "</b>");
             text = text.Replace("{i}", "<i>").Replace("{/i}", "</i>");
             text = text.Replace("{u}", "<u>").Replace("{/u}", "</u>");
             
-            // 处理颜色标签
-            // 例如：{color=red}text{/color} -> <color=red>text</color>
+            // Process color tags
+            // Example: {color=red}text{/color} -> <color=red>text</color>
             text = System.Text.RegularExpressions.Regex.Replace(text, 
                 @"\{color=([^}]+)\}([^{]*)\{/color\}", 
                 "<color=$1>$2</color>");

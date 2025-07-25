@@ -9,8 +9,8 @@ using com.MiAO.Unity.MCP.Editor.Common;
 namespace com.MiAO.Unity.MCP.Editor.Localization
 {
     /// <summary>
-    /// UI本地化系统核心管理器
-    /// 提供可扩展的本地化架构
+    /// UI localization system core manager
+    /// Provides extensible localization architecture
     /// </summary>
     public static class UILocalizationSystem
     {
@@ -29,22 +29,22 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         #region Public Properties
         
         /// <summary>
-        /// 是否已初始化
+        /// Whether the system is initialized
         /// </summary>
         public static bool IsInitialized => _isInitialized;
         
         /// <summary>
-        /// 全局性能统计
+        /// Global performance statistics
         /// </summary>
         public static LocalizationPerformanceStats GlobalStats => _globalStats;
         
         /// <summary>
-        /// 注册的处理器数量
+        /// Number of registered processors
         /// </summary>
         public static int ProcessorCount => _processors.Count;
         
         /// <summary>
-        /// 注册的配置提供者数量
+        /// Number of registered configuration providers
         /// </summary>
         public static int ConfigProviderCount => _configProviders.Count;
         
@@ -53,17 +53,17 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         #region Public Events
         
         /// <summary>
-        /// 本地化处理开始事件
+        /// Localization processing started event
         /// </summary>
         public static event Action<VisualElement, LocalizationContext> OnLocalizationStarted;
         
         /// <summary>
-        /// 本地化处理完成事件
+        /// Localization processing completed event
         /// </summary>
         public static event Action<VisualElement, LocalizationContext> OnLocalizationCompleted;
         
         /// <summary>
-        /// 本地化错误事件
+        /// Localization error event
         /// </summary>
         public static event Action<Exception, VisualElement> OnLocalizationError;
         
@@ -72,7 +72,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         #region Initialization
         
         /// <summary>
-        /// 初始化UI本地化系统
+        /// Initialize UI localization system
         /// </summary>
         public static void Initialize()
         {
@@ -82,19 +82,19 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             {
                 UnityEngine.Debug.Log("[UILocalizationSystem] Initializing...");
                 
-                // 清理旧数据
+                // Clear old data
                 _processors.Clear();
                 _configProviders.Clear();
                 _textCache.Clear();
                 _elementConfigCache.Clear();
                 
-                // 注册默认处理器
+                // Register default processors
                 RegisterDefaultProcessors();
                 
-                // 注册默认配置提供者
+                // Register default configuration providers
                 RegisterDefaultConfigProviders();
                 
-                // 订阅语言变化事件
+                // Subscribe to language change events
                 LocalizationManager.OnLanguageChanged += OnLanguageChanged;
                 
                 _isInitialized = true;
@@ -108,7 +108,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         }
         
         /// <summary>
-        /// 关闭UI本地化系统
+        /// Shutdown UI localization system
         /// </summary>
         public static void Shutdown()
         {
@@ -116,13 +116,13 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             
             try
             {
-                // 取消订阅事件
+                // Unsubscribe from events
                 LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
                 
-                // 清理缓存
+                // Clear caches
                 ClearAllCaches();
                 
-                // 清理处理器和提供者
+                // Clear processors and providers
                 _processors.Clear();
                 _configProviders.Clear();
                 
@@ -140,23 +140,23 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         #region Processor Management
         
         /// <summary>
-        /// 注册本地化处理器
+        /// Register localization processor
         /// </summary>
-        /// <typeparam name="T">处理器类型</typeparam>
+        /// <typeparam name="T">Processor type</typeparam>
         public static void RegisterProcessor<T>() where T : ILocalizationProcessor, new()
         {
             RegisterProcessor(new T());
         }
         
         /// <summary>
-        /// 注册本地化处理器
+        /// Register localization processor
         /// </summary>
-        /// <param name="processor">处理器实例</param>
+        /// <param name="processor">Processor instance</param>
         public static void RegisterProcessor(ILocalizationProcessor processor)
         {
             if (processor == null) throw new ArgumentNullException(nameof(processor));
             
-            // 避免重复注册
+            // Avoid duplicate registration
             if (_processors.Any(p => p.GetType() == processor.GetType()))
             {
                 UnityEngine.Debug.LogWarning($"[UILocalizationSystem] Processor {processor.GetType().Name} already registered");
@@ -165,17 +165,17 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             
             _processors.Add(processor);
             
-            // 按优先级排序
+            // Sort by priority
             _processors.Sort((a, b) => b.Priority.CompareTo(a.Priority));
             
-            UnityEngine.Debug.Log($"[UILocalizationSystem] Registered processor: {processor.GetType().Name} (Priority: {processor.Priority})");
+            // UnityEngine.Debug.Log($"[UILocalizationSystem] Registered processor: {processor.GetType().Name} (Priority: {processor.Priority})");
         }
         
         /// <summary>
-        /// 移除本地化处理器
+        /// Remove localization processor
         /// </summary>
-        /// <typeparam name="T">处理器类型</typeparam>
-        /// <returns>是否成功移除</returns>
+        /// <typeparam name="T">Processor type</typeparam>
+        /// <returns>Whether removal was successful</returns>
         public static bool UnregisterProcessor<T>() where T : ILocalizationProcessor
         {
             var processor = _processors.FirstOrDefault(p => p is T);
@@ -193,18 +193,18 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         #region Config Provider Management
         
         /// <summary>
-        /// 注册配置提供者
+        /// Register configuration provider
         /// </summary>
-        /// <typeparam name="T">配置提供者类型</typeparam>
+        /// <typeparam name="T">Configuration provider type</typeparam>
         public static void RegisterConfigProvider<T>() where T : ILocalizationConfigProvider, new()
         {
             RegisterConfigProvider(new T());
         }
         
         /// <summary>
-        /// 注册配置提供者
+        /// Register configuration provider
         /// </summary>
-        /// <param name="provider">配置提供者实例</param>
+        /// <param name="provider">Configuration provider instance</param>
         public static void RegisterConfigProvider(ILocalizationConfigProvider provider)
         {
             if (provider == null) throw new ArgumentNullException(nameof(provider));
@@ -224,10 +224,10 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         #region Localization Processing
         
         /// <summary>
-        /// 本地化单个UI元素
+        /// Localize single UI element
         /// </summary>
-        /// <param name="element">要本地化的UI元素</param>
-        /// <param name="context">本地化上下文</param>
+        /// <param name="element">UI element to localize</param>
+        /// <param name="context">Localization context</param>
         public static void LocalizeElement(VisualElement element, LocalizationContext context = null)
         {
             if (!_isInitialized) Initialize();
@@ -256,10 +256,10 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         }
         
         /// <summary>
-        /// 本地化整个UI树
+        /// Localize entire UI tree
         /// </summary>
-        /// <param name="root">根UI元素</param>
-        /// <param name="context">本地化上下文</param>
+        /// <param name="root">Root UI element</param>
+        /// <param name="context">Localization context</param>
         public static void LocalizeElementTree(VisualElement root, LocalizationContext context = null)
         {
             if (!_isInitialized) Initialize();
@@ -274,7 +274,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             {
                 OnLocalizationStarted?.Invoke(root, context);
                 
-                // 收集所有需要本地化的元素
+                // Collect all elements that need localization
                 var elementsToLocalize = new List<(VisualElement element, LocalizationConfig config)>();
                 
                 root.Query().ForEach(element =>
@@ -286,11 +286,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                     }
                 });
                 
-                // 批量获取本地化文本
+                // Batch get localized text
                 var allKeys = elementsToLocalize.SelectMany(x => x.config.GetAllKeys()).Distinct().ToList();
                 var textCache = GetTextBatch(allKeys);
                 
-                // 应用本地化
+                // Apply localization
                 foreach (var (element, config) in elementsToLocalize)
                 {
                     ApplyLocalizationFromCache(element, config, context, textCache);
@@ -302,7 +302,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                 
                 OnLocalizationCompleted?.Invoke(root, context);
                 
-                UnityEngine.Debug.Log($"[UILocalizationSystem] Localized {context.Stats.ProcessedElementsCount} elements in {context.Stats.ProcessingTimeMs}ms");
+                // UnityEngine.Debug.Log($"[UILocalizationSystem] Localized {context.Stats.ProcessedElementsCount} elements in {context.Stats.ProcessingTimeMs}ms");
             }
             catch (Exception ex)
             {
@@ -316,17 +316,16 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         #region Cache Management
         
         /// <summary>
-        /// 清理所有缓存
+        /// Clear all caches
         /// </summary>
         public static void ClearAllCaches()
         {
             _textCache.Clear();
             _elementConfigCache.Clear();
-            UnityEngine.Debug.Log("[UILocalizationSystem] All caches cleared");
         }
         
         /// <summary>
-        /// 清理文本缓存
+        /// Clear text cache
         /// </summary>
         public static void ClearTextCache()
         {
@@ -335,7 +334,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         }
         
         /// <summary>
-        /// 清理配置缓存
+        /// Clear configuration cache
         /// </summary>
         public static void ClearConfigCache()
         {
@@ -349,7 +348,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         
         private static void RegisterDefaultProcessors()
         {
-            // 注册所有默认UI元素处理器
+            // Register all default UI element processors
             RegisterProcessor<Processors.LabelLocalizationProcessor>();
             RegisterProcessor<Processors.ButtonLocalizationProcessor>();
             RegisterProcessor<Processors.TextFieldLocalizationProcessor>();
@@ -362,7 +361,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         
         private static void RegisterDefaultConfigProviders()
         {
-            // 注册默认配置提供者（按优先级顺序）
+            // Register default configuration providers (in priority order)
             RegisterConfigProvider<Providers.AttributeConfigProvider>();
             RegisterConfigProvider<Providers.CodeConfigProvider>();
             
@@ -372,7 +371,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         private static void OnLanguageChanged(LocalizationManager.Language newLanguage)
         {
             UnityEngine.Debug.Log($"[UILocalizationSystem] Language changed to {newLanguage}, clearing all caches");
-            // 清理所有缓存，确保语言切换后重新处理所有元素
+            // Clear all caches to ensure all elements are reprocessed after language switch
             ClearAllCaches();
         }
         
@@ -388,13 +387,13 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         
         private static LocalizationConfig GetLocalizationConfig(VisualElement element)
         {
-            // 尝试从缓存获取
+            // Try to get from cache
             if (_elementConfigCache.TryGetValue(element, out var cachedConfig))
             {
                 return cachedConfig;
             }
             
-            // 从配置提供者获取
+            // Get from configuration providers
             foreach (var provider in _configProviders)
             {
                 var config = provider.GetConfig(element);
@@ -461,15 +460,15 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
     }
     
     /// <summary>
-    /// 本地化配置提供者接口
+    /// Localization configuration provider interface
     /// </summary>
     public interface ILocalizationConfigProvider
     {
         /// <summary>
-        /// 获取UI元素的本地化配置
+        /// Get localization configuration for UI element
         /// </summary>
-        /// <param name="element">UI元素</param>
-        /// <returns>本地化配置，如果没有返回null</returns>
+        /// <param name="element">UI element</param>
+        /// <returns>Localization configuration, return null if none exists</returns>
         LocalizationConfig GetConfig(VisualElement element);
     }
 } 

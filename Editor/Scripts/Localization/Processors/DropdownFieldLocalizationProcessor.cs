@@ -6,7 +6,7 @@ using com.MiAO.Unity.MCP.Editor.Common;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
 {
     /// <summary>
-    /// DropdownField控件本地化处理器
+    /// DropdownField control localization processor
     /// </summary>
     public class DropdownFieldLocalizationProcessor : ILocalizationProcessor
     {
@@ -21,21 +21,21 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var dropdown = (DropdownField)element;
             
-            // 处理标签文本
+            // Process label text
             if (!string.IsNullOrEmpty(config.LabelKey))
             {
                 var labelText = GetLocalizedText(config.LabelKey, config, context);
                 dropdown.label = labelText;
             }
             
-            // 处理工具提示
+            // Process tooltip
             if (!string.IsNullOrEmpty(config.TooltipKey))
             {
                 var tooltipText = GetLocalizedText(config.TooltipKey, config, context);
                 dropdown.tooltip = tooltipText;
             }
             
-            // 处理自定义属性
+            // Process custom properties
             ProcessCustomProperties(dropdown, config, context);
         }
         
@@ -43,7 +43,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var text = LocalizationManager.GetText(key);
             
-            // 处理格式化参数
+            // Process formatting parameters
             if (config.Parameters != null && config.Parameters.Count > 0)
             {
                 var args = config.Parameters.Select(p => p.GetValue(context)).ToArray();
@@ -96,21 +96,21 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         
         private void ApplyLocalizedChoices(DropdownField dropdown, string choicesConfig, LocalizationContext context)
         {
-            // 支持本地化选项列表
-            // 格式：choice1.key,choice2.key,choice3.key
+            // Support for localized choice list
+            // Format: choice1.key,choice2.key,choice3.key
             if (string.IsNullOrEmpty(choicesConfig)) return;
             
             var choiceKeys = choicesConfig.Split(',');
             var localizedChoices = choiceKeys.Select(key => LocalizationManager.GetText(key.Trim())).ToList();
             
-            // 保存当前选中的值
+            // Save current selected value
             var currentValue = dropdown.value;
             var currentIndex = dropdown.choices?.IndexOf(currentValue) ?? -1;
             
-            // 更新选项列表
+            // Update choice list
             dropdown.choices = localizedChoices;
             
-            // 尝试保持选中状态
+            // Try to maintain selection state
             if (currentIndex >= 0 && currentIndex < localizedChoices.Count)
             {
                 dropdown.value = localizedChoices[currentIndex];

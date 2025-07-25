@@ -5,7 +5,7 @@ using com.MiAO.Unity.MCP.Editor.Common;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
 {
     /// <summary>
-    /// Toggle控件本地化处理器
+    /// Toggle control localization processor
     /// </summary>
     public class ToggleLocalizationProcessor : ILocalizationProcessor
     {
@@ -20,14 +20,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var toggle = (Toggle)element;
             
-            // 处理标签文本
+            // Process label text
             if (!string.IsNullOrEmpty(config.LabelKey))
             {
                 var labelText = GetLocalizedText(config.LabelKey, config, context);
                 toggle.label = labelText;
             }
             
-            // 处理文本（显示在复选框旁边的文本）
+            // Process text (text displayed next to checkbox)
             if (!string.IsNullOrEmpty(config.TextKey))
             {
                 var textKey = config.GetConditionalTextKey(context);
@@ -35,14 +35,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
                 toggle.text = localizedText;
             }
             
-            // 处理工具提示
+            // Process tooltip
             if (!string.IsNullOrEmpty(config.TooltipKey))
             {
                 var tooltipText = GetLocalizedText(config.TooltipKey, config, context);
                 toggle.tooltip = tooltipText;
             }
             
-            // 处理自定义属性
+            // Process custom properties
             ProcessCustomProperties(toggle, config, context);
         }
         
@@ -50,14 +50,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var text = LocalizationManager.GetText(key);
             
-            // 处理格式化参数
+            // Process formatting parameters
             if (config.Parameters != null && config.Parameters.Count > 0)
             {
                 var args = config.Parameters.Select(p => p.GetValue(context)).ToArray();
                 text = string.Format(text, args);
             }
             
-            // 处理富文本
+            // Process rich text
             if (config.EnableRichText)
             {
                 text = ProcessRichText(text, context);
@@ -119,12 +119,12 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             if (string.IsNullOrEmpty(text)) return text;
             
-            // 基本富文本处理
+            // Basic rich text processing
             text = text.Replace("{b}", "<b>").Replace("{/b}", "</b>");
             text = text.Replace("{i}", "<i>").Replace("{/i}", "</i>");
             text = text.Replace("{u}", "<u>").Replace("{/u}", "</u>");
             
-            // 处理颜色标签
+            // Process color tags
             text = System.Text.RegularExpressions.Regex.Replace(text, 
                 @"\{color=([^}]+)\}([^{]*)\{/color\}", 
                 "<color=$1>$2</color>");

@@ -60,6 +60,7 @@
     "pinned_clients": "Pinned Clients (Drag to reorder)",
     "more_clients": "More Clients (Click to expand, drag items up to pin)",
     "drag_instruction": "Drag any client to the pinned area above",
+    "config_location": "Config Location",
     "drag_tooltip": "Drag to move between areas",
     "reconfigure": "Reconfigure",
     "notification_pinned": "Pinned to top area",
@@ -248,6 +249,7 @@
     "disconnected": "Disconnected",
     "online": "Online",
     "offline": "Offline",
-    "not_configured": "Not configured"
+    "not_configured": "Not configured",
+    "reset": "Reset"
   }
 } 
