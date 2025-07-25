@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UIElements;
@@ -54,6 +55,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         // Data
         private List<ExtensionPackageInfo> m_AvailableExtensions = new List<ExtensionPackageInfo>();
         private List<ExtensionPackageInfo> m_FilteredExtensions = new List<ExtensionPackageInfo>();
+        private List<WorkflowInfo> m_AvailableWorkflows = new List<WorkflowInfo>();
         
         // Properties
         public static McpHubWindow Instance => s_Instance;
@@ -207,6 +209,16 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             CreateCategoryButton("Installed", 1);
             CreateCategoryButton("Available", 2);
             CreateCategoryButton("Updates", 3);
+            
+            // Separator
+            var separator = new VisualElement();
+            separator.style.height = 1;
+            separator.style.backgroundColor = Color.gray;
+            separator.style.marginTop = 10;
+            separator.style.marginBottom = 10;
+            m_Sidebar.Add(separator);
+            
+            CreateCategoryButton("Workflows", 4);
             
             // Separator
             // var separator = new VisualElement();
@@ -504,6 +516,16 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             CreateCategoryButton("Available", 2);
             CreateCategoryButton("Updates", 3);
             
+            // Separator
+            var separator = new VisualElement();
+            separator.style.height = 1;
+            separator.style.backgroundColor = Color.gray;
+            separator.style.marginTop = 10;
+            separator.style.marginBottom = 10;
+            m_Sidebar.Add(separator);
+            
+            CreateCategoryButton("Workflows", 4);
+            
             // var separator = new VisualElement();
             // separator.style.height = 1;
             // separator.style.backgroundColor = Color.gray;
@@ -529,6 +551,9 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             {
                 Debug.Log($"{Consts.Log.Tag} Extension: {ext.DisplayName} - Installed: {ext.IsInstalled} - Category: {ext.ExtensionCategory}");
             }
+            
+            // Load workflow data
+            LoadWorkflowData();
         }
 
         /// <summary>
@@ -578,6 +603,24 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             }
 
             query = query.ToLowerInvariant();
+            
+            // If we're showing workflows, filter workflows instead
+            if (SelectedTabIndex == 4)
+            {
+                var filteredWorkflows = m_AvailableWorkflows.Where(wf => 
+                    wf.DisplayName.ToLowerInvariant().Contains(query) ||
+                    wf.DisplayDescription.ToLowerInvariant().Contains(query) ||
+                    wf.Author.ToLowerInvariant().Contains(query) ||
+                    wf.Id.ToLowerInvariant().Contains(query) ||
+                    wf.Category.ToLowerInvariant().Contains(query) ||
+                    wf.Tags.Any(tag => tag.ToLowerInvariant().Contains(query))
+                ).ToList();
+                
+                ShowWorkflows(filteredWorkflows);
+                return;
+            }
+            
+            // Filter extensions
             var searchFiltered = m_FilteredExtensions.Where(ext => 
                 ext.DisplayName.ToLowerInvariant().Contains(query) ||
                 ext.Description.ToLowerInvariant().Contains(query) ||
@@ -611,6 +654,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 case 3: // Updates
                     m_FilteredExtensions.AddRange(m_AvailableExtensions.Where(ext => ext.HasUpdate));
                     break;
+                case 4: // Workflows
+                    // For workflows, we'll show them in a different way
+                    ShowWorkflows();
+                    return;
             }
             
             // Apply search filter if search field has content
@@ -627,6 +674,158 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             }
             
             UpdateStatus($"Showing {m_FilteredExtensions.Count} extensions");
+        }
+
+        /// <summary>
+        /// Shows workflows in the main content area
+        /// </summary>
+        private void ShowWorkflows(List<WorkflowInfo> workflows = null)
+        {
+            // Clear the main content and show workflows
+            m_MainContent.Clear();
+            
+            var workflowContainer = new VisualElement();
+            workflowContainer.style.flexGrow = 1;
+            workflowContainer.style.paddingTop = 10;
+            workflowContainer.style.paddingLeft = 10;
+            workflowContainer.style.paddingRight = 10;
+            
+            var title = new Label("Available Workflows");
+            title.style.fontSize = 18;
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            title.style.marginBottom = 20;
+            workflowContainer.Add(title);
+            
+            var workflowsToShow = workflows ?? m_AvailableWorkflows;
+            
+            if (workflowsToShow.Count == 0)
+            {
+                var noWorkflowsLabel = new Label("No workflow configurations found.");
+                noWorkflowsLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
+                workflowContainer.Add(noWorkflowsLabel);
+            }
+            else
+            {
+                foreach (var workflow in workflowsToShow)
+                {
+                    var workflowItem = CreateWorkflowItem(workflow);
+                    workflowContainer.Add(workflowItem);
+                }
+            }
+            
+            m_MainContent.Add(workflowContainer);
+            UpdateStatus($"Showing {workflowsToShow.Count} workflows");
+        }
+
+        /// <summary>
+        /// Creates a UI item for a workflow
+        /// </summary>
+        private VisualElement CreateWorkflowItem(WorkflowInfo workflow)
+        {
+            var container = new VisualElement();
+            container.style.flexDirection = FlexDirection.Row;
+            container.style.paddingTop = 10;
+            container.style.paddingBottom = 10;
+            container.style.paddingLeft = 10;
+            container.style.paddingRight = 10;
+            container.style.marginBottom = 10;
+            container.style.backgroundColor = new Color(0.25f, 0.25f, 0.25f);
+            container.style.borderTopLeftRadius = 5;
+            container.style.borderTopRightRadius = 5;
+            container.style.borderBottomLeftRadius = 5;
+            container.style.borderBottomRightRadius = 5;
+            
+            // Content area
+            var content = new VisualElement();
+            content.style.flexGrow = 1;
+            content.style.marginRight = 10;
+            
+            var title = new Label(workflow.DisplayName);
+            title.style.fontSize = 16;
+            title.style.unityFontStyleAndWeight = FontStyle.Bold;
+            title.style.marginBottom = 5;
+            
+            var description = new Label(workflow.DisplayDescription);
+            description.style.fontSize = 12;
+            description.style.color = new Color(0.8f, 0.8f, 0.8f);
+            description.style.whiteSpace = WhiteSpace.Normal;
+            description.style.marginBottom = 5;
+            
+            var details = new Label($"Version: {workflow.Version} | Author: {workflow.Author} | Category: {workflow.Category}");
+            details.style.fontSize = 10;
+            details.style.color = new Color(0.6f, 0.6f, 0.6f);
+            
+            var tags = new Label($"Tags: {string.Join(", ", workflow.Tags)}");
+            tags.style.fontSize = 10;
+            tags.style.color = new Color(0.6f, 0.6f, 0.6f);
+            tags.style.marginTop = 2;
+            
+            content.Add(title);
+            content.Add(description);
+            content.Add(details);
+            content.Add(tags);
+            
+            // Edit button
+            var editButton = new Button(() => EditWorkflow(workflow))
+            {
+                text = "Edit"
+            };
+            editButton.style.minWidth = 80;
+            editButton.style.height = 30;
+            editButton.style.alignSelf = Align.FlexEnd;
+            
+            container.Add(content);
+            container.Add(editButton);
+            
+            return container;
+        }
+
+        /// <summary>
+        /// Opens workflow file for editing
+        /// </summary>
+        private void EditWorkflow(WorkflowInfo workflow)
+        {
+            try
+            {
+                var workflowPath = Path.Combine(Application.dataPath, "..", "Packages", "Unity-MCP", "Editor", "Scripts", "Server", "Config", "WorkflowDefinitions", workflow.FileName);
+                
+                if (File.Exists(workflowPath))
+                {
+                    // Open the file in the default text editor
+                    UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(workflowPath, 1);
+                    UpdateStatus($"Opened {workflow.FileName} for editing");
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("File Not Found", 
+                        $"Could not find workflow file: {workflow.FileName}", 
+                        "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                EditorUtility.DisplayDialog("Error", 
+                    $"Failed to open workflow file: {ex.Message}", 
+                    "OK");
+                Debug.LogError($"{Consts.Log.Tag} Failed to open workflow file: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Shows detailed information about a workflow
+        /// </summary>
+        private void ShowWorkflowDetails(WorkflowInfo workflow)
+        {
+            var message = $"Workflow Details:\n\n" +
+                         $"Name: {workflow.DisplayName}\n" +
+                         $"Description: {workflow.DisplayDescription}\n" +
+                         $"Version: {workflow.Version}\n" +
+                         $"Author: {workflow.Author}\n" +
+                         $"Category: {workflow.Category}\n" +
+                         $"File: {workflow.FileName}\n" +
+                         $"Tags: {string.Join(", ", workflow.Tags)}";
+            
+            EditorUtility.DisplayDialog("Workflow Details", message, "OK");
         }
 
         /// <summary>
@@ -918,6 +1117,158 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             
             Debug.Log($"{Consts.Log.Tag} {message}");
         }
+
+        /// <summary>
+        /// Loads workflow information from JSON files
+        /// </summary>
+        private void LoadWorkflowData()
+        {
+            m_AvailableWorkflows.Clear();
+            
+            try
+            {
+                var workflowPath = Path.Combine(Application.dataPath, "..", "Packages", "Unity-MCP", "Editor", "Scripts", "Server", "Config", "WorkflowDefinitions");
+                
+                if (Directory.Exists(workflowPath))
+                {
+                    var jsonFiles = Directory.GetFiles(workflowPath, "*.json");
+                    
+                    foreach (var filePath in jsonFiles)
+                    {
+                        try
+                        {
+                            var jsonContent = File.ReadAllText(filePath);
+                            var workflowInfo = ParseWorkflowInfo(jsonContent, Path.GetFileName(filePath));
+                            if (workflowInfo != null)
+                            {
+                                m_AvailableWorkflows.Add(workflowInfo);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"{Consts.Log.Tag} Failed to parse workflow file {Path.GetFileName(filePath)}: {ex.Message}");
+                        }
+                    }
+                }
+                
+                Debug.Log($"{Consts.Log.Tag} Loaded {m_AvailableWorkflows.Count} workflows");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{Consts.Log.Tag} Error loading workflow data: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Parses workflow information from JSON content
+        /// </summary>
+        private WorkflowInfo ParseWorkflowInfo(string jsonContent, string fileName)
+        {
+            try
+            {
+                // Simple JSON parsing for workflow info
+                var lines = jsonContent.Split('\n');
+                var workflowInfo = new WorkflowInfo
+                {
+                    FileName = fileName,
+                    Id = ExtractJsonValue(jsonContent, "id"),
+                    Name = ExtractJsonValue(jsonContent, "name"),
+                    Description = ExtractJsonValue(jsonContent, "description"),
+                    Version = ExtractJsonValue(jsonContent, "version"),
+                    Author = ExtractJsonValue(jsonContent, "author"),
+                    Category = ExtractJsonValue(jsonContent, "category", "metadata"),
+                    Tags = ExtractJsonArray(jsonContent, "tags", "metadata")
+                };
+                
+                return workflowInfo;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"{Consts.Log.Tag} Failed to parse workflow info: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Extracts a simple string value from JSON
+        /// </summary>
+        private string ExtractJsonValue(string json, string key, string parentKey = null)
+        {
+            try
+            {
+                var searchKey = parentKey != null ? $"\"{parentKey}\"" : $"\"{key}\"";
+                var index = json.IndexOf(searchKey);
+                if (index == -1) return "";
+                
+                var startIndex = json.IndexOf("\"", index + searchKey.Length) + 1;
+                var endIndex = json.IndexOf("\"", startIndex);
+                if (startIndex > 0 && endIndex > startIndex)
+                {
+                    return json.Substring(startIndex, endIndex - startIndex);
+                }
+                
+                return "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Extracts an array of strings from JSON
+        /// </summary>
+        private List<string> ExtractJsonArray(string json, string key, string parentKey = null)
+        {
+            var result = new List<string>();
+            try
+            {
+                var searchKey = parentKey != null ? $"\"{parentKey}\"" : $"\"{key}\"";
+                var index = json.IndexOf(searchKey);
+                if (index == -1) return result;
+                
+                var startIndex = json.IndexOf("[", index);
+                var endIndex = json.IndexOf("]", startIndex);
+                if (startIndex > 0 && endIndex > startIndex)
+                {
+                    var arrayContent = json.Substring(startIndex + 1, endIndex - startIndex - 1);
+                    var items = arrayContent.Split(',');
+                    foreach (var item in items)
+                    {
+                        var cleanItem = item.Trim().Trim('"');
+                        if (!string.IsNullOrEmpty(cleanItem))
+                        {
+                            result.Add(cleanItem);
+                        }
+                    }
+                }
+                
+                return result;
+            }
+            catch
+            {
+                return result;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Information about a workflow configuration
+    /// </summary>
+    [System.Serializable]
+    public class WorkflowInfo
+    {
+        public string FileName { get; set; } = "";
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Version { get; set; } = "";
+        public string Author { get; set; } = "";
+        public string Category { get; set; } = "";
+        public List<string> Tags { get; set; } = new List<string>();
+        
+        public string DisplayName => !string.IsNullOrEmpty(Name) ? Name : Id;
+        public string DisplayDescription => !string.IsNullOrEmpty(Description) ? Description : "No description available";
     }
 }
 #endif

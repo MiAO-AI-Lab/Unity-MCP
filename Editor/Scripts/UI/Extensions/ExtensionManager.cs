@@ -163,30 +163,30 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                 }
                 else
                 {
-                    // Use Unity Package Manager to add the package
-                    var addRequest = Client.Add(registryEntry.PackageUrl);
-                    
-                    while (!addRequest.IsCompleted)
-                    {
-                        await Task.Delay(100);
-                    }
+                // Use Unity Package Manager to add the package
+                var addRequest = Client.Add(registryEntry.PackageUrl);
+                
+                while (!addRequest.IsCompleted)
+                {
+                    await Task.Delay(100);
+                }
 
-                    if (addRequest.Status == StatusCode.Success)
-                    {
-                        Debug.Log($"{Consts.Log.Tag} Successfully installed {extension.DisplayName}");
-                        
-                        // Update extension status
-                        extension.UpdateInstallationStatus(true, addRequest.Result.version);
-                        
-                        // Trigger events
-                        OnExtensionInstalled?.Invoke(extension, true);
-                        OnExtensionsUpdated?.Invoke();
-                        
-                        return true;
-                    }
-                    else
-                    {
-                        throw new Exception($"Package Manager error: {addRequest.Error?.message}");
+                if (addRequest.Status == StatusCode.Success)
+                {
+                    Debug.Log($"{Consts.Log.Tag} Successfully installed {extension.DisplayName}");
+                    
+                    // Update extension status
+                    extension.UpdateInstallationStatus(true, addRequest.Result.version);
+                    
+                    // Trigger events
+                    OnExtensionInstalled?.Invoke(extension, true);
+                    OnExtensionsUpdated?.Invoke();
+                    
+                    return true;
+                }
+                else
+                {
+                    throw new Exception($"Package Manager error: {addRequest.Error?.message}");
                     }
                 }
             }
@@ -307,29 +307,29 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                 }
                 else
                 {
-                    // Use Unity Package Manager to remove the package
-                    var removeRequest = Client.Remove(extension.Id);
-                    
-                    while (!removeRequest.IsCompleted)
-                    {
-                        await Task.Delay(100);
-                    }
+                // Use Unity Package Manager to remove the package
+                var removeRequest = Client.Remove(extension.Id);
+                
+                while (!removeRequest.IsCompleted)
+                {
+                    await Task.Delay(100);
+                }
 
-                    if (removeRequest.Status == StatusCode.Success)
-                    {
-                        Debug.Log($"{Consts.Log.Tag} Successfully uninstalled {extension.DisplayName}");
-                        
-                        // Update extension status
-                        extension.UpdateInstallationStatus(false);
-                        
-                        // Trigger events
-                        OnExtensionsUpdated?.Invoke();
-                        
-                        return true;
-                    }
-                    else
-                    {
-                        throw new Exception($"Package Manager error: {removeRequest.Error?.message}");
+                if (removeRequest.Status == StatusCode.Success)
+                {
+                    Debug.Log($"{Consts.Log.Tag} Successfully uninstalled {extension.DisplayName}");
+                    
+                    // Update extension status
+                    extension.UpdateInstallationStatus(false);
+                    
+                    // Trigger events
+                    OnExtensionsUpdated?.Invoke();
+                    
+                    return true;
+                }
+                else
+                {
+                    throw new Exception($"Package Manager error: {removeRequest.Error?.message}");
                     }
                 }
             }
