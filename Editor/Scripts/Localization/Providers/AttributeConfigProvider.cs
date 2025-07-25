@@ -6,8 +6,8 @@ using UnityEngine.UIElements;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
 {
     /// <summary>
-    /// 基于UXML属性的本地化配置提供者
-    /// 支持通过CSS类名声明本地化需求
+    /// UXML attribute-based localization configuration provider
+    /// Supports declaring localization requirements through CSS class names
     /// </summary>
     public class AttributeConfigProvider : ILocalizationConfigProvider
     {
@@ -24,7 +24,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
             var config = new LocalizationConfig();
             bool hasConfig = false;
             
-            // 从CSS类名中提取配置
+            // Extract configuration from CSS class names
             foreach (var className in element.GetClasses())
             {
                 if (TryParseLocalizationClass(className, out var propertyType, out var key))
@@ -34,7 +34,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
                 }
             }
             
-            // 检查自定义数据属性（如果Unity支持）
+            // Check custom data attributes (if Unity supports it)
             ExtractCustomDataAttributes(element, config, ref hasConfig);
             
             return hasConfig ? config : null;
@@ -80,7 +80,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
                     config.StyleKey = key;
                     break;
                 default:
-                    // 自定义属性
+                    // Custom properties
                     config.CustomProperties[propertyType] = key;
                     break;
             }
@@ -88,13 +88,13 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         
         private void ExtractCustomDataAttributes(VisualElement element, LocalizationConfig config, ref bool hasConfig)
         {
-            // 这里可以扩展支持自定义数据属性
-            // 由于Unity UI Toolkit的限制，暂时使用CSS类名方式
+            // This can be extended to support custom data attributes
+            // Due to Unity UI Toolkit limitations, we currently use CSS class names
             
-            // 检查是否有条件本地化的类名
+            // Check for conditional localization class names
             ExtractConditionalConfig(element, config, ref hasConfig);
             
-            // 检查是否有参数化配置的类名
+            // Check for parameterized configuration class names
             ExtractParameterConfig(element, config, ref hasConfig);
         }
         
@@ -102,7 +102,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         {
             foreach (var className in element.GetClasses())
             {
-                // 格式：mcp-condition-property-value-textkey
+                // Format: mcp-condition-property-value-textkey
                 if (className.StartsWith("mcp-condition-"))
                 {
                     var parts = className.Substring("mcp-condition-".Length).Split('-');
@@ -127,7 +127,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         {
             foreach (var className in element.GetClasses())
             {
-                // 格式：mcp-param-paramName-source
+                // Format: mcp-param-paramName-source
                 if (className.StartsWith("mcp-param-"))
                 {
                     var parts = className.Substring("mcp-param-".Length).Split('-', 2);
@@ -148,16 +148,16 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
     }
     
     /// <summary>
-    /// 属性配置提供者的扩展方法
+    /// Extension methods for attribute configuration provider
     /// </summary>
     public static class AttributeConfigProviderExtensions
     {
         /// <summary>
-        /// 为UI元素添加文本本地化
+        /// Add text localization for UI element
         /// </summary>
-        /// <param name="element">UI元素</param>
-        /// <param name="textKey">本地化键</param>
-        /// <returns>UI元素自身（支持链式调用）</returns>
+        /// <param name="element">UI element</param>
+        /// <param name="textKey">Localization key</param>
+        /// <returns>UI element itself (supports method chaining)</returns>
         public static T WithLocalizedText<T>(this T element, string textKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-text-{textKey.Replace('.', '-')}");
@@ -165,11 +165,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 为UI元素添加工具提示本地化
+        /// Add tooltip localization for UI element
         /// </summary>
-        /// <param name="element">UI元素</param>
-        /// <param name="tooltipKey">工具提示本地化键</param>
-        /// <returns>UI元素自身（支持链式调用）</returns>
+        /// <param name="element">UI element</param>
+        /// <param name="tooltipKey">Tooltip localization key</param>
+        /// <returns>UI element itself (supports method chaining)</returns>
         public static T WithLocalizedTooltip<T>(this T element, string tooltipKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-tooltip-{tooltipKey.Replace('.', '-')}");
@@ -177,11 +177,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 为UI元素添加标签本地化
+        /// Add label localization for UI element
         /// </summary>
-        /// <param name="element">UI元素</param>
-        /// <param name="labelKey">标签本地化键</param>
-        /// <returns>UI元素自身（支持链式调用）</returns>
+        /// <param name="element">UI element</param>
+        /// <param name="labelKey">Label localization key</param>
+        /// <returns>UI element itself (supports method chaining)</returns>
         public static T WithLocalizedLabel<T>(this T element, string labelKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-label-{labelKey.Replace('.', '-')}");
@@ -189,11 +189,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 为UI元素添加占位符本地化
+        /// Add placeholder localization for UI element
         /// </summary>
-        /// <param name="element">UI元素</param>
-        /// <param name="placeholderKey">占位符本地化键</param>
-        /// <returns>UI元素自身（支持链式调用）</returns>
+        /// <param name="element">UI element</param>
+        /// <param name="placeholderKey">Placeholder localization key</param>
+        /// <returns>UI element itself (supports method chaining)</returns>
         public static T WithLocalizedPlaceholder<T>(this T element, string placeholderKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-placeholder-{placeholderKey.Replace('.', '-')}");
@@ -201,13 +201,13 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 为UI元素添加条件本地化
+        /// Add conditional localization for UI element
         /// </summary>
-        /// <param name="element">UI元素</param>
-        /// <param name="property">条件属性</param>
-        /// <param name="value">条件值</param>
-        /// <param name="textKey">条件满足时的文本键</param>
-        /// <returns>UI元素自身（支持链式调用）</returns>
+        /// <param name="element">UI element</param>
+        /// <param name="property">Condition property</param>
+        /// <param name="value">Condition value</param>
+        /// <param name="textKey">Text key when condition is met</param>
+        /// <returns>UI element itself (supports method chaining)</returns>
         public static T WithConditionalText<T>(this T element, string property, string value, string textKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-condition-{property}-{value}-{textKey.Replace('.', '-')}");

@@ -5,8 +5,8 @@ using UnityEngine.UIElements;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
 {
     /// <summary>
-    /// 基于代码的本地化配置提供者
-    /// 支持程序化的本地化配置管理
+    /// Code-based localization configuration provider
+    /// Supports programmatic localization configuration management
     /// </summary>
     public class CodeConfigProvider : ILocalizationConfigProvider
     {
@@ -18,30 +18,30 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         {
             if (element == null) return null;
             
-            // 优先级1: 基于元素名称的配置
+            // Priority 1: Name-based configuration
             if (!string.IsNullOrEmpty(element.name) && _nameBasedConfigs.TryGetValue(element.name, out var nameConfig))
             {
                 return nameConfig;
             }
             
-            // 优先级2: 基于元素类型的配置
+            // Priority 2: Type-based configuration
             var elementType = element.GetType();
             if (_typeBasedConfigs.TryGetValue(elementType, out var typeConfigs))
             {
-                // 检查类型+名称的组合配置
+                // Check type+name combination configuration
                 if (!string.IsNullOrEmpty(element.name) && typeConfigs.TryGetValue(element.name, out var typeNameConfig))
                 {
                     return typeNameConfig;
                 }
                 
-                // 检查类型的默认配置
+                // Check default configuration for type
                 if (typeConfigs.TryGetValue("*", out var defaultTypeConfig))
                 {
                     return defaultTypeConfig;
                 }
             }
             
-            // 优先级3: 动态配置提供者
+            // Priority 3: Dynamic configuration providers
             foreach (var provider in _dynamicConfigProviders)
             {
                 var config = provider(element);
@@ -57,35 +57,34 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         #region Static Configuration Management
         
         /// <summary>
-        /// 为指定名称的元素注册本地化配置
+        /// Register localization configuration for element with specified name
         /// </summary>
-        /// <param name="elementName">元素名称</param>
-        /// <param name="config">本地化配置</param>
+        /// <param name="elementName">Element name</param>
+        /// <param name="config">Localization configuration</param>
         public static void RegisterConfig(string elementName, LocalizationConfig config)
         {
             if (string.IsNullOrEmpty(elementName) || config == null)
                 return;
                 
             _nameBasedConfigs[elementName] = config;
-            UnityEngine.Debug.Log($"[CodeConfigProvider] Registered config for element: {elementName}");
         }
         
         /// <summary>
-        /// 为指定名称的元素注册简单文本本地化
+        /// Register simple text localization for element with specified name
         /// </summary>
-        /// <param name="elementName">元素名称</param>
-        /// <param name="textKey">文本本地化键</param>
+        /// <param name="elementName">Element name</param>
+        /// <param name="textKey">Text localization key</param>
         public static void RegisterTextConfig(string elementName, string textKey)
         {
             RegisterConfig(elementName, new LocalizationConfig { TextKey = textKey });
         }
         
         /// <summary>
-        /// 为指定类型的元素注册本地化配置
+        /// Register localization configuration for element of specified type
         /// </summary>
-        /// <param name="elementType">元素类型</param>
-        /// <param name="elementName">元素名称，使用"*"表示类型默认配置</param>
-        /// <param name="config">本地化配置</param>
+        /// <param name="elementType">Element type</param>
+        /// <param name="elementName">Element name, use "*" for default type configuration</param>
+        /// <param name="config">Localization configuration</param>
         public static void RegisterTypeConfig(Type elementType, string elementName, LocalizationConfig config)
         {
             if (elementType == null || config == null)
@@ -99,19 +98,19 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 为指定类型的元素注册默认本地化配置
+        /// Register default localization configuration for element of specified type
         /// </summary>
-        /// <typeparam name="T">元素类型</typeparam>
-        /// <param name="config">本地化配置</param>
+        /// <typeparam name="T">Element type</typeparam>
+        /// <param name="config">Localization configuration</param>
         public static void RegisterDefaultConfig<T>(LocalizationConfig config) where T : VisualElement
         {
             RegisterTypeConfig(typeof(T), "*", config);
         }
         
         /// <summary>
-        /// 注册动态配置提供者
+        /// Register dynamic configuration provider
         /// </summary>
-        /// <param name="provider">动态配置提供者函数</param>
+        /// <param name="provider">Dynamic configuration provider function</param>
         public static void RegisterDynamicProvider(Func<VisualElement, LocalizationConfig> provider)
         {
             if (provider == null) return;
@@ -121,21 +120,21 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 移除指定名称的元素配置
+        /// Remove configuration for element with specified name
         /// </summary>
-        /// <param name="elementName">元素名称</param>
-        /// <returns>是否成功移除</returns>
+        /// <param name="elementName">Element name</param>
+        /// <returns>Whether removal was successful</returns>
         public static bool UnregisterConfig(string elementName)
         {
             return !string.IsNullOrEmpty(elementName) && _nameBasedConfigs.Remove(elementName);
         }
         
         /// <summary>
-        /// 移除指定类型的元素配置
+        /// Remove configuration for element of specified type
         /// </summary>
-        /// <param name="elementType">元素类型</param>
-        /// <param name="elementName">元素名称</param>
-        /// <returns>是否成功移除</returns>
+        /// <param name="elementType">Element type</param>
+        /// <param name="elementName">Element name</param>
+        /// <returns>Whether removal was successful</returns>
         public static bool UnregisterTypeConfig(Type elementType, string elementName)
         {
             if (elementType == null) return false;
@@ -149,7 +148,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 清除所有配置
+        /// Clear all configurations
         /// </summary>
         public static void ClearAllConfigs()
         {
@@ -160,9 +159,9 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 获取配置统计信息
+        /// Get configuration statistics
         /// </summary>
-        /// <returns>配置统计</returns>
+        /// <returns>Configuration statistics</returns>
         public static ConfigStats GetStats()
         {
             var totalTypeConfigs = 0;
@@ -183,7 +182,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
     }
     
     /// <summary>
-    /// 配置统计信息
+    /// Configuration statistics information
     /// </summary>
     public class ConfigStats
     {
@@ -198,27 +197,27 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
     }
     
     /// <summary>
-    /// 代码配置提供者的扩展方法
+    /// Extension methods for code configuration provider
     /// </summary>
     public static class CodeConfigProviderExtensions
     {
         /// <summary>
-        /// 快速注册元素的文本本地化
+        /// Quickly register text localization for element
         /// </summary>
-        /// <param name="elementName">元素名称</param>
-        /// <param name="textKey">文本本地化键</param>
+        /// <param name="elementName">Element name</param>
+        /// <param name="textKey">Text localization key</param>
         public static void RegisterText(string elementName, string textKey)
         {
             CodeConfigProvider.RegisterTextConfig(elementName, textKey);
         }
         
         /// <summary>
-        /// 快速注册元素的完整本地化配置
+        /// Quickly register complete localization configuration for element
         /// </summary>
-        /// <param name="elementName">元素名称</param>
-        /// <param name="textKey">文本键</param>
-        /// <param name="tooltipKey">工具提示键</param>
-        /// <param name="labelKey">标签键</param>
+        /// <param name="elementName">Element name</param>
+        /// <param name="textKey">Text key</param>
+        /// <param name="tooltipKey">Tooltip key</param>
+        /// <param name="labelKey">Label key</param>
         public static void RegisterFullConfig(string elementName, string textKey = null, string tooltipKey = null, string labelKey = null)
         {
             var config = new LocalizationConfig
@@ -232,9 +231,9 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
         }
         
         /// <summary>
-        /// 批量注册配置
+        /// Register configurations in batch
         /// </summary>
-        /// <param name="configs">配置字典</param>
+        /// <param name="configs">Configuration dictionary</param>
         public static void RegisterBatch(Dictionary<string, string> configs)
         {
             foreach (var kvp in configs)

@@ -5,7 +5,7 @@ using com.MiAO.Unity.MCP.Editor.Common;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
 {
     /// <summary>
-    /// TextField控件本地化处理器
+    /// TextField control localization processor
     /// </summary>
     public class TextFieldLocalizationProcessor : ILocalizationProcessor
     {
@@ -20,36 +20,36 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var textField = (TextField)element;
             
-            // 处理标签文本
+            // Process label text
             if (!string.IsNullOrEmpty(config.LabelKey))
             {
                 var labelText = GetLocalizedText(config.LabelKey, config, context);
                 textField.label = labelText;
             }
             
-            // 处理占位符文本
+            // Process placeholder text
             if (!string.IsNullOrEmpty(config.PlaceholderKey))
             {
                 var placeholderText = GetLocalizedText(config.PlaceholderKey, config, context);
-                // 在Unity UI Toolkit中，TextField的占位符通过value设置或其他方式
-                // 由于不同版本可能有差异，我们先注释掉这部分
+                // In Unity UI Toolkit, TextField placeholder is set through value or other means
+                // Due to version differences, we comment out this part for now
                 // textField.placeholder = placeholderText;
                 
-                // 作为替代方案，我们可以在自定义属性中处理
+                // As an alternative, we can handle it in custom properties
                 if (config.CustomProperties.ContainsKey("placeholder"))
                 {
-                    // 可以在这里添加特定的占位符处理逻辑
+                    // Specific placeholder handling logic can be added here
                 }
             }
             
-            // 处理工具提示
+            // Process tooltip
             if (!string.IsNullOrEmpty(config.TooltipKey))
             {
                 var tooltipText = GetLocalizedText(config.TooltipKey, config, context);
                 textField.tooltip = tooltipText;
             }
             
-            // 处理自定义属性
+            // Process custom properties
             ProcessCustomProperties(textField, config, context);
         }
         
@@ -57,7 +57,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var text = LocalizationManager.GetText(key);
             
-            // 处理格式化参数
+            // Process formatting parameters
             if (config.Parameters != null && config.Parameters.Count > 0)
             {
                 var args = config.Parameters.Select(p => p.GetValue(context)).ToArray();

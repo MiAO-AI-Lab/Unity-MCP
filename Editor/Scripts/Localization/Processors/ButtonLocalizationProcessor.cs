@@ -5,7 +5,7 @@ using com.MiAO.Unity.MCP.Editor.Common;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
 {
     /// <summary>
-    /// Button控件本地化处理器
+    /// Button control localization processor
     /// </summary>
     public class ButtonLocalizationProcessor : ILocalizationProcessor
     {
@@ -20,7 +20,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var button = (Button)element;
             
-            // 处理按钮文本
+            // Process button text
             if (!string.IsNullOrEmpty(config.TextKey))
             {
                 var textKey = config.GetConditionalTextKey(context);
@@ -28,14 +28,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
                 button.text = localizedText;
             }
             
-            // 处理工具提示
+            // Process tooltip
             if (!string.IsNullOrEmpty(config.TooltipKey))
             {
                 var tooltipText = GetLocalizedText(config.TooltipKey, config, context);
                 button.tooltip = tooltipText;
             }
             
-            // 处理自定义属性
+            // Process custom properties
             ProcessCustomProperties(button, config, context);
         }
         
@@ -43,14 +43,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             var text = LocalizationManager.GetText(key);
             
-            // 处理格式化参数
+            // Process formatting parameters
             if (config.Parameters != null && config.Parameters.Count > 0)
             {
                 var args = config.Parameters.Select(p => p.GetValue(context)).ToArray();
                 text = string.Format(text, args);
             }
             
-            // 处理富文本
+            // Process rich text
             if (config.EnableRichText)
             {
                 text = ProcessRichText(text, context);
@@ -94,7 +94,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         
         private void ApplyStyle(Button button, string styleValue)
         {
-            // 可以根据需要扩展样式应用逻辑
+            // Style logic can be extended as needed
         }
         
         private void ApplyEnabledState(Button button, string enabledValue)
@@ -109,12 +109,12 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
         {
             if (string.IsNullOrEmpty(text)) return text;
             
-            // 基本富文本处理（与Label处理器相同）
+            // Basic rich text processing (same as Label processor)
             text = text.Replace("{b}", "<b>").Replace("{/b}", "</b>");
             text = text.Replace("{i}", "<i>").Replace("{/i}", "</i>");
             text = text.Replace("{u}", "<u>").Replace("{/u}", "</u>");
             
-            // 处理颜色标签
+            // Process color tags
             text = System.Text.RegularExpressions.Regex.Replace(text, 
                 @"\{color=([^}]+)\}([^{]*)\{/color\}", 
                 "<color=$1>$2</color>");

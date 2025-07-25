@@ -4,19 +4,19 @@ using UnityEngine.UIElements;
 namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
 {
     /// <summary>
-    /// VisualElement本地化扩展方法
-    /// 提供便捷的本地化API
+    /// VisualElement localization extension methods
+    /// Provides convenient localization APIs
     /// </summary>
     public static class VisualElementExtensions
     {
-        #region 立即本地化方法
+        #region Immediate Localization Methods
         
         /// <summary>
-        /// 立即本地化当前元素
+        /// Immediately localize the current element
         /// </summary>
-        /// <param name="element">要本地化的元素</param>
-        /// <param name="context">本地化上下文（可选）</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Element to localize</param>
+        /// <param name="context">Localization context (optional)</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T Localize<T>(this T element, LocalizationContext context = null) where T : VisualElement
         {
             UILocalizationSystem.LocalizeElement(element, context);
@@ -24,11 +24,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 立即本地化当前元素及其所有子元素
+        /// Immediately localize the current element and all its child elements
         /// </summary>
-        /// <param name="element">要本地化的根元素</param>
-        /// <param name="context">本地化上下文（可选）</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Root element to localize</param>
+        /// <param name="context">Localization context (optional)</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T LocalizeTree<T>(this T element, LocalizationContext context = null) where T : VisualElement
         {
             UILocalizationSystem.LocalizeElementTree(element, context);
@@ -37,14 +37,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         
         #endregion
         
-        #region 声明式本地化方法
+        #region Declarative Localization Methods
         
         /// <summary>
-        /// 为元素设置文本本地化键
+        /// Set text localization key for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="textKey">文本本地化键</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="textKey">Text localization key</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T SetTextKey<T>(this T element, string textKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-text-{textKey.Replace('.', '-')}");
@@ -52,11 +52,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 为元素设置工具提示本地化键
+        /// Set tooltip localization key for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="tooltipKey">工具提示本地化键</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="tooltipKey">Tooltip localization key</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T SetTooltipKey<T>(this T element, string tooltipKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-tooltip-{tooltipKey.Replace('.', '-')}");
@@ -64,11 +64,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 为元素设置标签本地化键
+        /// Set label localization key for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="labelKey">标签本地化键</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="labelKey">Label localization key</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T SetLabelKey<T>(this T element, string labelKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-label-{labelKey.Replace('.', '-')}");
@@ -76,11 +76,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 为元素设置占位符本地化键
+        /// Set placeholder localization key for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="placeholderKey">占位符本地化键</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="placeholderKey">Placeholder localization key</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T SetPlaceholderKey<T>(this T element, string placeholderKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-localize-placeholder-{placeholderKey.Replace('.', '-')}");
@@ -88,14 +88,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 为元素设置完整的本地化配置
+        /// Set complete localization configuration for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="textKey">文本键</param>
-        /// <param name="tooltipKey">工具提示键</param>
-        /// <param name="labelKey">标签键</param>
-        /// <param name="placeholderKey">占位符键</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="textKey">Text key</param>
+        /// <param name="tooltipKey">Tooltip key</param>
+        /// <param name="labelKey">Label key</param>
+        /// <param name="placeholderKey">Placeholder key</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T SetLocalizationKeys<T>(this T element, 
             string textKey = null, 
             string tooltipKey = null, 
@@ -111,16 +111,16 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         
         #endregion
         
-        #region 条件本地化方法
+        #region Conditional Localization Methods
         
         /// <summary>
-        /// 为元素添加条件本地化
+        /// Add conditional localization for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="property">条件属性名</param>
-        /// <param name="value">条件值</param>
-        /// <param name="textKey">条件满足时的文本键</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="property">Condition property name</param>
+        /// <param name="value">Condition value</param>
+        /// <param name="textKey">Text key when condition is met</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T AddConditionalText<T>(this T element, string property, string value, string textKey) where T : VisualElement
         {
             element.AddToClassList($"mcp-condition-{property}-{value}-{textKey.Replace('.', '-')}");
@@ -128,12 +128,12 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 为元素添加参数化本地化
+        /// Add parameterized localization for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="paramName">参数名</param>
-        /// <param name="source">参数来源</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="paramName">Parameter name</param>
+        /// <param name="source">Parameter source</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T AddParameter<T>(this T element, string paramName, string source) where T : VisualElement
         {
             element.AddToClassList($"mcp-param-{paramName}-{source.Replace('.', '-')}");
@@ -142,14 +142,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         
         #endregion
         
-        #region 程序化配置方法
+        #region Programmatic Configuration Methods
         
         /// <summary>
-        /// 为元素注册程序化本地化配置
+        /// Register programmatic localization configuration for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="config">本地化配置</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="config">Localization configuration</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T RegisterConfig<T>(this T element, LocalizationConfig config) where T : VisualElement
         {
             if (!string.IsNullOrEmpty(element.name))
@@ -164,11 +164,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 为元素注册简单文本本地化
+        /// Register simple text localization for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="textKey">文本本地化键</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="textKey">Text localization key</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T RegisterText<T>(this T element, string textKey) where T : VisualElement
         {
             if (!string.IsNullOrEmpty(element.name))
@@ -184,16 +184,16 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         
         #endregion
         
-        #region 查询和检测方法
+        #region Query and Detection Methods
         
         /// <summary>
-        /// 检查元素是否有本地化配置
+        /// Check if element has localization configuration
         /// </summary>
-        /// <param name="element">要检查的元素</param>
-        /// <returns>如果有本地化配置返回true</returns>
+        /// <param name="element">Element to check</param>
+        /// <returns>True if element has localization configuration</returns>
         public static bool HasLocalizationConfig(this VisualElement element)
         {
-            // 检查CSS类名
+            // Check CSS class names
             foreach (var className in element.GetClasses())
             {
                 if (className.StartsWith("mcp-localize-") || className.StartsWith("mcp-condition-") || className.StartsWith("mcp-param-"))
@@ -202,21 +202,21 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
                 }
             }
             
-            // 检查程序化配置
+            // Check programmatic configuration
             if (!string.IsNullOrEmpty(element.name))
             {
-                // 简单检查：这里可以扩展为调用ConfigProvider
-                return true; // 暂时返回true，实际实现需要查询配置提供者
+                // Simple check: this can be extended to call ConfigProvider
+                return true; // Temporarily return true, actual implementation needs to query configuration providers
             }
             
             return false;
         }
         
         /// <summary>
-        /// 获取元素的所有本地化键
+        /// Get all localization keys for element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <returns>本地化键集合</returns>
+        /// <param name="element">Target element</param>
+        /// <returns>Collection of localization keys</returns>
         public static System.Collections.Generic.List<string> GetLocalizationKeys(this VisualElement element)
         {
             var keys = new System.Collections.Generic.List<string>();
@@ -238,14 +238,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         
         #endregion
         
-        #region 性能优化方法
+        #region Performance Optimization Methods
         
         /// <summary>
-        /// 延迟本地化元素（在下一帧执行）
+        /// Localize element with delay (execute in next frame)
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="context">本地化上下文</param>
-        /// <returns>元素自身（支持链式调用）</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="context">Localization context</param>
+        /// <returns>Element itself (supports method chaining)</returns>
         public static T LocalizeDelayed<T>(this T element, LocalizationContext context = null) where T : VisualElement
         {
             element.schedule.Execute(() => UILocalizationSystem.LocalizeElement(element, context));
@@ -253,10 +253,10 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         }
         
         /// <summary>
-        /// 批量本地化多个元素
+        /// Batch localize multiple elements
         /// </summary>
-        /// <param name="elements">要本地化的元素集合</param>
-        /// <param name="context">本地化上下文</param>
+        /// <param name="elements">Collection of elements to localize</param>
+        /// <param name="context">Localization context</param>
         public static void LocalizeBatch(this System.Collections.Generic.IEnumerable<VisualElement> elements, LocalizationContext context = null)
         {
             context ??= new LocalizationContext
