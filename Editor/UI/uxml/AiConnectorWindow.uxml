@@ -40,39 +40,216 @@
             <ui:VisualElement name="divider" class="Divider" style="flex-grow: 1;" />
             <ui:Label text="Configure MCP Client" class="Header" />
             <ui:Label text="At least one client should be configured.&#10;Some clients need restart after configuration." class="section-desc" />
-            <ui:VisualElement name="ConfigureClient-VS-Code" class="Frame-Group" style="flex-grow: 1;">
-                <ui:Label text="VS Code" class="section-title" />
-                <ui:VisualElement class="row">
-                    <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" />
-                    <ui:Label text="Not configured" name="configureStatusText" style="flex-grow: 1;" />
-                    <ui:Button name="btnConfigure" text="Configure" class="Button-Primary" />
+            
+            <!-- Pinned configuration area -->
+            <ui:VisualElement name="PinnedClientsArea" style="margin-bottom: 10px;">
+                <ui:Label text="Pinned Clients" class="section-desc" style="margin-bottom: 5px; font-style: italic; color: rgba(200, 200, 200, 0.8);" />
+                
+                <!-- Cursor (pinned) -->
+                <ui:VisualElement name="ClientItem-Cursor" class="Frame-Group draggable-client-item" style="flex-grow: 1; margin-bottom: 5px; border-width: 1px; border-color: rgba(128, 128, 128, 0.3);">
+                    <ui:VisualElement class="client-header" style="flex-direction: row; align-items: center;">
+                        <ui:VisualElement class="drag-handle" style="width: 12px; height: 16px; margin-right: 8px; flex-direction: column; align-content: center; justify-content: center;" tooltip="Drag to move between areas">
+                            <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
+                            <ui:Label text="Cursor" class="section-title" style="margin: 0; margin-right: 8px;" />
+                            <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
+                            <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" style="margin-right: 8px;" />
+                            <ui:Button name="btnConfigure" text="Configure" class="Button-Primary configure-button" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                
+                <!-- Claude Desktop (pinned) -->
+                <ui:VisualElement name="ClientItem-Claude" class="Frame-Group draggable-client-item" style="flex-grow: 1; margin-bottom: 5px; border-width: 1px; border-color: rgba(128, 128, 128, 0.3);">
+                    <ui:VisualElement class="client-header" style="flex-direction: row; align-items: center;">
+                        <ui:VisualElement class="drag-handle" style="width: 12px; height: 16px; margin-right: 8px; flex-direction: column; align-content: center; justify-content: center;" tooltip="Drag to move between areas">
+                            <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
+                            <ui:Label text="Claude Desktop" class="section-title" style="margin: 0; margin-right: 8px;" />
+                            <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
+                            <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" style="margin-right: 8px;" />
+                            <ui:Button name="btnConfigure" text="Configure" class="Button-Primary configure-button" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement name="ConfigureClient-Cursor" class="Frame-Group" style="flex-grow: 1;">
-                <ui:Label text="Cursor" class="section-title" />
-                <ui:VisualElement class="row">
-                    <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" />
-                    <ui:Label text="Not configured" name="configureStatusText" style="flex-grow: 1;" />
-                    <ui:Button name="btnConfigure" text="Configure" class="Button-Primary" />
+            
+            <!-- More clients collapsible area -->
+            <ui:Foldout text="More Clients" name="MoreClientsFoldout" value="false" style="margin-bottom: 10px;">
+                <ui:VisualElement name="MoreClientsArea" style="background-color: rgba(50, 50, 50, 0.2); padding: 5px; border-radius: 5px; border-width: 1px; border-color: rgba(100, 100, 100, 0.3);">
+                                         <ui:Label text="Drag any client to the pinned area above" class="section-desc" style="margin-bottom: 8px; font-style: italic; color: rgba(180, 180, 180, 0.9);" />
+                    
+                    <!-- VS Code -->
+                    <ui:VisualElement name="ClientItem-VSCode" class="Frame-Group draggable-client-item" style="flex-grow: 1; margin-bottom: 5px; border-width: 1px; border-color: rgba(128, 128, 128, 0.3);">
+                        <ui:VisualElement class="client-header" style="flex-direction: row; align-items: center;">
+                            <ui:VisualElement class="drag-handle" style="width: 12px; height: 16px; margin-right: 8px; flex-direction: column; align-content: center; justify-content: center;" tooltip="Drag to move between areas">
+                                <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                    <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                    <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                </ui:VisualElement>
+                                <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                    <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                    <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                </ui:VisualElement>
+                                <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                    <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                    <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
+                                <ui:Label text="VS Code" class="section-title" style="margin: 0; margin-right: 8px;" />
+                                <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
+                                <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" style="margin-right: 8px;" />
+                                <ui:Button name="btnConfigure" text="Configure" class="Button-Primary configure-button" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    
+                                         <!-- Visual Studio -->
+                     <ui:VisualElement name="ClientItem-VisualStudio" class="Frame-Group draggable-client-item" style="flex-grow: 1; margin-bottom: 5px; border-width: 1px; border-color: rgba(128, 128, 128, 0.3);">
+                         <ui:VisualElement class="client-header" style="flex-direction: row; align-items: center;">
+                             <ui:VisualElement class="drag-handle" style="width: 12px; height: 16px; margin-right: 8px; flex-direction: column; align-content: center; justify-content: center;" tooltip="Drag to move between areas">
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                             </ui:VisualElement>
+                                                           <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
+                                  <ui:Label text="Visual Studio" class="section-title" style="margin: 0; margin-right: 8px;" />
+                                  <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
+                              </ui:VisualElement>
+                             <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
+                                 <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" style="margin-right: 8px;" />
+                                 <ui:Button name="btnConfigure" text="Configure" class="Button-Primary configure-button" />
+                             </ui:VisualElement>
+                         </ui:VisualElement>
+                         <ui:EnumField label="Config Location" name="vsConfigLocation" type="com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation, com.MiAO.Unity.MCP.Editor" value="Global" class="ContentItem" style="margin-left: 24px;" />
+                     </ui:VisualElement>
+                    
+                                         <!-- Augment -->
+                     <ui:VisualElement name="ClientItem-Augment" class="Frame-Group draggable-client-item" style="flex-grow: 1; margin-bottom: 5px; border-width: 1px; border-color: rgba(128, 128, 128, 0.3);">
+                         <ui:VisualElement class="client-header" style="flex-direction: row; align-items: center;">
+                             <ui:VisualElement class="drag-handle" style="width: 12px; height: 16px; margin-right: 8px; flex-direction: column; align-content: center; justify-content: center;" tooltip="Drag to move between areas">
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                             </ui:VisualElement>
+                                                           <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
+                                  <ui:Label text="Augment (VS Code)" class="section-title" style="margin: 0; margin-right: 8px;" />
+                                  <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
+                              </ui:VisualElement>
+                             <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
+                                 <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" style="margin-right: 8px;" />
+                                 <ui:Button name="btnConfigure" text="Configure" class="Button-Primary configure-button" />
+                             </ui:VisualElement>
+                         </ui:VisualElement>
+                     </ui:VisualElement>
+                     
+                     <!-- Windsurf -->
+                     <ui:VisualElement name="ClientItem-Windsurf" class="Frame-Group draggable-client-item" style="flex-grow: 1; margin-bottom: 5px; border-width: 1px; border-color: rgba(128, 128, 128, 0.3);">
+                         <ui:VisualElement class="client-header" style="flex-direction: row; align-items: center;">
+                             <ui:VisualElement class="drag-handle" style="width: 12px; height: 16px; margin-right: 8px; flex-direction: column; align-content: center; justify-content: center;" tooltip="Drag to move between areas">
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                             </ui:VisualElement>
+                                                           <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
+                                  <ui:Label text="Windsurf" class="section-title" style="margin: 0; margin-right: 8px;" />
+                                  <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
+                              </ui:VisualElement>
+                             <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
+                                 <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" style="margin-right: 8px;" />
+                                 <ui:Button name="btnConfigure" text="Configure" class="Button-Primary configure-button" />
+                             </ui:VisualElement>
+                         </ui:VisualElement>
+                     </ui:VisualElement>
+                     
+                     <!-- Cline -->
+                     <ui:VisualElement name="ClientItem-Cline" class="Frame-Group draggable-client-item" style="flex-grow: 1; margin-bottom: 5px; border-width: 1px; border-color: rgba(128, 128, 128, 0.3);">
+                         <ui:VisualElement class="client-header" style="flex-direction: row; align-items: center;">
+                             <ui:VisualElement class="drag-handle" style="width: 12px; height: 16px; margin-right: 8px; flex-direction: column; align-content: center; justify-content: center;" tooltip="Drag to move between areas">
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                                 <ui:VisualElement style="flex-direction: row; justify-content: center; margin: 1px;">
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                     <ui:VisualElement style="width: 3px; height: 3px; background-color: rgba(120, 120, 120, 0.8); border-radius: 50%; margin: 1px;" />
+                                 </ui:VisualElement>
+                             </ui:VisualElement>
+                                                           <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
+                                  <ui:Label text="Cline" class="section-title" style="margin: 0; margin-right: 8px;" />
+                                  <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
+                              </ui:VisualElement>
+                             <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
+                                 <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" style="margin-right: 8px;" />
+                                 <ui:Button name="btnConfigure" text="Configure" class="Button-Primary configure-button" />
+                             </ui:VisualElement>
+                         </ui:VisualElement>
+                     </ui:VisualElement>
                 </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement name="ConfigureClient-Claude" class="Frame-Group" style="flex-grow: 1;">
-                <ui:Label text="Claude Desktop" class="section-title" />
-                <ui:VisualElement class="row">
-                    <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" />
-                    <ui:Label text="Not configured" name="configureStatusText" style="flex-grow: 1;" />
-                    <ui:Button name="btnConfigure" text="Configure" class="Button-Primary" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement name="ConfigureClient-VisualStudio" class="Frame-Group" style="flex-grow: 1;">
-                <ui:Label text="Visual Studio" class="section-title" />
-                <ui:VisualElement class="row">
-                    <ui:VisualElement name="configureStatusCircle" class="status-indicator-circle status-indicator-circle-disconnected" />
-                    <ui:Label text="Not configured" name="configureStatusText" style="flex-grow: 1;" />
-                    <ui:Button name="btnConfigure" text="Configure" class="Button-Primary" />
-                </ui:VisualElement>
-                <ui:EnumField label="Config Location" name="vsConfigLocation" type="com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation, com.MiAO.Unity.MCP.Editor" value="Global" class="ContentItem" />
-            </ui:VisualElement>
+            </ui:Foldout>
+            
             <ui:VisualElement name="ConfigureClient-Custom" class="Frame-Group" style="flex-grow: 1;">
                 <ui:Label text="Manual configuration" class="section-title" />
                 <ui:Label text="Copy paste the json into your MCP Client to configure it." name="Label" class="section-desc" />
@@ -149,7 +326,7 @@
                     <ui:VisualElement class="config-group">
                         <ui:Foldout text="Language Settings" value="true" class="config-group-foldout">
                             <ui:DropdownField label="Interface Language" name="languageSelector" class="config-item" />
-                            <ui:Label text="Select your preferred language for the user interface." class="section-desc" />
+                            <ui:Label text="Select the language for the user interface" class="section-desc" />
                         </ui:Foldout>
                     </ui:VisualElement>
                     
@@ -158,7 +335,7 @@
                         <ui:Foldout text="Theme Settings" value="true" class="config-group-foldout">
                             <ui:DropdownField label="UI Theme" name="themeSelector" class="config-item" />
                             <ui:Toggle label="Auto-refresh UI" name="autoRefreshToggle" class="config-item" />
-                            <ui:Label text="Configure the appearance and behavior of the user interface." class="section-desc" />
+                            <ui:Label text="Choose the visual theme for the interface" class="section-desc" />
                         </ui:Foldout>
                     </ui:VisualElement>
                     
@@ -187,7 +364,7 @@
                     <!-- User input area -->
                     <ui:VisualElement name="userInputSection" style="margin-bottom: 15px; display: none;">
                         <ui:Label text="User Input:" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 5px; color: rgba(200, 200, 200, 0.9);" />
-                        <ui:TextField name="userInputField" multiline="true" placeholder-text="请输入..." style="min-height: 80px; background-color: rgba(60, 60, 60, 0.5); border-radius: 4px;" />
+                        <ui:TextField name="userInputField" multiline="true" placeholder-text="Please enter..." style="min-height: 80px; background-color: rgba(60, 60, 60, 0.5); border-radius: 4px;" />
                     </ui:VisualElement>
                     
                     <!-- Object selection area -->
@@ -206,7 +383,7 @@
                     
                     <!-- Status display -->
                     <ui:VisualElement name="statusSection" style="margin-bottom: 15px;">
-                        <ui:Label name="statusText" text="等待用户输入请求..." style="color: rgba(150, 150, 150, 0.8); font-style: italic; text-align: center; margin-top: 20px;" />
+                        <ui:Label name="statusText" text="Waiting for user input request..." style="color: rgba(150, 150, 150, 0.8); font-style: italic; text-align: center; margin-top: 20px;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:ScrollView>
@@ -216,7 +393,7 @@
                 <ui:VisualElement class="container" style="min-width: 350px; padding: 15px;">
                     <!-- Title area -->
                     <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 20px;">
-                        <ui:Label text="Operations Panel" style="font-size: 18px; -unity-font-style: bold; flex-grow: 1; color: rgba(220, 220, 220, 0.95);" />
+                        <ui:Label text="Operations Monitor" style="font-size: 18px; -unity-font-style: bold; flex-grow: 1; color: rgba(220, 220, 220, 0.95);" />
                     </ui:VisualElement>
                     
                     <!-- Undo stack submodule -->
@@ -242,7 +419,7 @@
                             <ui:Label text="Operation History" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 10px; color: rgba(200, 200, 200, 0.9);" />
                             <ui:ScrollView name="undoStackList" class="undo-stack-scroll" style="max-height: 400px; margin-bottom: 15px;">
                                 <ui:VisualElement name="undoStackContainer" style="padding: 8px;">
-                                    <ui:Label name="emptyUndoStackLabel" text="No operation history" class="empty-state" />
+                                    <ui:Label name="emptyUndoStackLabel" text="No history available" class="empty-state" />
                                 </ui:VisualElement>
                             </ui:ScrollView>
                             

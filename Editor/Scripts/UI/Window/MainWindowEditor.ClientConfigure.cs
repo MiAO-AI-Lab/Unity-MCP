@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using R3;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -13,6 +12,16 @@ namespace com.MiAO.Unity.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {
+        private static readonly JsonDocumentOptions JsonOptions = new JsonDocumentOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        };
+
+        private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        };
         void ConfigureClientsWindows(VisualElement root)
         {
             ConfigureClient(root.Query<VisualElement>("ConfigureClient-Claude").First(),
@@ -23,22 +32,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 ),
                 bodyName: "mcpServers");
 
-            ConfigureClient(root.Query<VisualElement>("ConfigureClient-VS-Code").First(),
-                configPath: Path.Combine(
-                    ".vscode",
-                    "mcp.json"
-                ),
-                bodyName: "servers");
-
-            ConfigureClient(root.Query<VisualElement>("ConfigureClient-Cursor").First(),
-                configPath: Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".cursor",
-                    "mcp.json"
-                ),
-                bodyName: "mcpServers");
-
-            ConfigureVisualStudioClient(root.Query<VisualElement>("ConfigureClient-VisualStudio").First());
+            ConfigureCommonClients(root);
         }
 
         void ConfigureClientsMacAndLinux(VisualElement root)
@@ -53,6 +47,11 @@ namespace com.MiAO.Unity.MCP.Editor
                 ),
                 bodyName: "mcpServers");
 
+            ConfigureCommonClients(root);
+        }
+
+        void ConfigureCommonClients(VisualElement root)
+        {
             ConfigureClient(root.Query<VisualElement>("ConfigureClient-VS-Code").First(),
                 configPath: Path.Combine(
                     ".vscode",
@@ -68,7 +67,21 @@ namespace com.MiAO.Unity.MCP.Editor
                 ),
                 bodyName: "mcpServers");
 
-            ConfigureVisualStudioClient(root.Query<VisualElement>("ConfigureClient-VisualStudio").First());
+            ConfigureClient(root.Query<VisualElement>("ConfigureClient-VisualStudio").First(),
+                configPath: GetVisualStudioConfigPath(VisualStudioConfigLocation.Global),
+                bodyName: "servers");
+
+            ConfigureClient(root.Query<VisualElement>("ConfigureClient-Augment").First(),
+                configPath: GetVSCodeSettingsPath(),
+                bodyName: "augment.advanced.mcpServers");
+
+            ConfigureClient(root.Query<VisualElement>("ConfigureClient-Windsurf").First(),
+                configPath: GetWindsurfSettingsPath(),
+                bodyName: "mcpServers");
+
+            ConfigureClient(root.Query<VisualElement>("ConfigureClient-Cline").First(),
+                configPath: GetClineSettingsPath(),
+                bodyName: "mcpServers");
         }
 
         void ConfigureClient(VisualElement root, string configPath, string bodyName = "mcpServers")
@@ -77,34 +90,74 @@ namespace com.MiAO.Unity.MCP.Editor
             var statusText = root.Query<Label>("configureStatusText").First();
             var btnConfigure = root.Query<Button>("btnConfigure").First();
 
-            var isConfiguredResult = IsMcpClientConfigured(configPath, bodyName);
+            // Detect if this is Visual Studio configuration (has vsConfigLocation enum field)
+            EnumField configLocationField = null;
+            try
+            {
+                configLocationField = root.Query<EnumField>("vsConfigLocation").First();
+            }
+            catch
+            {
+                // Element not found - not a Visual Studio configuration
+            }
+            
+            if (configLocationField != null)
+            {
+                ConfigureVisualStudioClient(statusCircle, statusText, btnConfigure, configLocationField, bodyName);
+            }
+            else
+            {
+                ConfigureStandardClient(statusCircle, statusText, btnConfigure, configPath, bodyName);
+            }
+        }
 
-            statusCircle.RemoveFromClassList(USS_IndicatorClass_Connected);
-            statusCircle.RemoveFromClassList(USS_IndicatorClass_Connecting);
-            statusCircle.RemoveFromClassList(USS_IndicatorClass_Disconnected);
+        void ConfigureVisualStudioClient(VisualElement statusCircle, Label statusText, Button btnConfigure, 
+            EnumField configLocationField, string bodyName)
+        {
+            // Setup Visual Studio enum field
+            configLocationField.Init(VisualStudioConfigLocation.Global);
+            configLocationField.value = VisualStudioConfigLocation.Global;
 
-            statusCircle.AddToClassList(isConfiguredResult
-                ? USS_IndicatorClass_Connected
-                : USS_IndicatorClass_Disconnected);
+            // Visual Studio dynamic path logic
+            System.Func<string> getCurrentPath = () => GetVisualStudioConfigPath((VisualStudioConfigLocation)configLocationField.value);
 
-            statusText.text = isConfiguredResult ? "Configured" : "Not Configured";
-            btnConfigure.text = isConfiguredResult ? "Reconfigure" : "Configure";
+            // Initialize status
+            UpdateClientStatus(statusCircle, statusText, btnConfigure, IsMcpClientConfigured(getCurrentPath(), bodyName));
 
+            // Configure button click event
+            btnConfigure.RegisterCallback<ClickEvent>(evt =>
+            {
+                var pathToUse = getCurrentPath();
+                var configureResult = ConfigureMcpClient(pathToUse, bodyName);
+                UpdateClientStatus(statusCircle, statusText, btnConfigure, configureResult);
+                
+                if (configureResult)
+                {
+                    var location = (VisualStudioConfigLocation)configLocationField.value;
+                    var locationName = MenuItems.GetVisualStudioLocationDisplayName(location);
+                    Debug.Log($"Visual Studio MCP configuration completed successfully at: {pathToUse} ({locationName})");
+                }
+            });
+
+            // Listen for configuration location changes
+            configLocationField.RegisterValueChangedCallback(evt =>
+            {
+                var newPath = getCurrentPath();
+                UpdateClientStatus(statusCircle, statusText, btnConfigure, IsMcpClientConfigured(newPath, bodyName));
+            });
+        }
+
+        void ConfigureStandardClient(VisualElement statusCircle, Label statusText, Button btnConfigure, 
+            string configPath, string bodyName)
+        {
+            // Initialize status
+            UpdateClientStatus(statusCircle, statusText, btnConfigure, IsMcpClientConfigured(configPath, bodyName));
+
+            // Configure button click event
             btnConfigure.RegisterCallback<ClickEvent>(evt =>
             {
                 var configureResult = ConfigureMcpClient(configPath, bodyName);
-
-                statusText.text = configureResult ? "Configured" : "Not Configured";
-
-                statusCircle.RemoveFromClassList(USS_IndicatorClass_Connected);
-                statusCircle.RemoveFromClassList(USS_IndicatorClass_Connecting);
-                statusCircle.RemoveFromClassList(USS_IndicatorClass_Disconnected);
-
-                statusCircle.AddToClassList(configureResult
-                    ? USS_IndicatorClass_Connected
-                    : USS_IndicatorClass_Disconnected);
-
-                btnConfigure.text = configureResult ? "Reconfigure" : "Configure";
+                UpdateClientStatus(statusCircle, statusText, btnConfigure, configureResult);
             });
         }
 
@@ -113,11 +166,54 @@ namespace com.MiAO.Unity.MCP.Editor
             if (string.IsNullOrEmpty(configPath) || !File.Exists(configPath))
                 return false;
 
+            // Check if this is Augment configuration - using inline logic
+            if (bodyName.StartsWith("augment"))
+            {
+                try
+                {
+                    var json = File.ReadAllText(configPath);
+                    var rootObj = JsonNode.Parse(json, documentOptions: JsonOptions)?.AsObject();
+                    if (rootObj == null)
+                        return false;
+
+                    var augmentAdvanced = rootObj["augment.advanced"]?.AsObject();
+                    if (augmentAdvanced == null)
+                        return false;
+
+                    var mcpServers = augmentAdvanced["mcpServers"]?.AsArray();
+                    if (mcpServers == null)
+                        return false;
+
+                    // Check if Unity-MCP server is configured
+                    foreach (var server in mcpServers)
+                    {
+                        var serverObj = server?.AsObject();
+                        if (serverObj == null) continue;
+
+                        var name = serverObj["name"]?.GetValue<string>();
+                        var command = serverObj["command"]?.GetValue<string>();
+
+                        if (name == "Unity-MCP" || (!string.IsNullOrEmpty(command) && 
+                            string.Equals(Path.GetFullPath(command), Path.GetFullPath(Startup.ServerExecutableFile), StringComparison.OrdinalIgnoreCase)))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error reading VS Code settings file: {ex.Message}");
+                    Debug.LogException(ex);
+                    return false;
+                }
+            }
+
             try
             {
                 var json = File.ReadAllText(configPath);
-
-                var rootObj = JsonNode.Parse(json)?.AsObject();
+                var rootObj = JsonNode.Parse(json, documentOptions: JsonOptions)?.AsObject();
                 if (rootObj == null)
                     return false;
 
@@ -159,10 +255,89 @@ namespace com.MiAO.Unity.MCP.Editor
                 return false;
             }
         }
-        bool ConfigureMcpClient(string configPath, string bodyName = "mcpServers")
+
+        public bool ConfigureMcpClient(string configPath, string bodyName = "mcpServers")
         {
             if (string.IsNullOrEmpty(configPath))
                 return false;
+
+            // Check if this is Augment configuration - using inline logic
+            if (bodyName.StartsWith("augment"))
+            {
+                try
+                {
+                    // Ensure directory exists
+                    var directory = Path.GetDirectoryName(configPath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    JsonObject rootObj;
+                    if (File.Exists(configPath))
+                    {
+                        var json = File.ReadAllText(configPath);
+                        rootObj = JsonNode.Parse(json, documentOptions: JsonOptions)?.AsObject() ?? new JsonObject();
+                    }
+                    else
+                    {
+                        rootObj = new JsonObject();
+                    }
+
+                    // Ensure augment.advanced exists
+                    if (!rootObj.ContainsKey("augment.advanced"))
+                    {
+                        rootObj["augment.advanced"] = new JsonObject();
+                    }
+                    var augmentAdvanced = rootObj["augment.advanced"]!.AsObject();
+
+                    // Ensure mcpServers array exists
+                    if (!augmentAdvanced.ContainsKey("mcpServers"))
+                    {
+                        augmentAdvanced["mcpServers"] = new JsonArray();
+                    }
+                    var mcpServers = augmentAdvanced["mcpServers"]!.AsArray();
+
+                    // Remove existing Unity-MCP configurations
+                    for (int i = mcpServers.Count - 1; i >= 0; i--)
+                    {
+                        var server = mcpServers[i]?.AsObject();
+                        if (server == null) continue;
+
+                        var name = server["name"]?.GetValue<string>();
+                        var command = server["command"]?.GetValue<string>();
+
+                        if (name == "Unity-MCP" || (!string.IsNullOrEmpty(command) && 
+                            string.Equals(Path.GetFullPath(command), Path.GetFullPath(Startup.ServerExecutableFile), StringComparison.OrdinalIgnoreCase)))
+                        {
+                            mcpServers.RemoveAt(i);
+                        }
+                    }
+
+                    // Add new Unity-MCP configuration
+                    var unityMcpServer = new JsonObject
+                    {
+                        ["name"] = "Unity-MCP",
+                        ["command"] = Startup.ServerExecutableFile.Replace('\\', '/'),
+                        ["args"] = new JsonArray(
+                            JsonValue.Create(McpPluginUnity.Port.ToString())
+                        )
+                    };
+
+                    mcpServers.Add(unityMcpServer);
+
+                    // Write back to file
+                    File.WriteAllText(configPath, rootObj.ToJsonString(JsonSerializerOptions));
+
+                    return IsMcpClientConfigured(configPath, bodyName);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error configuring Augment MCP: {ex.Message}");
+                    Debug.LogException(ex);
+                    return false;
+                }
+            }
 
             try
             {
@@ -174,14 +349,13 @@ namespace com.MiAO.Unity.MCP.Editor
                 }
 
                 var json = File.ReadAllText(configPath);
-
                 // Parse the existing config as JsonObject
-                var rootObj = JsonNode.Parse(json)?.AsObject();
+                var rootObj = JsonNode.Parse(json, documentOptions: JsonOptions)?.AsObject();
                 if (rootObj == null)
                     throw new Exception("Config file is not a valid JSON object.");
 
                 // Parse the injected config as JsonObject
-                var injectObj = JsonNode.Parse(Startup.RawJsonConfiguration(McpPluginUnity.Port, bodyName))?.AsObject();
+                var injectObj = JsonNode.Parse(Startup.RawJsonConfiguration(McpPluginUnity.Port, bodyName), documentOptions: JsonOptions)?.AsObject();
                 if (injectObj == null)
                     throw new Exception("Injected config is not a valid JSON object.");
 
@@ -195,7 +369,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 {
                     // If mcpServers is null, create it
                     rootObj[bodyName] = JsonNode.Parse(injectMcpServers.ToJsonString())?.AsObject();
-                    File.WriteAllText(configPath, rootObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                    File.WriteAllText(configPath, rootObj.ToJsonString(JsonSerializerOptions));
                     return IsMcpClientConfigured(configPath, bodyName);
                 }
 
@@ -236,63 +410,7 @@ namespace com.MiAO.Unity.MCP.Editor
             }
         }
 
-        void ConfigureVisualStudioClient(VisualElement root)
-        {
-            var statusCircle = root.Query<VisualElement>("configureStatusCircle").First();
-            var statusText = root.Query<Label>("configureStatusText").First();
-            var btnConfigure = root.Query<Button>("btnConfigure").First();
-            var configLocationField = root.Query<EnumField>("vsConfigLocation").First();
-
-            // 设置枚举字段类型
-            configLocationField.Init(VisualStudioConfigLocation.Global);
-            configLocationField.value = VisualStudioConfigLocation.Global;
-
-            var currentLocation = (VisualStudioConfigLocation)configLocationField.value;
-            var configPath = GetVisualStudioConfigPath(currentLocation);
-            var isConfiguredResult = IsMcpClientConfigured(configPath, "servers");
-
-            UpdateVisualStudioStatus(statusCircle, statusText, btnConfigure, isConfiguredResult);
-
-            // 监听配置位置变化
-            configLocationField.RegisterValueChangedCallback(evt =>
-            {
-                var newLocation = (VisualStudioConfigLocation)evt.newValue;
-                var newConfigPath = GetVisualStudioConfigPath(newLocation);
-                var newIsConfigured = IsMcpClientConfigured(newConfigPath, "servers");
-                UpdateVisualStudioStatus(statusCircle, statusText, btnConfigure, newIsConfigured);
-            });
-
-            btnConfigure.RegisterCallback<ClickEvent>(evt =>
-            {
-                var location = (VisualStudioConfigLocation)configLocationField.value;
-                var targetConfigPath = GetVisualStudioConfigPath(location);
-                var configureResult = ConfigureMcpClient(targetConfigPath, "servers");
-
-                UpdateVisualStudioStatus(statusCircle, statusText, btnConfigure, configureResult);
-
-                if (configureResult)
-                {
-                    var locationName = GetVisualStudioLocationDisplayName(location);
-                    Debug.Log($"Visual Studio MCP configuration completed successfully at: {targetConfigPath} ({locationName})");
-                }
-            });
-        }
-
-        void UpdateVisualStudioStatus(VisualElement statusCircle, Label statusText, Button btnConfigure, bool isConfigured)
-        {
-            statusCircle.RemoveFromClassList(USS_IndicatorClass_Connected);
-            statusCircle.RemoveFromClassList(USS_IndicatorClass_Connecting);
-            statusCircle.RemoveFromClassList(USS_IndicatorClass_Disconnected);
-
-            statusCircle.AddToClassList(isConfigured
-                ? USS_IndicatorClass_Connected
-                : USS_IndicatorClass_Disconnected);
-
-            statusText.text = isConfigured ? "Configured" : "Not Configured";
-            btnConfigure.text = isConfigured ? "Reconfigure" : "Configure";
-        }
-
-        string GetVisualStudioConfigPath(VisualStudioConfigLocation location)
+        public string GetVisualStudioConfigPath(VisualStudioConfigLocation location)
         {
             switch (location)
             {
@@ -316,22 +434,84 @@ namespace com.MiAO.Unity.MCP.Editor
             }
         }
 
-        string GetVisualStudioLocationDisplayName(VisualStudioConfigLocation location)
+        // Unified status update function
+        void UpdateClientStatus(VisualElement statusCircle, Label statusText, Button btnConfigure, bool isConfigured)
         {
-            switch (location)
-            {
-                case VisualStudioConfigLocation.Global:
-                    return "Global User Configuration";
-                
-                case VisualStudioConfigLocation.Solution:
-                    return "Solution Level Configuration";
-                
-                case VisualStudioConfigLocation.VisualStudioSpecific:
-                    return "Visual Studio Specific Configuration";
-                
-                default:
-                    return "Unknown";
-            }
+            statusCircle.RemoveFromClassList(USS_IndicatorClass_Connected);
+            statusCircle.RemoveFromClassList(USS_IndicatorClass_Connecting);
+            statusCircle.RemoveFromClassList(USS_IndicatorClass_Disconnected);
+
+            statusCircle.AddToClassList(isConfigured
+                ? USS_IndicatorClass_Connected
+                : USS_IndicatorClass_Disconnected);
+
+            statusText.text = isConfigured 
+                ? LocalizationManager.GetText("connector.configured")
+                : LocalizationManager.GetText("connector.not_configured");
+            btnConfigure.text = isConfigured 
+                ? LocalizationManager.GetText("connector.reconfigure") 
+                : LocalizationManager.GetText("connector.configure");
+        }
+
+        string GetVSCodeSettingsPath()
+        {
+            return GetVSCodeBasePath("settings.json");
+        }
+
+        string GetVSCodeBasePath(string fileName)
+        {
+#if UNITY_EDITOR_WIN
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Code",
+                "User",
+                fileName
+            );
+#elif UNITY_EDITOR_OSX
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Library",
+                "Application Support",
+                "Code",
+                "User",
+                fileName
+            );
+#elif UNITY_EDITOR_LINUX
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".config",
+                "Code",
+                "User",
+                fileName
+            );
+#else
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Code",
+                "User",
+                fileName
+            );
+#endif
+        }
+
+        string GetWindsurfSettingsPath()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".codeium",
+                "windsurf",
+                "mcp_config.json"
+            );
+        }
+
+        string GetClineSettingsPath()
+        {
+            return GetVSCodeBasePath(Path.Combine(
+                "globalStorage",
+                "saoudrizwan.claude-dev",
+                "settings",
+                "cline_mcp_settings.json"
+            ));
         }
     }
 }

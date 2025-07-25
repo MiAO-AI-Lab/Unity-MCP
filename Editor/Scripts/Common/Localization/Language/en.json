@@ -36,7 +36,7 @@
   },
   "connector": {
     "title": "MCP Connector",
-    "loglevel": "Log Level",
+    "log_level": "Log Level",
     "connect_server": "Connect to MCP server",
     "server_url": "Server URL",
     "information": "Information",
@@ -56,7 +56,23 @@
     "manual_desc": "Copy paste the json into your MCP Client to configure it.",
     "manual_placeholder": "This is a multi-line, read-only, selectable text box.\nYou can copy from here.",
     "rebuild_server": "Rebuild MCP Server",
-    "check_logs": "Please check the logs to see the operation result."
+    "check_logs": "Please check the logs to see the operation result.",
+    "pinned_clients": "Pinned Clients (Drag to reorder)",
+    "more_clients": "More Clients (Click to expand, drag items up to pin)",
+    "drag_instruction": "Drag any client to the pinned area above",
+    "drag_tooltip": "Drag to move between areas",
+    "reconfigure": "Reconfigure",
+    "notification_pinned": "Pinned to top area",
+    "notification_moved": "Moved to More Clients",
+    "client": {
+      "cursor": "Cursor",
+      "claude_desktop": "Claude Desktop",
+      "vscode": "VS Code",
+      "visual_studio": "Visual Studio",
+      "augment": "Augment",
+      "windsurf": "Windsurf",
+      "cline": "Cline"
+    }
   },
   "model": {
     "title": "AI Model Configuration",
@@ -124,8 +140,8 @@
     "redo_stack_header": "Redo Stack",
     "latest": "Latest",
     "history": "History",
-    "undo": "Undo",
-    "redo": "Redo",
+    "undo": "< Undo",
+    "redo": "Redo >",
     "no_history": "No history available",
     "clear_stack": "Clear Stack",
     "stack_status": "Total operations: {0}"
@@ -133,15 +149,23 @@
   "userinput": {
     "title": "User Input Panel",
     "prompt_message": "Prompt Message:",
+    "prompt_label": "Prompt Message:",
     "user_input": "User Input:",
+    "input_label": "User Input:",
     "selected_objects": "Currently Selected Objects:",
+    "selected_objects_label": "Currently Selected Objects:",
     "no_objects": "No objects selected",
+    "placeholder": "Please enter...",
     "confirm": "Confirm",
     "cancel": "Cancel",
-    "waiting": "Waiting for user input request..."
+    "waiting": "Waiting for user input request...",
+    "waiting_for_input": "Waiting for user input...",
+    "waiting_for_prompt": "Waiting for prompt..."
   },
   "settings": {
-    "title": "Settings",
+    "title": "User Preferences",
+    "interface_language": "Interface Language",
+    "ui_theme": "UI Theme",
     "language": "Language",
     "theme": "Theme",
     "log_level": "Log Level",
@@ -161,11 +185,9 @@
     "light_theme": "Light Theme",
     "system_theme": "System Theme",
     "language_settings": "Language Settings",
-    "interface_language": "Interface Language",
     "language_desc": "Select the language for the user interface",
     "theme_settings": "Theme Settings",
-    "ui_theme": "UI Theme",
-    "auto_refresh": "Auto Refresh",
+    "auto_refresh": "Auto-refresh UI",
     "theme_desc": "Choose the visual theme for the interface",
     "save": "Save",
     "reset": "Reset"
@@ -174,7 +196,7 @@
     "title": "Settings Summary",
     "language": "Language",
     "theme": "Theme",
-    "auto_refresh": "Auto Refresh"
+    "auto_refresh": "Auto-refresh UI"
   },
   "text": {
     "enabled": "Enabled",
@@ -191,6 +213,7 @@
     "apply": "Apply",
     "close": "Close",
     "save": "Save",
+    "save_config": "Save Configuration",
     "load": "Load",
     "delete": "Delete",
     "edit": "Edit",
@@ -224,6 +247,7 @@
     "connected": "Connected",
     "disconnected": "Disconnected",
     "online": "Online",
-    "offline": "Offline"
+    "offline": "Offline",
+    "not_configured": "Not configured"
   }
 } 

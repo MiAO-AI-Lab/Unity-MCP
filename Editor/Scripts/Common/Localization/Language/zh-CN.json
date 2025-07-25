@@ -36,7 +36,7 @@
   },
   "connector": {
     "title": "MCP连接",
-    "loglevel": "日志级别",
+    "log_level": "日志级别",
     "connect_server": "连接到 MCP 服务器",
     "server_url": "服务器地址",
     "information": "信息",
@@ -56,7 +56,23 @@
     "manual_desc": "复制此 JSON 配置到您的 MCP 客户端中进行配置。",
     "manual_placeholder": "这是一个多行、只读、可选择的文本框。\n您可以从这里复制。",
     "rebuild_server": "重新构建 MCP 服务器",
-    "check_logs": "请查看日志以了解操作结果。"
+    "check_logs": "请查看日志以了解操作结果。",
+    "pinned_clients": "置顶客户端",
+    "more_clients": "更多客户端",
+    "drag_instruction": "拖拽任意客户端到上方置顶区域",
+    "drag_tooltip": "拖拽以在区域间移动",
+    "reconfigure": "重新配置",
+    "notification_pinned": "已置顶到顶部区域",
+    "notification_moved": "已移动到更多客户端区域",
+    "client": {
+      "cursor": "Cursor",
+      "claude_desktop": "Claude 桌面版",
+      "vscode": "VS Code",
+      "visual_studio": "Visual Studio",
+      "augment": "Augment",
+      "windsurf": "Windsurf",
+      "cline": "Cline"
+    }
   },
   "model": {
     "title": "AI 模型配置",
@@ -123,9 +139,9 @@
     "undo_stack_header": "撤销堆栈",
     "redo_stack_header": "重做堆栈",
     "latest": "最新",
-    "history": "历史",
-    "undo": "撤销",
-    "redo": "重做",
+    "history": "历史记录",
+    "undo": "< 撤销",
+    "redo": "重做 >",
     "no_history": "无历史记录",
     "clear_stack": "清空堆栈",
     "stack_status": "总操作数：{0}"
@@ -133,15 +149,23 @@
   "userinput": {
     "title": "用户输入面板",
     "prompt_message": "提示消息：",
+    "prompt_label": "提示消息：",
     "user_input": "用户输入：",
+    "input_label": "用户输入：",
     "selected_objects": "当前选定对象：",
+    "selected_objects_label": "当前选定对象：",
     "no_objects": "没有选定对象",
+    "placeholder": "请输入...",
     "confirm": "确认",
     "cancel": "取消",
-    "waiting": "等待用户输入请求..."
+    "waiting": "等待用户输入请求...",
+    "waiting_for_input": "等待用户输入...",
+    "waiting_for_prompt": "等待提示..."
   },
   "settings": {
-    "title": "设置",
+    "title": "用户偏好",
+    "interface_language": "界面语言",
+    "ui_theme": "UI主题",
     "language": "语言",
     "theme": "主题",
     "log_level": "日志级别",
@@ -161,11 +185,9 @@
     "light_theme": "浅色主题",
     "system_theme": "系统主题",
     "language_settings": "语言设置",
-    "interface_language": "界面语言",
     "language_desc": "选择用户界面的语言",
     "theme_settings": "主题设置",
-    "ui_theme": "界面主题",
-    "auto_refresh": "自动刷新",
+    "auto_refresh": "自动刷新界面",
     "theme_desc": "选择界面的视觉主题",
     "save": "保存",
     "reset": "重置"
@@ -174,7 +196,7 @@
     "title": "设置摘要",
     "language": "语言",
     "theme": "主题",
-    "auto_refresh": "自动刷新"
+    "auto_refresh": "自动刷新界面"
   },
   "text": {
     "enabled": "已启用",
@@ -191,6 +213,7 @@
     "apply": "应用",
     "close": "关闭",
     "save": "保存",
+    "save_config": "保存配置",
     "load": "加载",
     "delete": "删除",
     "edit": "编辑",
@@ -224,6 +247,7 @@
     "connected": "已连接",
     "disconnected": "已断开",
     "online": "在线",
-    "offline": "离线"
+    "offline": "离线",
+    "not_configured": "未配置"
   }
 } 
