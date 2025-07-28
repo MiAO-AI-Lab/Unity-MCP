@@ -1136,7 +1136,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 m_StatusLabel.text = message;
             }
             
-            Debug.Log($"{Consts.Log.Tag} {message}");
+            // Debug.Log($"{Consts.Log.Tag} {message}");
         }
 
         /// <summary>

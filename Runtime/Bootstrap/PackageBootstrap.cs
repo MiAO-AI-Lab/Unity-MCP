@@ -98,8 +98,6 @@ namespace com.MiAO.Unity.MCP.Bootstrap
             {
                 var packageId = string.IsNullOrEmpty(version) ? packageName : $"{packageName}@{version}";
 
-                Debug.Log($"[PackageBootstrap] Installing package: {packageId}");
-
                 var addRequest = Client.Add(packageId);
                 while (!addRequest.IsCompleted)
                 {
@@ -135,8 +133,6 @@ namespace com.MiAO.Unity.MCP.Bootstrap
         {
             try
             {
-                Debug.Log($"[PackageBootstrap] Removing package: {packageName}");
-
                 var removeRequest = Client.Remove(packageName);
                 while (!removeRequest.IsCompleted)
                 {

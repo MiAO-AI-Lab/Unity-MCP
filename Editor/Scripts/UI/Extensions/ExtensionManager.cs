@@ -79,7 +79,6 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
             }
             
             var result = s_KnownExtensions.Values.ToList();
-            Debug.Log($"{Consts.Log.Tag} GetAvailableExtensions returning {result.Count} extensions");
             return result;
         }
 
@@ -413,8 +412,6 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
         {
             try
             {
-                Debug.Log($"{Consts.Log.Tag} Refreshing extension cache...");
-                
                 // Get list of installed packages synchronously
                 var listRequest = Client.List(true); // Include built-in packages
                 
@@ -426,7 +423,6 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
 
                 if (listRequest.Status == StatusCode.Success)
                 {
-                    Debug.Log($"{Consts.Log.Tag} Found {listRequest.Result.Count()} installed packages");
                     
                     // Update installed packages cache
                     s_InstalledPackages.Clear();
@@ -435,7 +431,6 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                         s_InstalledPackages[package.name] = package;
                         if (package.name.StartsWith("com.miao.unity.mcp"))
                         {
-                            Debug.Log($"{Consts.Log.Tag} Found MCP package: {package.name} v{package.version}");
                         }
                     }
 

@@ -36,12 +36,9 @@ namespace com.MiAO.Unity.MCP.Bootstrap
         {
             try
             {
-                Debug.Log($"{Consts.Log.Tag} Bootstrapping package: {config.DisplayName}");
-
                 // Check if Hub package is available
                 if (IsHubPackageAvailable())
                 {
-                    Debug.Log($"{Consts.Log.Tag} Hub package found, registering tools for {config.DisplayName}");
                     config.OnHubAvailable?.Invoke();
 
                     // Register tools from the assembly
@@ -105,31 +102,7 @@ namespace com.MiAO.Unity.MCP.Bootstrap
         {
             try
             {
-                // This would integrate with the Hub's tool injection system
-                // For now, we just log that tools are being registered
-                var types = assembly.GetTypes();
                 McpPluginUnity.ToolInjector.RegisterToolPackage(assembly.GetName().Name, assembly);
-                // var toolCount = 0;
-
-                // foreach (var type in types)
-                // {
-                //     // Look for classes with MCP tool attributes
-                //     var attributes = type.GetCustomAttributes(false);
-                //     foreach (var attr in attributes)
-                //     {
-                //         if (attr.GetType().Name.Contains("McpPluginTool"))
-                //         {
-                //             toolCount++;
-                //             Debug.Log($"{Consts.Log.Tag} Registered tool: {type.Name}");
-                //             McpPluginUnity.ToolInjector.RegisterTool(type);
-                //         }
-                //     }
-                // }
-
-                // if (toolCount > 0)
-                // {
-                //     Debug.Log($"{Consts.Log.Tag} Registered {toolCount} tools from assembly {assembly.GetName().Name}");
-                // }
             }
             catch (Exception ex)
             {

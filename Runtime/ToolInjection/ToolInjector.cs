@@ -28,8 +28,6 @@ namespace com.MiAO.Unity.MCP.ToolInjection
             {
                 try
                 {
-                    Debug.Log($"[ToolInjector] Registering tool package: {packageName}");
-
                     // Check if package is already registered
                     if (_registeredPackages.ContainsKey(packageName))
                     {
@@ -65,8 +63,6 @@ namespace com.MiAO.Unity.MCP.ToolInjection
                             _registeredTools[toolType.Name] = toolMetadata;
                             registeredCount++;
 
-                            Debug.Log($"[ToolInjector] Registered tool: {toolType.Name} with {toolMethods.Length} methods");
-
                             // Fire event
                             ToolRegistrationChanged?.Invoke(new ToolRegistrationEvent
                             {
@@ -79,7 +75,7 @@ namespace com.MiAO.Unity.MCP.ToolInjection
                     }
 
                     _registeredPackages[packageName] = assembly;
-                    Debug.Log($"[ToolInjector] Successfully registered {registeredCount} tools from package: {packageName}");
+                    // Debug.Log($"[ToolInjector] Successfully registered {registeredCount} tools from package: {packageName}");
                     return registeredCount;
                 }
                 catch (Exception ex)
@@ -99,8 +95,6 @@ namespace com.MiAO.Unity.MCP.ToolInjection
             {
                 try
                 {
-                    Debug.Log($"[ToolInjector] Unregistering tool package: {packageName}");
-
                     if (!_registeredPackages.ContainsKey(packageName))
                     {
                         Debug.LogWarning($"[ToolInjector] Package {packageName} is not registered. Skipping.");
@@ -118,8 +112,6 @@ namespace com.MiAO.Unity.MCP.ToolInjection
                     {
                         _registeredTools.Remove(toolMetadata.ToolName);
                         unregisteredCount++;
-
-                        Debug.Log($"[ToolInjector] Unregistered tool: {toolMetadata.ToolName}");
 
                         // Fire event
                         ToolRegistrationChanged?.Invoke(new ToolRegistrationEvent

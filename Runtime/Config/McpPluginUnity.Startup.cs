@@ -83,11 +83,6 @@ namespace com.MiAO.Unity.MCP
         {
             try
             {
-                Debug.Log($"{Consts.Log.Tag} Initializing tool injection system...");
-
-                // Register built-in tools from current assembly (if any remain)
-                ToolInjector.RegisterToolPackage("com.miao.unity.mcp.builtin", typeof(McpPluginUnity).Assembly);
-
                 // Discover and register external tool packages
                 var installedPackages = PackageBootstrap.GetInstalledPackages();
                 foreach (var packageName in installedPackages)
@@ -109,8 +104,6 @@ namespace com.MiAO.Unity.MCP
 
                 // Listen for tool registration events
                 ToolInjector.ToolRegistrationChanged += OnToolRegistrationChanged;
-
-                Debug.Log($"{Consts.Log.Tag} Tool injection system initialized successfully");
             }
             catch (Exception ex)
             {
