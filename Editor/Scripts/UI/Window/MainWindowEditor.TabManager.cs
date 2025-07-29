@@ -7,6 +7,7 @@ using com.MiAO.Unity.MCP.Utils;
 using com.MiAO.Unity.MCP.Editor.API;
 using com.MiAO.Unity.MCP.Editor.Common;
 using com.MiAO.Unity.MCP.Editor.Localization;
+using com.MiAO.Unity.MCP.Editor.UI;
 using Unity.MCP;
 using UnityEditor;
 using UnityEngine;
@@ -22,7 +23,6 @@ namespace com.MiAO.Unity.MCP.Editor
             Connector,
             ModelConfig,
             UserInput,
-            Settings,
             UndoHistory
         }
 
@@ -30,12 +30,10 @@ namespace com.MiAO.Unity.MCP.Editor
         private Button _tabConnectorButton;
         private Button _tabModelConfigButton;
         private Button _tabUserInputButton;
-        private Button _tabSettingsButton;
         private Button _tabUndoHistoryButton;
         private VisualElement _connectorContent;
         private VisualElement _modelConfigContent;
         private VisualElement _userInputContent;
-        private VisualElement _settingsContent;
         private VisualElement _undoContent;
         
         // Undo stack UI elements
@@ -53,32 +51,29 @@ namespace com.MiAO.Unity.MCP.Editor
             _tabConnectorButton = root.Query<Button>("TabConnector").First();
             _tabModelConfigButton = root.Query<Button>("TabModelConfig").First();
             _tabUserInputButton = root.Query<Button>("TabUserInput").First();
-            _tabSettingsButton = root.Query<Button>("TabSettings").First();
             _tabUndoHistoryButton = root.Query<Button>("TabUndoHistory").First();
             
             // Get tab content
             _connectorContent = root.Query<VisualElement>("ConnectorContent").First();
             _modelConfigContent = root.Query<VisualElement>("ModelConfigContent").First();
             _userInputContent = root.Query<VisualElement>("UserInputContent").First();
-            _settingsContent = root.Query<VisualElement>("SettingsContent").First();
             _undoContent = root.Query<VisualElement>("UndoContent").First();
             
             // Register tab switch events
             _tabConnectorButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.Connector));
             _tabModelConfigButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.ModelConfig));
             _tabUserInputButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.UserInput));
-            _tabSettingsButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.Settings));
             _tabUndoHistoryButton.RegisterCallback<ClickEvent>(evt => SwitchTab(TabType.UndoHistory));
-            
+
             // Initialize undo stack UI
             InitializeUndoStackUI(root);
-            
-            // Initialize settings page UI
-            InitializeSettingsUI(root);
-            
+
             // Initialize user input UI
             InitializeUserInputUI(root);
-            
+
+            // Initialize language from HubSettings
+            InitializeLanguageFromHubSettings();
+
             // Register localization events
             LocalizationManager.OnLanguageChanged += OnLanguageChanged;
             
@@ -116,14 +111,12 @@ namespace com.MiAO.Unity.MCP.Editor
             _tabConnectorButton.RemoveFromClassList("tab-button-active");
             _tabModelConfigButton.RemoveFromClassList("tab-button-active");
             _tabUserInputButton.RemoveFromClassList("tab-button-active");
-            _tabSettingsButton.RemoveFromClassList("tab-button-active");
             _tabUndoHistoryButton.RemoveFromClassList("tab-button-active");
             
             // Hide all content
             _connectorContent.style.display = DisplayStyle.None;
             _modelConfigContent.style.display = DisplayStyle.None;
             _userInputContent.style.display = DisplayStyle.None;
-            _settingsContent.style.display = DisplayStyle.None;
             _undoContent.style.display = DisplayStyle.None;
             
             // Show current tab content
@@ -141,12 +134,6 @@ namespace com.MiAO.Unity.MCP.Editor
                     _tabUserInputButton.AddToClassList("tab-button-active");
                     _userInputContent.style.display = DisplayStyle.Flex;
                     RefreshUserInputUI();
-                    break;
-                case TabType.Settings:
-                    _tabSettingsButton.AddToClassList("tab-button-active");
-                    _settingsContent.style.display = DisplayStyle.Flex;
-                    // Ensure settings page shows latest values when opened
-                    if (_languageSelector != null) LoadSettings();
                     break;
                 case TabType.UndoHistory:
                     _tabUndoHistoryButton.AddToClassList("tab-button-active");
@@ -464,20 +451,18 @@ namespace com.MiAO.Unity.MCP.Editor
                     _tabUserInputButton.text = LocalizationManager.GetText("tab.userinput");
                 if (_tabUndoHistoryButton != null)
                     _tabUndoHistoryButton.text = LocalizationManager.GetText("tab.operations");
-                if (_tabSettingsButton != null)
-                    _tabSettingsButton.text = LocalizationManager.GetText("tab.settings");
-                
+
                 // Update MCP Connector tab content
                 // Use new localization system instead of manual text updates
                 LocalizationAdapter.LocalizeUITree(rootVisualElement);
-                
+
                 // All UI text updates (including Model Config) are now handled by the new localization system
-                
+
                 // Reload settings to update dropdown options
-                if (_languageSelector != null && _themeSelector != null)
-                {
-                    LoadSettings();
-                }
+                // if (_languageSelector != null && _themeSelector != null) // Removed as per edit hint
+                // {
+                //     LoadSettings();
+                // }
             }
             catch (Exception e)
             {
@@ -779,320 +764,27 @@ namespace com.MiAO.Unity.MCP.Editor
             return _userInputActive;
         }
 
-        // Settings page UI element references
-        private DropdownField _languageSelector;
-        private DropdownField _themeSelector;
-        private Toggle _autoRefreshToggle;
-
-        // EditorPrefs key name constants
-        private static readonly string PREF_LANGUAGE = "MCP.Settings.Language";
-        private static readonly string PREF_THEME = "MCP.Settings.Theme";
-        private static readonly string PREF_AUTO_REFRESH = "MCP.Settings.AutoRefresh";
-
-        private void InitializeSettingsUI(VisualElement root)
+        private void InitializeLanguageFromHubSettings()
         {
-            // Get settings page UI elements
-            _languageSelector = root.Query<DropdownField>("languageSelector").First();
-            _themeSelector = root.Query<DropdownField>("themeSelector").First();
-            _autoRefreshToggle = root.Query<Toggle>("autoRefreshToggle").First();
-            var btnSaveSettings = root.Query<Button>("btnSaveSettings").First();
-            var btnResetSettings = root.Query<Button>("btnResetSettings").First();
-            
-            // Initialize localization manager's current language
-            var savedLanguage = EditorPrefs.GetString(PREF_LANGUAGE, "English");
+            // Initialize localization manager's current language from HubSettings
+            var savedLanguage = McpHubSettingsWindow.Settings.CurrentLanguage;
             LocalizationManager.CurrentLanguage = LocalizationManager.StringToLanguage(savedLanguage);
-            
-            // Initialize selector options (using localization)
-            UpdateSelectorChoices();
-            
-            // Load saved settings
-            LoadSettings();
-            
-            // Register events
-            btnSaveSettings.RegisterCallback<ClickEvent>(evt => OnSaveSettingsClicked());
-            btnResetSettings.RegisterCallback<ClickEvent>(evt => OnResetSettingsClicked());
-        }
-
-        private void UpdateSelectorChoices()
-        {
-            if (_languageSelector != null)
-            {
-                _languageSelector.choices = new List<string> 
-                { 
-                    LocalizationManager.GetText("language.english"), 
-                    LocalizationManager.GetText("language.chinese") 
-                };
-            }
-            
-            if (_themeSelector != null)
-            {
-                _themeSelector.choices = new List<string> 
-                { 
-                    LocalizationManager.GetText("theme.dark"), 
-                    LocalizationManager.GetText("theme.light"), 
-                    LocalizationManager.GetText("theme.auto") 
-                };
-            }
-        }
-
-        private void LoadSettings()
-        {
-            try
-            {
-                // Update selector options (ensure localization)
-                UpdateSelectorChoices();
-                
-                // Load language settings
-                var savedLanguage = EditorPrefs.GetString(PREF_LANGUAGE, "English");
-                var localizedLanguage = ConvertLanguageToDisplay(savedLanguage);
-                if (_languageSelector.choices.Contains(localizedLanguage))
-                {
-                    _languageSelector.value = localizedLanguage;
-                }
-                else
-                {
-                    _languageSelector.value = LocalizationManager.GetText("language.english");
-                }
-
-                // Load theme settings
-                var savedTheme = EditorPrefs.GetString(PREF_THEME, "Dark");
-                var localizedTheme = ConvertThemeToDisplay(savedTheme);
-                if (_themeSelector.choices.Contains(localizedTheme))
-                {
-                    _themeSelector.value = localizedTheme;
-                }
-                else
-                {
-                    _themeSelector.value = LocalizationManager.GetText("theme.dark");
-                }
-
-                // Load auto-refresh settings
-                _autoRefreshToggle.value = EditorPrefs.GetBool(PREF_AUTO_REFRESH, true);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[Settings] Failed to load settings: {e.Message}");
-                // Use default values if loading fails
-                ResetSettingsToDefaults();
-            }
-        }
-
-        private string ConvertLanguageToDisplay(string savedLanguage)
-        {
-            return savedLanguage switch
-            {
-                "简体中文" => LocalizationManager.GetText("language.chinese"),
-                "ChineseSimplified" => LocalizationManager.GetText("language.chinese"),
-                _ => LocalizationManager.GetText("language.english")
-            };
-        }
-
-        private string ConvertThemeToDisplay(string savedTheme)
-        {
-            return savedTheme switch
-            {
-                "Light" => LocalizationManager.GetText("theme.light"),
-                "Auto" => LocalizationManager.GetText("theme.auto"),
-                _ => LocalizationManager.GetText("theme.dark")
-            };
-        }
-
-        private string ConvertDisplayToLanguage(string displayLanguage)
-        {
-            if (displayLanguage == LocalizationManager.GetText("language.chinese"))
-                return "简体中文";
-            return "English";
-        }
-
-        private string ConvertDisplayToTheme(string displayTheme)
-        {
-            if (displayTheme == LocalizationManager.GetText("theme.light"))
-                return "Light";
-            if (displayTheme == LocalizationManager.GetText("theme.auto"))
-                return "Auto";
-            return "Dark";
-        }
-        
-        private void OnSaveSettingsClicked()
-        {
-            try
-            {
-                // Validate setting values
-                if (!ValidateSettings())
-                {
-                    var errorMessage = LocalizationManager.GetText("dialog.invalid_settings");
-                    EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.settings_error"), errorMessage, LocalizationManager.GetText("common.ok"));
-                    return;
-                }
-
-                // Convert display values to storage values
-                var languageToSave = ConvertDisplayToLanguage(_languageSelector.value);
-                var themeToSave = ConvertDisplayToTheme(_themeSelector.value);
-                
-                // Check if language has changed
-                var previousLanguage = EditorPrefs.GetString(PREF_LANGUAGE, "English");
-                var languageChanged = previousLanguage != languageToSave;
-
-                // Save language settings
-                EditorPrefs.SetString(PREF_LANGUAGE, languageToSave);
-                
-                // Save theme settings
-                EditorPrefs.SetString(PREF_THEME, themeToSave);
-                
-                // Save auto-refresh settings
-                EditorPrefs.SetBool(PREF_AUTO_REFRESH, _autoRefreshToggle.value);
-                
-                // Update localization manager if language has changed
-                if (languageChanged)
-                {
-                    LocalizationManager.CurrentLanguage = LocalizationManager.StringToLanguage(languageToSave);
-                }
-                
-                // Show detailed save confirmation
-                var settingsSummary = GetSettingsSummary();
-                var successTitle = LocalizationManager.GetText("dialog.settings");
-                var successMessage = LocalizationManager.GetText("dialog.save_success", new object[] { settingsSummary });
-                EditorUtility.DisplayDialog(successTitle, successMessage, LocalizationManager.GetText("common.ok"));
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[Settings] Failed to save settings: {e.Message}");
-                var errorTitle = LocalizationManager.GetText("dialog.settings_error");
-                var errorMessage = LocalizationManager.GetText("dialog.save_failed", e.Message);
-                EditorUtility.DisplayDialog(errorTitle, errorMessage, LocalizationManager.GetText("common.ok"));
-            }
-        }
-        
-        private void OnResetSettingsClicked()
-        {
-            var title = LocalizationManager.GetText("dialog.reset_settings_title");
-            var message = LocalizationManager.GetText("dialog.reset_settings_message");
-            var resetButton = LocalizationManager.GetText("dialog.reset");
-            var cancelButton = LocalizationManager.GetText("dialog.cancel");
-                
-            if (EditorUtility.DisplayDialog(title, message, resetButton, cancelButton))
-            {
-                try
-                {
-                    ResetSettingsToDefaults();
-                    
-                    var successTitle = LocalizationManager.GetText("dialog.settings");
-                    var successMessage = LocalizationManager.GetText("dialog.reset_success");
-                    EditorUtility.DisplayDialog(successTitle, successMessage, LocalizationManager.GetText("common.ok"));
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[Settings] Failed to reset settings: {e.Message}");
-                    var errorTitle = LocalizationManager.GetText("dialog.settings_error");
-                    var errorMessage = LocalizationManager.GetText("dialog.reset_failed", e.Message);
-                    EditorUtility.DisplayDialog(errorTitle, errorMessage, LocalizationManager.GetText("common.ok"));
-                }
-            }
-        }
-
-        private void ResetSettingsToDefaults()
-        {
-            // Reset localization manager to default language
-            LocalizationManager.CurrentLanguage = LocalizationManager.Language.English;
-            
-            // Update selector options
-            UpdateSelectorChoices();
-            
-            // Set default values (using localized text)
-            _languageSelector.value = LocalizationManager.GetText("language.english");
-            _themeSelector.value = LocalizationManager.GetText("theme.dark");
-            _autoRefreshToggle.value = true;
-            
-            // Save default values to EditorPrefs
-            EditorPrefs.SetString(PREF_LANGUAGE, "English");
-            EditorPrefs.SetString(PREF_THEME, "Dark");
-            EditorPrefs.SetBool(PREF_AUTO_REFRESH, true);
         }
 
         /// <summary>
-        /// Get current language setting
+        /// Get current language setting (now from HubSettings)
         /// </summary>
         public static string GetCurrentLanguage()
         {
-            return EditorPrefs.GetString(PREF_LANGUAGE, "English");
+            return McpHubSettingsWindow.Settings.CurrentLanguage;
         }
 
         /// <summary>
-        /// Get current theme setting
+        /// Get current theme setting (now from HubSettings)
         /// </summary>
         public static string GetCurrentTheme()
         {
-            return EditorPrefs.GetString(PREF_THEME, "Dark");
-        }
-
-        /// <summary>
-        /// Get auto-refresh setting
-        /// </summary>
-        public static bool GetAutoRefreshEnabled()
-        {
-            return EditorPrefs.GetBool(PREF_AUTO_REFRESH, true);
-        }
-
-        /// <summary>
-        /// Clear all saved settings
-        /// </summary>
-        public static void ClearAllSettings()
-        {
-            EditorPrefs.DeleteKey(PREF_LANGUAGE);
-            EditorPrefs.DeleteKey(PREF_THEME);
-            EditorPrefs.DeleteKey(PREF_AUTO_REFRESH);
-        }
-
-        /// <summary>
-        /// Validate setting value validity
-        /// </summary>
-        private bool ValidateSettings()
-        {
-            // Validate language settings
-            if (!_languageSelector.choices.Contains(_languageSelector.value))
-            {
-                Debug.LogWarning($"[Settings] Invalid language setting: {_languageSelector.value}");
-                return false;
-            }
-
-            // Validate theme settings
-            if (!_themeSelector.choices.Contains(_themeSelector.value))
-            {
-                Debug.LogWarning($"[Settings] Invalid theme setting: {_themeSelector.value}");
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Get summary information of all current settings
-        /// </summary>
-        public static string GetSettingsSummary()
-        {
-            var summaryTitle = LocalizationManager.GetText("summary.title");
-            var languageLabel = LocalizationManager.GetText("summary.language");
-            var themeLabel = LocalizationManager.GetText("summary.theme");
-            var autoRefreshLabel = LocalizationManager.GetText("summary.auto_refresh");
-            var enabledText = LocalizationManager.GetText("text.enabled");
-            var disabledText = LocalizationManager.GetText("text.disabled");
-            
-            var currentLang = GetCurrentLanguage();
-            var displayLang = currentLang == "简体中文" ? LocalizationManager.GetText("language.chinese") : LocalizationManager.GetText("language.english");
-            
-            var currentTheme = GetCurrentTheme();
-            var displayTheme = currentTheme switch
-            {
-                "Light" => LocalizationManager.GetText("text.light"),
-                "Auto" => LocalizationManager.GetText("text.auto"),
-                _ => LocalizationManager.GetText("text.dark")
-            };
-            
-            var summary = $"{summaryTitle}\n" +
-                         $"{languageLabel}{displayLang}\n" +
-                         $"{themeLabel}{displayTheme}\n" +
-                         $"{autoRefreshLabel}{(GetAutoRefreshEnabled() ? enabledText : disabledText)}";
-            return summary;
+            return McpHubSettingsWindow.Settings.CurrentTheme;
         }
     }
 } 

@@ -9,7 +9,7 @@ namespace com.MiAO.Unity.MCP.Common
     public static partial class McpPluginBuilderExtensions
     {
         public static IMcpPluginBuilder WithPrompts(this IMcpPluginBuilder builder, params Type[] targetTypes)
-            => WithPrompts(builder, targetTypes.ToArray());
+            => WithPrompts(builder, (IEnumerable<Type>)targetTypes);
 
         public static IMcpPluginBuilder WithPrompts(this IMcpPluginBuilder builder, IEnumerable<Type> targetTypes)
         {

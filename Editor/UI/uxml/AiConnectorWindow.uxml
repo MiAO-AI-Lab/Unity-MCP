@@ -9,7 +9,6 @@
             <ui:Button name="TabModelConfig" text="Model Config" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
             <ui:Button name="TabUserInput" text="User Input" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
             <ui:Button name="TabUndoHistory" text="Operations" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
-            <ui:Button name="TabSettings" text="Settings" class="tab-button" style="flex-grow: 1; height: 100%; border-width: 0; border-radius: 0; background-color: rgba(0, 0, 0, 0); -unity-font-style: normal;" />
         </ui:VisualElement>
         
         <!-- Tab content -->
@@ -317,36 +316,7 @@
                 </ui:VisualElement>
             </ui:ScrollView>
             
-            <!-- Settings tab content -->
-            <ui:ScrollView name="SettingsContent" style="flex-grow: 1; display: none;">
-                <ui:VisualElement class="container" style="min-width: 320px;">
-                    <ui:Label text="User Preferences" class="Header" />
-                    
-                    <!-- Language settings -->
-                    <ui:VisualElement class="config-group">
-                        <ui:Foldout text="Language Settings" value="true" class="config-group-foldout">
-                            <ui:DropdownField label="Interface Language" name="languageSelector" class="config-item" />
-                            <ui:Label text="Select the language for the user interface" class="section-desc" />
-                        </ui:Foldout>
-                    </ui:VisualElement>
-                    
-                    <!-- Theme settings -->
-                    <ui:VisualElement class="config-group">
-                        <ui:Foldout text="Theme Settings" value="true" class="config-group-foldout">
-                            <ui:DropdownField label="UI Theme" name="themeSelector" class="config-item" />
-                            <ui:Toggle label="Auto-refresh UI" name="autoRefreshToggle" class="config-item" />
-                            <ui:Label text="Choose the visual theme for the interface" class="section-desc" />
-                        </ui:Foldout>
-                    </ui:VisualElement>
-                    
-                    <!-- Save button -->
-                    <ui:Button name="btnSaveSettings" text="Save Settings" class="Button-Primary save-config-btn" />
-                    
-                    <!-- Reset button -->
-                    <ui:Button name="btnResetSettings" text="Reset to Defaults" class="Button-Secondary" style="margin-top: 10px;" />
-                </ui:VisualElement>
-            </ui:ScrollView>
-            
+
             <!-- User Input tab content -->
             <ui:ScrollView name="UserInputContent" style="flex-grow: 1; display: none;">
                 <ui:VisualElement class="container" style="min-width: 320px; padding: 10px;">

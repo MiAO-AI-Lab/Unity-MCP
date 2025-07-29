@@ -12,7 +12,7 @@ namespace com.MiAO.Unity.MCP.Common
     public static partial class McpPluginBuilderExtensions
     {
         public static IMcpPluginBuilder WithResources(this IMcpPluginBuilder builder, params Type[] targetTypes)
-            => WithResources(builder, targetTypes.ToArray());
+            => WithResources(builder, (IEnumerable<Type>)targetTypes);
 
         public static IMcpPluginBuilder WithResources(this IMcpPluginBuilder builder, IEnumerable<Type> targetTypes)
         {

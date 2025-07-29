@@ -8,6 +8,8 @@ using UnityEditor;
 using UnityEngine.UIElements;
 using com.MiAO.Unity.MCP.Common;
 using com.MiAO.Unity.MCP.Editor.Extensions;
+using com.MiAO.Unity.MCP.Editor.Common;
+using Consts = com.MiAO.Unity.MCP.Common.Consts;
 using Debug = UnityEngine.Debug;
 
 namespace com.MiAO.Unity.MCP.Editor.UI
@@ -18,9 +20,8 @@ namespace com.MiAO.Unity.MCP.Editor.UI
     /// </summary>
     public class McpHubSettingsWindow : EditorWindow
     {
-        private const string MENU_TITLE = "MCP Hub Settings";
         private const int MIN_WIDTH = 500;
-        private const int MIN_HEIGHT = 400;
+        private const int MIN_HEIGHT = 600;
         
         private const string STYLE_PATH = "McpHubSettingsWindow";
         
@@ -32,6 +33,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private const string KEY_EXTENSION_UPDATE_CHANNEL = "mcp-hub:extension-update-channel";
         private const string KEY_MCP_SERVER_PORT = "mcp-hub:mcp-server-port";
         private const string KEY_MCP_SERVER_HOST = "mcp-hub:mcp-server-host";
+        
+        // Language and theme setting keys (moved from MainWindow)
+        private const string KEY_LANGUAGE = "MCP.Settings.Language";
+        private const string KEY_THEME = "MCP.Settings.Theme";
 
         // Default values
         private const bool DEFAULT_AUTO_START_SERVER = true;
@@ -65,6 +70,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private Button m_RefreshExtensionsButton;
         private Button m_ResetExtensionCacheButton;
 
+        // Language and Theme Settings (moved from MainWindow)
+        private DropdownField m_LanguageSelector;
+        private DropdownField m_ThemeSelector;
+
         // Action buttons
         private Button m_ApplyButton;
         private Button m_ResetButton;
@@ -86,7 +95,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 return;
             }
             
-            s_Instance = GetWindow<McpHubSettingsWindow>(true, MENU_TITLE, true);
+            s_Instance = GetWindow<McpHubSettingsWindow>(true, LocalizationManager.GetText("hubsettings.title"), true);
             s_Instance.minSize = new Vector2(MIN_WIDTH, MIN_HEIGHT);
             s_Instance.Show();
         }
@@ -94,15 +103,53 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private void OnEnable()
         {
             s_Instance = this;
-            titleContent = new GUIContent(MENU_TITLE, "Configure MCP Hub settings");
+            titleContent = new GUIContent(LocalizationManager.GetText("hubsettings.title"), LocalizationManager.GetText("hubsettings.window_desc"));
+            
+            // Subscribe to language change events
+            LocalizationManager.OnLanguageChanged += OnLanguageChanged;
             
             CreateUIElements();
             LoadSettings();
+            UpdateLocalizedTexts();
         }
 
         private void OnDisable()
         {
             if (s_Instance == this) s_Instance = null;
+            
+            // Unsubscribe from language change events
+            LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
+        }
+
+        /// <summary>
+        /// Handle language change events
+        /// </summary>
+        private void OnLanguageChanged(LocalizationManager.Language newLanguage)
+        {
+            UpdateLocalizedTexts();
+        }
+
+        /// <summary>
+        /// Update all localized texts
+        /// </summary>
+        private void UpdateLocalizedTexts()
+        {
+            try
+            {
+                // Update window title
+                titleContent = new GUIContent(LocalizationManager.GetText("hubsettings.title"), LocalizationManager.GetText("hubsettings.window_desc"));
+                
+                // Update selector choices
+                UpdateSelectorChoices();
+                
+                // Recreate UI elements to update all text
+                CreateUIElements();
+                LoadSettings();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{Consts.Log.Tag} Failed to update localized texts: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -154,12 +201,12 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_Header.style.borderBottomWidth = 1;
             m_Header.style.borderBottomColor = Color.gray;
             
-            var title = new Label("MCP Hub Settings");
+            var title = new Label(LocalizationManager.GetText("hubsettings.title"));
             title.style.fontSize = 18;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
             title.style.marginBottom = 5;
             
-            var description = new Label("Configure MCP Hub behavior, server settings, and extension preferences.");
+            var description = new Label(LocalizationManager.GetText("hubsettings.window_desc"));
             description.style.fontSize = 12;
             description.style.color = new Color(0.7f, 0.7f, 0.7f);
             description.style.whiteSpace = WhiteSpace.Normal;
@@ -181,6 +228,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_Content.style.paddingRight = 20;
             
             CreateGeneralSettings();
+            CreateLanguageAndThemeSettings();
             CreateServerSettings();
             CreateExtensionSettings();
             
@@ -192,23 +240,53 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void CreateGeneralSettings()
         {
-            var section = CreateSection("General Settings");
+            var section = CreateSection(LocalizationManager.GetText("hubsettings.general_settings"));
             
-            m_AutoStartServerToggle = new Toggle("Auto-start MCP server on Unity startup");
-            m_AutoStartServerToggle.tooltip = "Automatically starts the MCP server when Unity Editor starts";
+            m_AutoStartServerToggle = new Toggle(LocalizationManager.GetText("hubsettings.auto_start_server"));
+            m_AutoStartServerToggle.tooltip = LocalizationManager.GetText("hubsettings.auto_start_server_tooltip");
             section.Add(m_AutoStartServerToggle);
             
-            m_AutoInstallDependenciesToggle = new Toggle("Auto-install extension dependencies");
-            m_AutoInstallDependenciesToggle.tooltip = "Automatically install required dependencies when installing extensions";
+            m_AutoInstallDependenciesToggle = new Toggle(LocalizationManager.GetText("hubsettings.auto_install_deps"));
+            m_AutoInstallDependenciesToggle.tooltip = LocalizationManager.GetText("hubsettings.auto_install_deps_tooltip");
             section.Add(m_AutoInstallDependenciesToggle);
             
-            m_CheckUpdatesOnStartToggle = new Toggle("Check for extension updates on startup");
-            m_CheckUpdatesOnStartToggle.tooltip = "Check for available extension updates when Unity Editor starts";
+            m_CheckUpdatesOnStartToggle = new Toggle(LocalizationManager.GetText("hubsettings.check_updates_startup"));
+            m_CheckUpdatesOnStartToggle.tooltip = LocalizationManager.GetText("hubsettings.check_updates_startup_tooltip");
             section.Add(m_CheckUpdatesOnStartToggle);
             
-            m_EnableDebugLoggingToggle = new Toggle("Enable debug logging");
-            m_EnableDebugLoggingToggle.tooltip = "Enable detailed debug logs for MCP Hub operations";
+            m_EnableDebugLoggingToggle = new Toggle(LocalizationManager.GetText("hubsettings.enable_debug_logging"));
+            m_EnableDebugLoggingToggle.tooltip = LocalizationManager.GetText("hubsettings.enable_debug_logging_tooltip");
             section.Add(m_EnableDebugLoggingToggle);
+            
+            m_Content.Add(section);
+        }
+
+        /// <summary>
+        /// Creates the language and theme settings section (moved from MainWindow)
+        /// </summary>
+        private void CreateLanguageAndThemeSettings()
+        {
+            var section = CreateSection(LocalizationManager.GetText("hubsettings.language_settings"));
+            
+            // Language selector
+            m_LanguageSelector = new DropdownField(LocalizationManager.GetText("hubsettings.interface_language"));
+            UpdateSelectorChoices();
+            var langDesc = new Label(LocalizationManager.GetText("hubsettings.language_desc"));
+            langDesc.style.fontSize = 11;
+            langDesc.style.color = new Color(0.7f, 0.7f, 0.7f);
+            langDesc.style.marginBottom = 10;
+            section.Add(m_LanguageSelector);
+            section.Add(langDesc);
+            
+            // Theme selector
+            m_ThemeSelector = new DropdownField(LocalizationManager.GetText("hubsettings.ui_theme"));
+            UpdateSelectorChoices();
+            var themeDesc = new Label(LocalizationManager.GetText("hubsettings.theme_desc"));
+            themeDesc.style.fontSize = 11;
+            themeDesc.style.color = new Color(0.7f, 0.7f, 0.7f);
+            themeDesc.style.marginBottom = 10;
+            section.Add(m_ThemeSelector);
+            section.Add(themeDesc);
             
             m_Content.Add(section);
         }
@@ -218,14 +296,14 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void CreateServerSettings()
         {
-            var section = CreateSection("MCP Server Settings");
+            var section = CreateSection(LocalizationManager.GetText("hubsettings.server_settings"));
             
-            m_ServerHostField = new TextField("Server Host");
-            m_ServerHostField.tooltip = "Host address for the MCP server";
+            m_ServerHostField = new TextField(LocalizationManager.GetText("hubsettings.server_host"));
+            m_ServerHostField.tooltip = LocalizationManager.GetText("hubsettings.server_host_tooltip");
             section.Add(m_ServerHostField);
             
-            m_ServerPortField = new IntegerField("Server Port");
-            m_ServerPortField.tooltip = "Port number for the MCP server";
+            m_ServerPortField = new IntegerField(LocalizationManager.GetText("hubsettings.server_port"));
+            m_ServerPortField.tooltip = LocalizationManager.GetText("hubsettings.server_port_tooltip");
             section.Add(m_ServerPortField);
             
             // Server control buttons
@@ -235,19 +313,19 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             
             var startServerButton = new Button(() => StartMcpServer())
             {
-                text = "Start Server"
+                text = LocalizationManager.GetText("hubsettings.start_server")
             };
             startServerButton.style.marginRight = 5;
             
             var stopServerButton = new Button(() => StopMcpServer())
             {
-                text = "Stop Server"
+                text = LocalizationManager.GetText("hubsettings.stop_server")
             };
             stopServerButton.style.marginRight = 5;
             
             var serverStatusButton = new Button(() => CheckServerStatus())
             {
-                text = "Check Status"
+                text = LocalizationManager.GetText("hubsettings.check_status")
             };
             
             buttonContainer.Add(startServerButton);
@@ -263,12 +341,16 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void CreateExtensionSettings()
         {
-            var section = CreateSection("Extension Settings");
+            var section = CreateSection(LocalizationManager.GetText("hubsettings.extension_settings"));
             
             // Update channel dropdown
-            var updateChannels = new List<string> { "stable", "beta", "development" };
-            m_UpdateChannelDropdown = new PopupField<string>("Update Channel", updateChannels, 0);
-            m_UpdateChannelDropdown.tooltip = "Choose the update channel for extension packages";
+            var updateChannels = new List<string> { 
+                LocalizationManager.GetText("hubsettings.update_channel_stable"), 
+                LocalizationManager.GetText("hubsettings.update_channel_beta"), 
+                LocalizationManager.GetText("hubsettings.update_channel_development") 
+            };
+            m_UpdateChannelDropdown = new PopupField<string>(LocalizationManager.GetText("hubsettings.update_channel"), updateChannels, 0);
+            m_UpdateChannelDropdown.tooltip = LocalizationManager.GetText("hubsettings.update_channel_tooltip");
             section.Add(m_UpdateChannelDropdown);
             
             // Extension management buttons
@@ -278,19 +360,19 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             
             m_RefreshExtensionsButton = new Button(() => RefreshExtensions())
             {
-                text = "Refresh Extensions"
+                text = LocalizationManager.GetText("hubsettings.refresh_extensions")
             };
             m_RefreshExtensionsButton.style.marginRight = 5;
             
             m_ResetExtensionCacheButton = new Button(() => ResetExtensionCache())
             {
-                text = "Reset Cache"
+                text = LocalizationManager.GetText("hubsettings.reset_cache")
             };
             m_ResetExtensionCacheButton.style.marginRight = 5;
             
             var openExtensionFolderButton = new Button(() => OpenExtensionFolder())
             {
-                text = "Open Extensions Folder"
+                text = LocalizationManager.GetText("hubsettings.open_extensions_folder")
             };
             
             buttonContainer.Add(m_RefreshExtensionsButton);
@@ -336,7 +418,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_Footer.style.justifyContent = Justify.SpaceBetween;
             
             // Status label
-            m_StatusLabel = new Label("Ready");
+            m_StatusLabel = new Label(LocalizationManager.GetText("hubsettings.ready"));
             m_StatusLabel.style.fontSize = 12;
             m_StatusLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
             
@@ -346,21 +428,21 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             
             m_ApplyButton = new Button(() => ApplySettings())
             {
-                text = "Apply"
+                text = LocalizationManager.GetText("hubsettings.apply")
             };
             m_ApplyButton.style.minWidth = 80;
             m_ApplyButton.style.marginRight = 5;
             
             m_ResetButton = new Button(() => ResetSettings())
             {
-                text = "Reset"
+                text = LocalizationManager.GetText("hubsettings.reset")
             };
             m_ResetButton.style.minWidth = 80;
             m_ResetButton.style.marginRight = 5;
             
             m_CloseButton = new Button(() => Close())
             {
-                text = "Close"
+                text = LocalizationManager.GetText("hubsettings.close")
             };
             m_CloseButton.style.minWidth = 80;
             
@@ -374,6 +456,31 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         }
 
         /// <summary>
+        /// Updates selector dropdown choices with localized text
+        /// </summary>
+        private void UpdateSelectorChoices()
+        {
+            if (m_LanguageSelector != null)
+            {
+                m_LanguageSelector.choices = new List<string> 
+                { 
+                    LocalizationManager.GetText("language.english"), 
+                    LocalizationManager.GetText("language.chinese") 
+                };
+            }
+            
+            if (m_ThemeSelector != null)
+            {
+                m_ThemeSelector.choices = new List<string> 
+                { 
+                    LocalizationManager.GetText("theme.dark"), 
+                    LocalizationManager.GetText("theme.light"), 
+                    LocalizationManager.GetText("theme.auto") 
+                };
+            }
+        }
+
+        /// <summary>
         /// Loads settings from EditorPrefs
         /// </summary>
         private void LoadSettings()
@@ -381,27 +488,136 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             try
             {
                 // General settings
-                m_AutoStartServerToggle.value = EditorPrefs.GetBool(KEY_AUTO_START_SERVER, DEFAULT_AUTO_START_SERVER);
-                m_AutoInstallDependenciesToggle.value = EditorPrefs.GetBool(KEY_AUTO_INSTALL_DEPENDENCIES, DEFAULT_AUTO_INSTALL_DEPENDENCIES);
-                m_CheckUpdatesOnStartToggle.value = EditorPrefs.GetBool(KEY_CHECK_UPDATES_ON_START, DEFAULT_CHECK_UPDATES_ON_START);
-                m_EnableDebugLoggingToggle.value = EditorPrefs.GetBool(KEY_ENABLE_DEBUG_LOGGING, DEFAULT_ENABLE_DEBUG_LOGGING);
+                if (m_AutoStartServerToggle != null)
+                    m_AutoStartServerToggle.value = EditorPrefs.GetBool(KEY_AUTO_START_SERVER, DEFAULT_AUTO_START_SERVER);
+                if (m_AutoInstallDependenciesToggle != null)
+                    m_AutoInstallDependenciesToggle.value = EditorPrefs.GetBool(KEY_AUTO_INSTALL_DEPENDENCIES, DEFAULT_AUTO_INSTALL_DEPENDENCIES);
+                if (m_CheckUpdatesOnStartToggle != null)
+                    m_CheckUpdatesOnStartToggle.value = EditorPrefs.GetBool(KEY_CHECK_UPDATES_ON_START, DEFAULT_CHECK_UPDATES_ON_START);
+                if (m_EnableDebugLoggingToggle != null)
+                    m_EnableDebugLoggingToggle.value = EditorPrefs.GetBool(KEY_ENABLE_DEBUG_LOGGING, DEFAULT_ENABLE_DEBUG_LOGGING);
                 
                 // Server settings
-                m_ServerHostField.value = EditorPrefs.GetString(KEY_MCP_SERVER_HOST, DEFAULT_SERVER_HOST);
-                m_ServerPortField.value = EditorPrefs.GetInt(KEY_MCP_SERVER_PORT, DEFAULT_SERVER_PORT);
+                if (m_ServerHostField != null)
+                    m_ServerHostField.value = EditorPrefs.GetString(KEY_MCP_SERVER_HOST, DEFAULT_SERVER_HOST);
+                if (m_ServerPortField != null)
+                    m_ServerPortField.value = EditorPrefs.GetInt(KEY_MCP_SERVER_PORT, DEFAULT_SERVER_PORT);
                 
                 // Extension settings
                 var updateChannel = EditorPrefs.GetString(KEY_EXTENSION_UPDATE_CHANNEL, DEFAULT_UPDATE_CHANNEL);
-                var channelIndex = Array.IndexOf(new[] { "stable", "beta", "development" }, updateChannel);
-                m_UpdateChannelDropdown.index = channelIndex >= 0 ? channelIndex : 0;
+                var channelIndex = updateChannel switch
+                {
+                    "stable" => 0,
+                    "beta" => 1,
+                    "development" => 2,
+                    _ => 0
+                };
+                if (m_UpdateChannelDropdown != null)
+                    m_UpdateChannelDropdown.index = channelIndex;
                 
-                UpdateStatus("Settings loaded");
+                // Language and theme settings (moved from MainWindow)
+                LoadLanguageAndThemeSettings();
+                
+                UpdateStatus(LocalizationManager.GetText("hubsettings.settings_loaded"));
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error loading settings: {ex.Message}");
-                UpdateStatus("Error loading settings");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.error_loading"));
             }
+        }
+
+        /// <summary>
+        /// Loads language and theme settings (moved from MainWindow)
+        /// </summary>
+        private void LoadLanguageAndThemeSettings()
+        {
+            try
+            {
+                // Update selector options (ensure localization)
+                UpdateSelectorChoices();
+                
+                // Load language settings
+                var savedLanguage = EditorPrefs.GetString(KEY_LANGUAGE, "English");
+                var localizedLanguage = ConvertLanguageToDisplay(savedLanguage);
+                if (m_LanguageSelector != null && m_LanguageSelector.choices.Contains(localizedLanguage))
+                {
+                    m_LanguageSelector.value = localizedLanguage;
+                }
+                else if (m_LanguageSelector != null)
+                {
+                    m_LanguageSelector.value = LocalizationManager.GetText("language.english");
+                }
+
+                // Load theme settings
+                var savedTheme = EditorPrefs.GetString(KEY_THEME, "Dark");
+                var localizedTheme = ConvertThemeToDisplay(savedTheme);
+                if (m_ThemeSelector != null && m_ThemeSelector.choices.Contains(localizedTheme))
+                {
+                    m_ThemeSelector.value = localizedTheme;
+                }
+                else if (m_ThemeSelector != null)
+                {
+                    m_ThemeSelector.value = LocalizationManager.GetText("theme.dark");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[HubSettings] Failed to load language and theme settings: {e.Message}");
+                // Use default values if loading fails
+                if (m_LanguageSelector != null)
+                    m_LanguageSelector.value = LocalizationManager.GetText("language.english");
+                if (m_ThemeSelector != null)
+                    m_ThemeSelector.value = LocalizationManager.GetText("theme.dark");
+            }
+        }
+
+        /// <summary>
+        /// Converts saved language to display language
+        /// </summary>
+        private string ConvertLanguageToDisplay(string savedLanguage)
+        {
+            return savedLanguage switch
+            {
+                "简体中文" => LocalizationManager.GetText("language.chinese"),
+                "ChineseSimplified" => LocalizationManager.GetText("language.chinese"),
+                _ => LocalizationManager.GetText("language.english")
+            };
+        }
+
+        /// <summary>
+        /// Converts saved theme to display theme
+        /// </summary>
+        private string ConvertThemeToDisplay(string savedTheme)
+        {
+            return savedTheme switch
+            {
+                "Light" => LocalizationManager.GetText("theme.light"),
+                "Auto" => LocalizationManager.GetText("theme.auto"),
+                _ => LocalizationManager.GetText("theme.dark")
+            };
+        }
+
+        /// <summary>
+        /// Converts display language to storage language
+        /// </summary>
+        private string ConvertDisplayToLanguage(string displayLanguage)
+        {
+            if (displayLanguage == LocalizationManager.GetText("language.chinese"))
+                return "简体中文";
+            return "English";
+        }
+
+        /// <summary>
+        /// Converts display theme to storage theme
+        /// </summary>
+        private string ConvertDisplayToTheme(string displayTheme)
+        {
+            if (displayTheme == LocalizationManager.GetText("theme.light"))
+                return "Light";
+            if (displayTheme == LocalizationManager.GetText("theme.auto"))
+                return "Auto";
+            return "Dark";
         }
 
         /// <summary>
@@ -422,16 +638,55 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 EditorPrefs.SetInt(KEY_MCP_SERVER_PORT, m_ServerPortField.value);
                 
                 // Extension settings
-                var updateChannels = new List<string> { "stable", "beta", "development" };
-                EditorPrefs.SetString(KEY_EXTENSION_UPDATE_CHANNEL, updateChannels[m_UpdateChannelDropdown.index]);
+                var updateChannelIndex = m_UpdateChannelDropdown.index;
+                var updateChannel = updateChannelIndex switch
+                {
+                    0 => "stable",
+                    1 => "beta",
+                    2 => "development",
+                    _ => "stable"
+                };
+                EditorPrefs.SetString(KEY_EXTENSION_UPDATE_CHANNEL, updateChannel);
                 
-                UpdateStatus("Settings applied successfully");
+                // Language and theme settings (moved from MainWindow)
+                ApplyLanguageAndThemeSettings();
+                
+                UpdateStatus(LocalizationManager.GetText("hubsettings.settings_applied"));
                 Debug.Log($"{Consts.Log.Tag} MCP Hub settings applied");
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error applying settings: {ex.Message}");
-                UpdateStatus("Error applying settings");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.error_applying"));
+            }
+        }
+
+        /// <summary>
+        /// Applies language and theme settings (moved from MainWindow)
+        /// </summary>
+        private void ApplyLanguageAndThemeSettings()
+        {
+            if (m_LanguageSelector != null && m_ThemeSelector != null)
+            {
+                // Convert display values to storage values
+                var languageToSave = ConvertDisplayToLanguage(m_LanguageSelector.value);
+                var themeToSave = ConvertDisplayToTheme(m_ThemeSelector.value);
+                
+                // Check if language has changed
+                var previousLanguage = EditorPrefs.GetString(KEY_LANGUAGE, "English");
+                var languageChanged = previousLanguage != languageToSave;
+
+                // Save language settings
+                EditorPrefs.SetString(KEY_LANGUAGE, languageToSave);
+                
+                // Save theme settings
+                EditorPrefs.SetString(KEY_THEME, themeToSave);
+                
+                // Update localization manager if language has changed
+                if (languageChanged)
+                {
+                    LocalizationManager.CurrentLanguage = LocalizationManager.StringToLanguage(languageToSave);
+                }
             }
         }
 
@@ -440,9 +695,9 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void ResetSettings()
         {
-            if (EditorUtility.DisplayDialog("Reset Settings", 
-                "Are you sure you want to reset all settings to default values?", 
-                "Reset", "Cancel"))
+            if (EditorUtility.DisplayDialog(LocalizationManager.GetText("hubsettings.reset_confirm_title"), 
+                LocalizationManager.GetText("hubsettings.reset_confirm_message"), 
+                LocalizationManager.GetText("hubsettings.reset"), LocalizationManager.GetText("common.cancel")))
             {
                 try
                 {
@@ -455,12 +710,24 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                     m_ServerPortField.value = DEFAULT_SERVER_PORT;
                     m_UpdateChannelDropdown.index = 0; // stable
                     
-                    UpdateStatus("Settings reset to defaults");
+                    // Reset language and theme settings
+                    LocalizationManager.CurrentLanguage = LocalizationManager.Language.English;
+                    UpdateSelectorChoices();
+                    if (m_LanguageSelector != null)
+                        m_LanguageSelector.value = LocalizationManager.GetText("language.english");
+                    if (m_ThemeSelector != null)
+                        m_ThemeSelector.value = LocalizationManager.GetText("theme.dark");
+                    
+                    // Save reset values to EditorPrefs
+                    EditorPrefs.SetString(KEY_LANGUAGE, "English");
+                    EditorPrefs.SetString(KEY_THEME, "Dark");
+                    
+                    UpdateStatus(LocalizationManager.GetText("hubsettings.settings_reset"));
                 }
                 catch (Exception ex)
                 {
                     Debug.LogError($"{Consts.Log.Tag} Error resetting settings: {ex.Message}");
-                    UpdateStatus("Error resetting settings");
+                    UpdateStatus(LocalizationManager.GetText("hubsettings.error_resetting"));
                 }
             }
         }
@@ -472,14 +739,14 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             try
             {
-                UpdateStatus("Starting MCP server...");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.starting_server"));
                 McpPluginUnity.BuildAndStart();
-                UpdateStatus("MCP server started");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.server_started"));
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error starting MCP server: {ex.Message}");
-                UpdateStatus("Error starting MCP server");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.error_starting_server"));
             }
         }
 
@@ -490,14 +757,14 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             try
             {
-                UpdateStatus("Stopping MCP server...");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.stopping_server"));
                 
                 // Find and kill all MCP server processes
                 var mcpProcesses = FindMcpServerProcesses();
                 
                 if (mcpProcesses.Count == 0)
                 {
-                    UpdateStatus("No MCP server processes found");
+                    UpdateStatus(LocalizationManager.GetText("hubsettings.no_processes_found"));
                     return;
                 }
                 
@@ -519,12 +786,12 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                     }
                 }
                 
-                UpdateStatus($"Force closed {killedCount} MCP server processes");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.force_closed_processes", killedCount));
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error stopping MCP server: {ex.Message}");
-                UpdateStatus("Error stopping MCP server");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.error_stopping_server"));
             }
         }
 
@@ -535,27 +802,26 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             try
             {
-                UpdateStatus("Checking server status...");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.checking_status"));
                 
                 var mcpProcesses = FindMcpServerProcesses();
                 
                 if (mcpProcesses.Count == 0)
                 {
-                    UpdateStatus("Server status: Not running");
+                    UpdateStatus(LocalizationManager.GetText("hubsettings.server_not_running"));
                     return;
                 }
                 
                 var processInfo = mcpProcesses.Select(p => $"{p.ProcessName} (PID: {p.Id})").ToArray();
-                var statusMessage = $"Server status: Running - {mcpProcesses.Count} process(es) detected\n" +
-                                  $"Processes: {string.Join(", ", processInfo)}";
+                var statusMessage = LocalizationManager.GetText("hubsettings.server_running", mcpProcesses.Count);
                 
                 UpdateStatus(statusMessage);
-                Debug.Log($"{Consts.Log.Tag} MCP Server Status: {statusMessage}");
+                Debug.Log($"{Consts.Log.Tag} MCP Server Status: {statusMessage}\nProcesses: {string.Join(", ", processInfo)}");
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error checking server status: {ex.Message}");
-                UpdateStatus("Error checking server status");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.error_checking_status"));
             }
         }
 
@@ -639,14 +905,14 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         {
             try
             {
-                UpdateStatus("Refreshing extensions...");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.refreshing_extensions"));
                 ExtensionManager.RefreshExtensionCache();
-                UpdateStatus("Extensions refreshed");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.extensions_refreshed"));
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error refreshing extensions: {ex.Message}");
-                UpdateStatus("Error refreshing extensions");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.error_refreshing_extensions"));
             }
         }
 
@@ -655,21 +921,21 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void ResetExtensionCache()
         {
-            if (EditorUtility.DisplayDialog("Reset Extension Cache", 
-                "Are you sure you want to reset the extension cache? This will clear all cached extension data.", 
-                "Reset", "Cancel"))
+            if (EditorUtility.DisplayDialog(LocalizationManager.GetText("hubsettings.reset_cache_confirm_title"), 
+                LocalizationManager.GetText("hubsettings.reset_cache_confirm_message"), 
+                LocalizationManager.GetText("hubsettings.reset"), LocalizationManager.GetText("common.cancel")))
             {
                 try
                 {
-                    UpdateStatus("Resetting extension cache...");
+                    UpdateStatus(LocalizationManager.GetText("hubsettings.resetting_cache"));
                     // Clear extension cache
                     ExtensionManager.RefreshExtensionCache();
-                    UpdateStatus("Extension cache reset");
+                    UpdateStatus(LocalizationManager.GetText("hubsettings.cache_reset"));
                 }
                 catch (Exception ex)
                 {
                     Debug.LogError($"{Consts.Log.Tag} Error resetting extension cache: {ex.Message}");
-                    UpdateStatus("Error resetting extension cache");
+                    UpdateStatus(LocalizationManager.GetText("hubsettings.error_resetting_cache"));
                 }
             }
         }
@@ -683,12 +949,12 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             {
                 var packagesPath = System.IO.Path.Combine(Application.dataPath, "..", "Packages");
                 EditorUtility.RevealInFinder(packagesPath);
-                UpdateStatus("Opened extensions folder");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.opened_extensions_folder"));
             }
             catch (Exception ex)
             {
                 Debug.LogError($"{Consts.Log.Tag} Error opening extensions folder: {ex.Message}");
-                UpdateStatus("Error opening extensions folder");
+                UpdateStatus(LocalizationManager.GetText("hubsettings.error_opening_folder"));
             }
         }
 
@@ -715,6 +981,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             public static string ServerHost => EditorPrefs.GetString(KEY_MCP_SERVER_HOST, DEFAULT_SERVER_HOST);
             public static int ServerPort => EditorPrefs.GetInt(KEY_MCP_SERVER_PORT, DEFAULT_SERVER_PORT);
             public static string UpdateChannel => EditorPrefs.GetString(KEY_EXTENSION_UPDATE_CHANNEL, DEFAULT_UPDATE_CHANNEL);
+            
+            // Language and theme settings (moved from MainWindow)
+            public static string CurrentLanguage => EditorPrefs.GetString(KEY_LANGUAGE, "English");
+            public static string CurrentTheme => EditorPrefs.GetString(KEY_THEME, "Dark");
         }
     }
 }

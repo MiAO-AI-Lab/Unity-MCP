@@ -11,7 +11,7 @@ namespace com.MiAO.Unity.MCP.Common
     public static partial class McpPluginBuilderExtensions
     {
         public static IMcpPluginBuilder WithTools(this IMcpPluginBuilder builder, params Type[] targetTypes)
-            => WithTools(builder, targetTypes.ToArray());
+            => WithTools(builder, (IEnumerable<Type>)targetTypes);
 
         public static IMcpPluginBuilder WithTools(this IMcpPluginBuilder builder, IEnumerable<Type> targetTypes)
         {
