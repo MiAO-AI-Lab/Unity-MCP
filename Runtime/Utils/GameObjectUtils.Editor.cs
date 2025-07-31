@@ -1,11 +1,11 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 #if UNITY_EDITOR
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEditor;
 
-namespace com.MiAO.Unity.MCP.Utils
+namespace com.MiAO.MCP.Utils
 {
     public static partial class GameObjectUtils
     {

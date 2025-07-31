@@ -3,7 +3,7 @@ using System;
 using com.IvanMurzak.ReflectorNet.Model;
 using ModelContextProtocol.Protocol;
 
-namespace com.MiAO.Unity.MCP.Server
+namespace com.MiAO.MCP.Server
 {
     public static class ListResourcesExtensions
     {

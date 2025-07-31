@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 
-namespace com.MiAO.Unity.MCP.Common
+namespace com.MiAO.MCP.Common
 {
     public class ResourceMethodData
     {

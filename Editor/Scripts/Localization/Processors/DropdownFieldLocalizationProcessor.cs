@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Editor.Common;
+using com.MiAO.MCP.Editor.Common;
 
-namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
+namespace com.MiAO.MCP.Editor.Localization.Processors
 {
     /// <summary>
     /// DropdownField control localization processor

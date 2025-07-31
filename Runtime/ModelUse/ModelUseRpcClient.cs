@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model;
 using Microsoft.Extensions.Logging;
 
-namespace com.MiAO.Unity.MCP.Runtime.ModelUse
+namespace com.MiAO.MCP.Runtime.ModelUse
 {
     /// <summary>
     /// ModelUse RPC Client - Unity Runtime side for sending model requests to MCP Server

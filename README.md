@@ -336,7 +336,7 @@ Added numerous tool features
 # Installation
 
 1. [Install .NET 9.0](https://dotnet.microsoft.com/en-us/download)
-2. Git Clone this repository locally and place it in Unity's Packages directory with the path Packages/com.miao.unity.mcp/{repository content}
+2. Git Clone this repository locally and place it in Unity's Packages directory with the path Packages/com.miao.mcp/{repository content}
 3. Manually add to manifest.json:
 
 ```json

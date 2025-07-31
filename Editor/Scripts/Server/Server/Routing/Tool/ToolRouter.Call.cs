@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using NLog;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.MiAO.Unity.MCP.Server
+namespace com.MiAO.MCP.Server
 {
     public static partial class ToolRouter
     {

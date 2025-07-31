@@ -5,15 +5,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using com.MiAO.Unity.MCP.Server.RpcGateway.Core;
-using com.MiAO.Unity.MCP.Server;
+using com.MiAO.MCP.Server.RpcGateway.Core;
+using com.MiAO.MCP.Server;
 using com.IvanMurzak.ReflectorNet.Utils;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using System.Threading;
 using ModelContextProtocol.Server;
 using ModelContextProtocol.Protocol;
 
-namespace com.MiAO.Unity.MCP.Server.RpcGateway.Unity
+namespace com.MiAO.MCP.Server.RpcGateway.Unity
 {
     /// <summary>
     /// Unity RPC Gateway Implementation - Refactored from ComplexServiceHandler Unity connection logic

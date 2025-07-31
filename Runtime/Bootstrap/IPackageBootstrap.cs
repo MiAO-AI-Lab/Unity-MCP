@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace com.MiAO.Unity.MCP.Bootstrap
+namespace com.MiAO.MCP.Bootstrap
 {
     /// <summary>
     /// Interface for package bootstrap system

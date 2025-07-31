@@ -6,7 +6,7 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using NLogger = NLog.Logger;
 
-namespace com.MiAO.Unity.MCP.Server.Utils
+namespace com.MiAO.MCP.Server.Utils
 {
     /// <summary>
     /// Adapter to bridge NLog.Logger to Microsoft.Extensions.Logging.ILogger

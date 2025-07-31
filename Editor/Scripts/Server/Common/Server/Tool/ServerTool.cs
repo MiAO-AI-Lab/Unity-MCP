@@ -2,7 +2,7 @@
 
 using com.IvanMurzak.ReflectorNet.Model;
 
-namespace com.MiAO.Unity.MCP.Common.Server
+namespace com.MiAO.MCP.Common.Server
 {
     public abstract class ServerTool : ServerCommand<IRequestCallTool, IResponseCallTool>, IServerTool
     {

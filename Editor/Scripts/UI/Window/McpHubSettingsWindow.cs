@@ -6,13 +6,13 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Editor.Extensions;
-using com.MiAO.Unity.MCP.Editor.Common;
-using Consts = com.MiAO.Unity.MCP.Common.Consts;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Editor.Extensions;
+using com.MiAO.MCP.Editor.Common;
+using Consts = com.MiAO.MCP.Common.Consts;
 using Debug = UnityEngine.Debug;
 
-namespace com.MiAO.Unity.MCP.Editor.UI
+namespace com.MiAO.MCP.Editor.UI
 {
     /// <summary>
     /// MCP Hub Settings window for configuring Hub preferences and extension settings

@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.MiAO.Unity.MCP.Common
+namespace com.MiAO.MCP.Common
 {
     public static class ExtensionsObject
     {

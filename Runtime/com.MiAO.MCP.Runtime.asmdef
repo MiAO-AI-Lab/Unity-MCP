@@ -1,8 +1,8 @@
 {
-    "name": "com.MiAO.Unity.MCP.Server",
-    "rootNamespace": "com.MiAO.Unity.MCP.Server",
+    "name": "com.MiAO.MCP.Runtime",
+    "rootNamespace": "",
     "references": [
-        "com.MiAO.Unity.MCP.Common"
+        "com.MiAO.MCP.Common"
     ],
     "includePlatforms": [
         "Editor"

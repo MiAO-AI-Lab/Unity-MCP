@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Utils;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Utils;
 using UnityEngine.SceneManagement;
 
-namespace com.MiAO.Unity.MCP
+namespace com.MiAO.MCP
 {
     public class SceneMetadata
     {

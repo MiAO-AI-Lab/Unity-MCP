@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace com.MiAO.Unity.MCP.ToolInjection
+namespace com.MiAO.MCP.ToolInjection
 {
     /// <summary>
     /// Tool metadata information

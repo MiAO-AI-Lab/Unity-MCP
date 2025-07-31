@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
+namespace com.MiAO.MCP.Server.WorkflowOrchestration.Core
 {
     /// <summary>
     /// Workflow Engine Interface - Core orchestration and execution engine

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace com.MiAO.Unity.MCP.Server.Utils
+namespace com.MiAO.MCP.Server.Utils
 {
     /// <summary>
     /// Multi-Level Cache Manager - Universal request/operation caching strategy

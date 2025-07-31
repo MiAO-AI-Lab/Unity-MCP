@@ -4,9 +4,9 @@ using System.Linq;
 using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Editor.Common;
+using com.MiAO.MCP.Editor.Common;
 
-namespace com.MiAO.Unity.MCP.Editor.Localization
+namespace com.MiAO.MCP.Editor.Localization
 {
     /// <summary>
     /// UI localization system core manager

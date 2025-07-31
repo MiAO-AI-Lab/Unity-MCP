@@ -1,11 +1,11 @@
-using com.MiAO.Unity.MCP.Editor.Common;
-using com.MiAO.Unity.MCP.Utils;
+using com.MiAO.MCP.Editor.Common;
+using com.MiAO.MCP.Utils;
 using R3;
 using UnityEditor;
 using UnityEngine;
 using Unity.MCP;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {

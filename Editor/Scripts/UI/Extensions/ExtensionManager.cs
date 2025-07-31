@@ -9,10 +9,10 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using Debug = UnityEngine.Debug;
 
-namespace com.MiAO.Unity.MCP.Editor.Extensions
+namespace com.MiAO.MCP.Editor.Extensions
 {
     /// <summary>
     /// Manages MCP extension packages - installation, removal, updates, and discovery
@@ -31,9 +31,9 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
             new Dictionary<string, ExtensionRegistryEntry>
             {
                 {
-                    "com.miao.unity.mcp.essential",
+                    "com.miao.mcp.essential",
                     new ExtensionRegistryEntry(
-                        "com.miao.unity.mcp.essential",
+                        "com.miao.mcp.essential",
                         "Unity MCP Essential Tools",
                         "Essential tools for basic Unity MCP operations including GameObject, Scene, Assets, Component, and Editor manipulation.",
                         "MCP Team",
@@ -42,9 +42,9 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                     )
                 },
                 {
-                    "com.miao.unity.mcp.behavior-designer-tools",
+                    "com.miao.mcp.behavior-designer-tools",
                     new ExtensionRegistryEntry(
-                        "com.miao.unity.mcp.behavior-designer-tools",
+                        "com.miao.mcp.behavior-designer-tools",
                         "Unity MCP Behavior Designer Tools",
                         "Behavior Designer Tools for Unity MCP",
                         "MCP Team",
@@ -429,7 +429,7 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
                     foreach (var package in listRequest.Result)
                     {
                         s_InstalledPackages[package.name] = package;
-                        if (package.name.StartsWith("com.miao.unity.mcp"))
+                        if (package.name.StartsWith("com.miao.mcp"))
                         {
                         }
                     }
@@ -483,7 +483,7 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
             // Also add any installed MCP packages that might not be in our registry
             foreach (var installedPackage in s_InstalledPackages.Values)
             {
-                if (installedPackage.name.StartsWith("com.miao.unity.mcp") && 
+                if (installedPackage.name.StartsWith("com.miao.mcp") && 
                     !s_KnownExtensions.ContainsKey(installedPackage.name))
                 {
                     var extension = new ExtensionPackageInfo(
@@ -520,10 +520,10 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
             // Don't clear existing registry extensions, only add samples if needed
             var samplesToAdd = new[]
             {
-                ("com.miao.unity.mcp.vision", "Vision Pack", ExtensionCategory.Vision, false),
-                ("com.miao.unity.mcp.programmer", "Programmer Pack", ExtensionCategory.Programmer, false),
-                ("com.miao.unity.mcp.animation", "Animation Tools", ExtensionCategory.Essential, true),
-                ("com.miao.unity.mcp.physics", "Physics Tools", ExtensionCategory.Essential, false),
+                ("com.miao.mcp.vision", "Vision Pack", ExtensionCategory.Vision, false),
+                ("com.miao.mcp.programmer", "Programmer Pack", ExtensionCategory.Programmer, false),
+                ("com.miao.mcp.animation", "Animation Tools", ExtensionCategory.Essential, true),
+                ("com.miao.mcp.physics", "Physics Tools", ExtensionCategory.Essential, false),
             };
 
             foreach (var (id, name, category, installed) in samplesToAdd)
@@ -606,9 +606,9 @@ namespace com.MiAO.Unity.MCP.Editor.Extensions
             // Map package IDs to actual directory names
             var packageIdToDirectoryMap = new Dictionary<string, string>
             {
-                { "com.miao.unity.mcp.behavior-designer-tools", "Unity-MCP-Tools-Behavior-Designer" },
-                { "com.miao.unity.mcp.essential", "Unity-MCP-Essential" },
-                { "com.miao.unity.mcp", "Unity-MCP" }
+                { "com.miao.mcp.behavior-designer-tools", "Unity-MCP-Tools-Behavior-Designer" },
+                { "com.miao.mcp.essential", "Unity-MCP-Essential" },
+                { "com.miao.mcp", "Unity-MCP" }
             };
 
             return packageIdToDirectoryMap.TryGetValue(packageId, out var directoryName) ? directoryName : packageId;

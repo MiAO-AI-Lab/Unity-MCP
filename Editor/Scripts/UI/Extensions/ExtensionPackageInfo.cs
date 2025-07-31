@@ -2,7 +2,7 @@
 using System;
 using UnityEngine;
 
-namespace com.MiAO.Unity.MCP.Editor.Extensions
+namespace com.MiAO.MCP.Editor.Extensions
 {
     /// <summary>
     /// Contains information about an MCP extension package

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using R3;
 
-namespace com.MiAO.Unity.MCP.Common
+namespace com.MiAO.MCP.Common
 {
     public class HubConnectionLogger : HubConnectionObservable, IDisposable
     {

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using com.IvanMurzak.ReflectorNet.Json;
 using UnityEngine;
 
-namespace com.MiAO.Unity.MCP.Common.Json.Converters
+namespace com.MiAO.MCP.Common.Json.Converters
 {
     public class Matrix4x4Converter : JsonConverter<Matrix4x4>, IJsonSchemaConverter
     {

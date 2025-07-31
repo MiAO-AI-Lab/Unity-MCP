@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C#: com.MiAO.Unity.MCP.Server Debug",
+            "name": "C#: com.MiAO.MCP.Server Debug",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/Server/com.MiAO.Unity.MCP.Server.csproj"
+            "projectPath": "${workspaceFolder}/Server/com.MiAO.MCP.Server.csproj"
         }
     ]
 }

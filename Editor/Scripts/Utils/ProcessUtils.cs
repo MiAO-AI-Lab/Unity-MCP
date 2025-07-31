@@ -3,10 +3,10 @@ using System;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using Debug = UnityEngine.Debug;
 
-namespace com.MiAO.Unity.MCP.Editor.Utils
+namespace com.MiAO.MCP.Editor.Utils
 {
     public static class ProcessUtils
     {

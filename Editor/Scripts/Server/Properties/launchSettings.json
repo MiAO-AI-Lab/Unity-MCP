@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "com.MiAO.Unity.MCP.Server": {
+    "com.MiAO.MCP.Server": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

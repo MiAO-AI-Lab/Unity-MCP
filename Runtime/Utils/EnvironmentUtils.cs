@@ -1,6 +1,6 @@
 using System;
 
-namespace com.MiAO.Unity.MCP.Utils
+namespace com.MiAO.MCP.Utils
 {
     public static class EnvironmentUtils
     {

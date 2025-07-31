@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using R3;
 
-namespace com.MiAO.Unity.MCP.Common
+namespace com.MiAO.MCP.Common
 {
     public class HubConnectionObservable : IDisposable
     {

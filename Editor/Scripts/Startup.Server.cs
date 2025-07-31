@@ -1,23 +1,23 @@
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using System.Diagnostics;
 using System.IO;
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
 using Debug = UnityEngine.Debug;
-using com.MiAO.Unity.MCP.Editor.Utils;
-using com.MiAO.Unity.MCP.Utils;
+using com.MiAO.MCP.Editor.Utils;
+using com.MiAO.MCP.Utils;
 using System.Linq;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
-    using Consts = com.MiAO.Unity.MCP.Common.Consts;
+    using Consts = com.MiAO.MCP.Common.Consts;
     public static partial class Startup
     {
-        public const string PackageName = "com.miao.unity.mcp";
-        public const string ServerProjectName = "com.miao.unity.mcp.server";
+        public const string PackageName = "com.miao.mcp";
+        public const string ServerProjectName = "com.miao.mcp.server";
 
         // Server source path
         public static string PackageCache => Path.GetFullPath(Path.Combine(Application.dataPath, "../Library", "PackageCache"));
@@ -32,7 +32,7 @@ namespace com.MiAO.Unity.MCP.Editor
 
                 if (string.IsNullOrEmpty(sourceDir))
                 {
-                    var path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Packages/com.miao.unity.mcp/Editor/Scripts/Server"));
+                    var path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Packages/com.miao.mcp/Editor/Scripts/Server"));
                     Debug.Log($"{Consts.Log.Tag} Set server path: <color=#8CFFD1>{path}</color>");
                     return path;
                 }

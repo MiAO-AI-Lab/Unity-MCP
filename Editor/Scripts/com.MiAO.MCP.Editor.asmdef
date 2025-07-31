@@ -1,9 +1,9 @@
 {
-    "name": "com.MiAO.Unity.MCP.Editor",
-    "rootNamespace": "com.MiAO.Unity.MCP.Editor",
+    "name": "com.MiAO.MCP.Editor",
+    "rootNamespace": "com.MiAO.MCP.Editor",
     "references": [
-        "com.MiAO.Unity.MCP.Runtime",
-        "com.MiAO.Unity.MCP.Common",
+        "com.MiAO.MCP.Runtime",
+        "com.MiAO.MCP.Common",
         "Microsoft.CodeAnalysis.Analyzers_Unity",
         "Unity.Timeline",
         "Unity.Timeline.Editor"

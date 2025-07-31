@@ -4,16 +4,16 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model;
-using com.MiAO.Unity.MCP.Common.Reflection.Convertor;
+using com.MiAO.MCP.Common.Reflection.Convertor;
 using UnityEngine;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 using com.IvanMurzak.ReflectorNet;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.MiAO.Unity.MCP.Reflection.Convertor
+namespace com.MiAO.MCP.Reflection.Convertor
 {
     public partial class RS_UnityEngineMaterial : RS_GenericUnity<Material>
     {

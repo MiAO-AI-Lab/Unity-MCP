@@ -1,6 +1,6 @@
 using UnityEngine.UIElements;
 
-namespace com.MiAO.Unity.MCP.Editor.Localization
+namespace com.MiAO.MCP.Editor.Localization
 {
     /// <summary>
     /// Localization processor interface

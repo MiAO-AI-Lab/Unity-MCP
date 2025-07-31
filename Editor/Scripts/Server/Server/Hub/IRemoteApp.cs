@@ -2,9 +2,9 @@
 using System;
 using System.Threading.Tasks;
 using com.IvanMurzak.ReflectorNet.Model;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 
-namespace com.MiAO.Unity.MCP.Server
+namespace com.MiAO.MCP.Server
 {
     public interface IRemoteApp : IToolResponseReceiver, IResourceResponseReceiver, IDisposable
     {

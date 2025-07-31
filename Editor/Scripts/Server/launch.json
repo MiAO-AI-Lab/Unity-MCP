@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin~/Debug/net9.0/com.MiAO.Unity.MCP.Server.dll",
+            "program": "${workspaceFolder}/bin~/Debug/net9.0/com.MiAO.MCP.Server.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

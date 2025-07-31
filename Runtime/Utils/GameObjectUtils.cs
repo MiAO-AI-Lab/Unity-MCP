@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
 using UnityEngine;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.MiAO.Unity.MCP.Utils
+namespace com.MiAO.MCP.Utils
 {
     public static partial class GameObjectUtils
     {

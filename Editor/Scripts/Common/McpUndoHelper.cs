@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-namespace com.MiAO.Unity.MCP.Common
+namespace com.MiAO.MCP.Common
 {
     /// <summary>
     /// MCP Undo Helper - Provides unified undo operations for MCP tools

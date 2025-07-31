@@ -5,7 +5,7 @@ using com.IvanMurzak.ReflectorNet;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace com.MiAO.Unity.MCP.Common
+namespace com.MiAO.MCP.Common
 {
     public interface IMcpPluginBuilder
     {

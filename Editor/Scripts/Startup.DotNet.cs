@@ -2,11 +2,11 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Editor.Utils;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Editor.Utils;
 using Debug = UnityEngine.Debug;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
     public static partial class Startup
     {

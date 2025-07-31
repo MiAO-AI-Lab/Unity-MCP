@@ -7,10 +7,10 @@ using System.Text.Json;
 using System.Net.Http;
 using System.Text;
 using System.IO;
-using com.MiAO.Unity.MCP.Server.Protocol;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Server.Protocol;
+using com.MiAO.MCP.Common;
 
-namespace com.MiAO.Unity.MCP.Server.Proxy
+namespace com.MiAO.MCP.Server.Proxy
 {
     /// <summary>
     /// Agent model proxy implementation - Direct model API calls (referencing AI.ImageRecognition.cs approach)

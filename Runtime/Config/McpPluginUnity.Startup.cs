@@ -3,22 +3,24 @@ using System.Linq;
 using com.IvanMurzak.ReflectorNet;
 using com.IvanMurzak.ReflectorNet.Convertor;
 using com.IvanMurzak.ReflectorNet.Utils;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Common.Json;
-using com.MiAO.Unity.MCP.Common.Json.Converters;
-using com.MiAO.Unity.MCP.Common.Reflection.Convertor;
-using com.MiAO.Unity.MCP.Reflection.Convertor;
-using com.MiAO.Unity.MCP.Utils;
-using com.MiAO.Unity.MCP.Bootstrap;
-using com.MiAO.Unity.MCP.ToolInjection;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Common.Json;
+using com.MiAO.MCP.Common.Json.Converters;
+using com.MiAO.MCP.Common.Reflection.Convertor;
+using com.MiAO.MCP.Reflection.Convertor;
+using com.MiAO.MCP.Utils;
+using com.MiAO.MCP.Bootstrap;
+using com.MiAO.MCP.ToolInjection;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 
-namespace com.MiAO.Unity.MCP
+namespace com.MiAO.MCP
 {
     using LogLevelMicrosoft = Microsoft.Extensions.Logging.LogLevel;
     using LogLevel = Utils.LogLevel;
-    using Consts = com.MiAO.Unity.MCP.Common.Consts;
+    using Consts = com.MiAO.MCP.Common.Consts;
 
     public partial class McpPluginUnity
     {
@@ -60,9 +62,10 @@ namespace com.MiAO.Unity.MCP
                         _ => LogLevelMicrosoft.Warning
                     });
                 })
-                .WithToolsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
-                .WithPromptsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
-                .WithResourcesFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
+                // .WithToolsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
+                // .WithPromptsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
+                // .WithResourcesFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
+                .WithAllFromAssemblyOptimized()
                 .Build(CreateDefaultReflector());
 
             if (McpPluginUnity.KeepConnected)

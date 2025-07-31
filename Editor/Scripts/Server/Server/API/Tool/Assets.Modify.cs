@@ -5,7 +5,7 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
-namespace com.MiAO.Unity.MCP.Server.API
+namespace com.MiAO.MCP.Server.API
 {
     public partial class Tool_Assets
     {

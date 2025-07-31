@@ -1,15 +1,15 @@
 using System.Linq;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model;
-using com.MiAO.Unity.MCP.Utils;
+using com.MiAO.MCP.Utils;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using com.IvanMurzak.ReflectorNet.Utils;
 using com.IvanMurzak.ReflectorNet;
 
-namespace com.MiAO.Unity.MCP.Editor.API
+namespace com.MiAO.MCP.Editor.API
 {
-    using Consts = com.MiAO.Unity.MCP.Common.Consts;
+    using Consts = com.MiAO.MCP.Common.Consts;
 
     [McpPluginResourceType]
     public partial class Resource_GameObject

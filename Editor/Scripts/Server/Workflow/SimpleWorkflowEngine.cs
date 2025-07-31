@@ -7,9 +7,9 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using com.MiAO.Unity.MCP.Server.RpcGateway.Core;
+using com.MiAO.MCP.Server.RpcGateway.Core;
 
-namespace com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core
+namespace com.MiAO.MCP.Server.WorkflowOrchestration.Core
 {
     /// <summary>
     /// Simple Workflow Engine Implementation - Core orchestration engine
