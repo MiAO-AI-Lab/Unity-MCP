@@ -7,11 +7,11 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
-using com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core;
+using com.MiAO.MCP.Server.WorkflowOrchestration.Core;
 using com.IvanMurzak.ReflectorNet.Utils;
-using com.MiAO.Unity.MCP.Server.Utils;
+using com.MiAO.MCP.Server.Utils;
 
-namespace com.MiAO.Unity.MCP.Server.McpToolAdapter
+namespace com.MiAO.MCP.Server.McpToolAdapter
 {
     /// <summary>
     /// Workflow Tool Adapter - Converts workflow definitions into MCP tools

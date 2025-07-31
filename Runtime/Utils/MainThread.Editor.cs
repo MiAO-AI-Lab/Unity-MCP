@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using com.IvanMurzak.ReflectorNet.Utils;
 using UnityEditor;
 
-namespace com.MiAO.Unity.MCP.Utils
+namespace com.MiAO.MCP.Utils
 {
     public static class MainThreadInstaller
     {

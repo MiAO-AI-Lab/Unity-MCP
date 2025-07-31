@@ -6,14 +6,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using com.MiAO.Unity.MCP.Server.RpcGateway.Core;
-using com.MiAO.Unity.MCP.Server.RpcGateway.Unity;
-using com.MiAO.Unity.MCP.Server.RpcGateway.External;
-using com.MiAO.Unity.MCP.Server.WorkflowOrchestration.Core;
-using com.MiAO.Unity.MCP.Server.McpToolAdapter;
+using com.MiAO.MCP.Server.RpcGateway.Core;
+using com.MiAO.MCP.Server.RpcGateway.Unity;
+using com.MiAO.MCP.Server.RpcGateway.External;
+using com.MiAO.MCP.Server.WorkflowOrchestration.Core;
+using com.MiAO.MCP.Server.McpToolAdapter;
 using ModelContextProtocol.Protocol;
 
-namespace com.MiAO.Unity.MCP.Server.Handlers
+namespace com.MiAO.MCP.Server.Handlers
 {
     /// <summary>
     /// Workflow Handler - Replaces ComplexServiceHandler to implement true Middleware architecture

@@ -5,11 +5,11 @@ using System.Reflection;
 using System.Text;
 using com.IvanMurzak.ReflectorNet;
 using com.IvanMurzak.ReflectorNet.Model;
-using com.MiAO.Unity.MCP.Utils;
+using com.MiAO.MCP.Utils;
 using UnityEditor;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace com.MiAO.Unity.MCP.Reflection.Convertor
+namespace com.MiAO.MCP.Reflection.Convertor
 {
     public partial class RS_UnityEngineSprite : RS_UnityEngineObject<UnityEngine.Sprite>
     {

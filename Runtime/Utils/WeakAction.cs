@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace com.MiAO.Unity.MCP.Utils
+namespace com.MiAO.MCP.Utils
 {
     public sealed class WeakAction<T>
     {

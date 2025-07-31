@@ -4,12 +4,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using R3;
 
-namespace com.MiAO.Unity.MCP.Server
+namespace com.MiAO.MCP.Server
 {
     public class BaseHub<T> : Hub, IDisposable where T : Hub
     {

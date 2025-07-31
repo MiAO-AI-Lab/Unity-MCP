@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using com.MiAO.Unity.MCP.Server.RpcGateway.Core;
-using com.MiAO.Unity.MCP.Server.Protocol;
-using com.MiAO.Unity.MCP.Server.Proxy;
+using com.MiAO.MCP.Server.RpcGateway.Core;
+using com.MiAO.MCP.Server.Protocol;
+using com.MiAO.MCP.Server.Proxy;
 
-namespace com.MiAO.Unity.MCP.Server.RpcGateway.External
+namespace com.MiAO.MCP.Server.RpcGateway.External
 {
     /// <summary>
     /// ModelUse RPC Gateway - Refactored from ComplexServiceHandler ModelUse logic

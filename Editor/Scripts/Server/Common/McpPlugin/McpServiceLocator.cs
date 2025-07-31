@@ -3,7 +3,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace com.MiAO.Unity.MCP.Common
+namespace com.MiAO.MCP.Common
 {
     /// <summary>
     /// MCP service locator - Provides global access to dependency injection container, directly caches service instances to avoid repeated creation

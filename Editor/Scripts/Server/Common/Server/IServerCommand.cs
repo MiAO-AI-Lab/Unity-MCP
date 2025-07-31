@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace com.MiAO.Unity.MCP.Common.Server
+namespace com.MiAO.MCP.Common.Server
 {
     public interface IServerCommand<TRequest, TResponse> : IDisposable
     {

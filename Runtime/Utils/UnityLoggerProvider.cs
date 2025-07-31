@@ -1,8 +1,8 @@
 using System;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using Microsoft.Extensions.Logging;
 
-namespace com.MiAO.Unity.MCP.Utils
+namespace com.MiAO.MCP.Utils
 {
     using LogLevelMicrosoft = Microsoft.Extensions.Logging.LogLevel;
 

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 
-namespace com.MiAO.Unity.MCP.ToolInjection
+namespace com.MiAO.MCP.ToolInjection
 {
     /// <summary>
     /// Tool injection system implementation

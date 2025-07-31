@@ -8,7 +8,7 @@ using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
 using System.Collections.Generic;
 
-namespace com.MiAO.Unity.MCP.Bootstrap
+namespace com.MiAO.MCP.Bootstrap
 {
     /// <summary>
     /// Package bootstrap system implementation
@@ -179,7 +179,7 @@ namespace com.MiAO.Unity.MCP.Bootstrap
                     if (listRequest.Status == StatusCode.Success)
                     {
                         return listRequest.Result
-                            .Where(p => p.name.StartsWith("com.miao.unity.mcp.") && !p.name.Equals("com.miao.unity.mcp"))
+                            .Where(p => p.name.StartsWith("com.miao.mcp.") && !p.name.Equals("com.miao.mcp"))
                             .Select(p => p.name)
                             .ToArray();
                     }

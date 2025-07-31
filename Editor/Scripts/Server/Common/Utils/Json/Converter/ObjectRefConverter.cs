@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 using com.IvanMurzak.ReflectorNet.Json;
 using com.IvanMurzak.ReflectorNet.Model.Unity;
 
-namespace com.MiAO.Unity.MCP.Common.Json
+namespace com.MiAO.MCP.Common.Json
 {
     public class ObjectRefConverter : JsonConverter<ObjectRef>, IJsonSchemaConverter
     {

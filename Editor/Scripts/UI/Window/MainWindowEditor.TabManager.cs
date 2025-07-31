@@ -2,18 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Utils;
-using com.MiAO.Unity.MCP.Editor.API;
-using com.MiAO.Unity.MCP.Editor.Common;
-using com.MiAO.Unity.MCP.Editor.Localization;
-using com.MiAO.Unity.MCP.Editor.UI;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Utils;
+using com.MiAO.MCP.Editor.API;
+using com.MiAO.MCP.Editor.Common;
+using com.MiAO.MCP.Editor.Localization;
+using com.MiAO.MCP.Editor.UI;
 using Unity.MCP;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {

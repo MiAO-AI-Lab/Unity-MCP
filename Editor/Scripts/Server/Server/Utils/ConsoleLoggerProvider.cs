@@ -1,9 +1,9 @@
 #if !UNITY_5_3_OR_NEWER
 using System;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using Microsoft.Extensions.Logging;
 
-namespace com.MiAO.Unity.MCP
+namespace com.MiAO.MCP
 {
     internal class ConsoleLogger : ILogger
     {

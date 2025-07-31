@@ -6,9 +6,9 @@ using System.Text.Json.Nodes;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Editor.Common;
+using com.MiAO.MCP.Editor.Common;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {

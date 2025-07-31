@@ -3,7 +3,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace com.MiAO.Unity.MCP.Reflection.Convertor
+namespace com.MiAO.MCP.Reflection.Convertor
 {
     public partial class RS_UnityEngineComponent : RS_UnityEngineObject<UnityEngine.Component>
     {

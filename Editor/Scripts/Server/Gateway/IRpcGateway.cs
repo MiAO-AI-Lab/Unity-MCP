@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace com.MiAO.Unity.MCP.Server.RpcGateway.Core
+namespace com.MiAO.MCP.Server.RpcGateway.Core
 {
     /// <summary>
     /// RPC Gateway Core Interface - Unified RPC Call Abstraction

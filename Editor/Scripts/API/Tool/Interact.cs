@@ -6,10 +6,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEditor;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Utils;
 
-namespace com.MiAO.Unity.MCP.Editor.API
+namespace com.MiAO.MCP.Editor.API
 {
     [McpPluginToolType]
     public partial class Tool_Interact

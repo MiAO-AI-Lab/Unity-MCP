@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace com.MiAO.Unity.MCP.Editor.Localization
+namespace com.MiAO.MCP.Editor.Localization
 {
     /// <summary>
     /// 本地化配置数据结构

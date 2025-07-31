@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using NLog.Extensions.Logging;
 using NLog;
 using System;
@@ -12,11 +12,11 @@ using Microsoft.AspNetCore.Http.Connections;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using com.IvanMurzak.ReflectorNet.Utils;
 using com.IvanMurzak.ReflectorNet;
-using com.MiAO.Unity.MCP.Server.Handlers;
+using com.MiAO.MCP.Server.Handlers;
 
-namespace com.MiAO.Unity.MCP.Server
+namespace com.MiAO.MCP.Server
 {
-    using Consts = com.MiAO.Unity.MCP.Common.Consts;
+    using Consts = com.MiAO.MCP.Common.Consts;
 
     public class Program
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace com.MiAO.Unity.MCP.Editor.Common
+namespace com.MiAO.MCP.Editor.Common
 {
     /// <summary>
     /// Visual Studio MCP 配置文件位置

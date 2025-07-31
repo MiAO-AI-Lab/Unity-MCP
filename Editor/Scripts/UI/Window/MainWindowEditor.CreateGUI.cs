@@ -2,17 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Editor.Common;
-using com.MiAO.Unity.MCP.Utils;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Editor.Common;
+using com.MiAO.MCP.Utils;
 using Microsoft.AspNetCore.SignalR.Client;
 using R3;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Editor.Localization;
+using com.MiAO.MCP.Editor.Localization;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
     public partial class MainWindowEditor : EditorWindow
     {
@@ -26,23 +26,23 @@ namespace com.MiAO.Unity.MCP.Editor
         {
             _disposables.Clear();
             rootVisualElement.Clear();
-            
-            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.miao.unity.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
+
+            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.miao.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
             if (templateControlPanel == null)
             {
-                Debug.LogError("'templateControlPanel' could not be loaded from path: Packages/com.miao.unity.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
+                Debug.LogError("'templateControlPanel' could not be loaded from path: Packages/com.miao.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
                 return;
             }
 
             // Load and apply the stylesheet
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.miao.unity.mcp/Editor/UI/uss/AiConnectorWindow.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.miao.mcp/Editor/UI/uss/AiConnectorWindow.uss");
             if (styleSheet != null)
             {
                 rootVisualElement.styleSheets.Add(styleSheet);
             }
             else
             {
-                Debug.LogWarning("Could not load stylesheet from: Packages/com.miao.unity.mcp/Editor/UI/uss/AiConnectorWindow.uss");
+                Debug.LogWarning("Could not load stylesheet from: Packages/com.miao.mcp/Editor/UI/uss/AiConnectorWindow.uss");
             }
 
             var root = templateControlPanel.Instantiate();
@@ -130,9 +130,9 @@ namespace com.MiAO.Unity.MCP.Editor
                     var isConnected = connectionState == HubConnectionState.Connected && keepConnected;
                     if (logoElement != null)
                     {
-                        var logoPath = isConnected 
-                            ? "Packages/com.MiAO.Unity.MCP/Editor/Gizmos/512_logo_conneted.png"
-                            : "Packages/com.MiAO.Unity.MCP/Editor/Gizmos/logo_512.png";
+                        var logoPath = isConnected
+                            ? "Packages/com.MiAO.MCP/Editor/Gizmos/512_logo_conneted.png"
+                            : "Packages/com.MiAO.MCP/Editor/Gizmos/logo_512.png";
                         var logoTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(logoPath);
                         if (logoTexture != null)
                         {
@@ -293,9 +293,9 @@ namespace com.MiAO.Unity.MCP.Editor
         {
             try
             {
-                var configPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json";
-                var exampleConfigPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json.example";
-                
+                var configPath = "Packages/com.miao.mcp/Config/AI_Config.json";
+                var exampleConfigPath = "Packages/com.miao.mcp/Config/AI_Config.json.example";
+
                 // If AI_Config.json doesn't exist, copy from AI_Config.json.example
                 if (!System.IO.File.Exists(configPath) && System.IO.File.Exists(exampleConfigPath))
                 {
@@ -354,7 +354,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 var projectRoot = System.IO.Path.Combine(UnityEngine.Application.dataPath, "..");
                 var serverConfigPath = System.IO.Path.Combine(
                     projectRoot,
-                    "Library", "com.miao.unity.mcp.server", "bin~", "Release", "net9.0", 
+                    "Library", "com.miao.mcp.server", "bin~", "Release", "net9.0",
                     "Config", "AI_Config.json"
                 );
                 
@@ -392,7 +392,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 var config = CollectAIConfigurationFromUI(root);
 
                 // 1. Save configuration file in Unity package
-                var unityConfigPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json";
+                var unityConfigPath = "Packages/com.miao.mcp/Config/AI_Config.json";
                 var jsonText = JsonUtility.ToJson(config, true);
                 System.IO.File.WriteAllText(unityConfigPath, jsonText);
                 

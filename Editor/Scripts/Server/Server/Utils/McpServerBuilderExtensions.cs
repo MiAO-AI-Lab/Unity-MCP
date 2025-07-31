@@ -1,8 +1,8 @@
 #if !UNITY_5_3_OR_NEWER
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace com.MiAO.Unity.MCP.Server
+namespace com.MiAO.MCP.Server
 {
     public static class McpServerBuilderExtensions
     {

@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
 
-namespace com.MiAO.Unity.MCP.Editor.Utils
+namespace com.MiAO.MCP.Editor.Utils
 {
     public static partial class ScriptUtils
     {

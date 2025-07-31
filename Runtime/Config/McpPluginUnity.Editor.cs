@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using UnityEngine;
 
-namespace com.MiAO.Unity.MCP
+namespace com.MiAO.MCP
 {
 #pragma warning disable CA2235 // Mark all non-serializable fields
     public partial class McpPluginUnity

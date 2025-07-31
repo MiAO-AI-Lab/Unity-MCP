@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.UIElements;
 
-namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
+namespace com.MiAO.MCP.Editor.Localization.Extensions
 {
     /// <summary>
     /// VisualElement localization extension methods
@@ -261,7 +261,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Extensions
         {
             context ??= new LocalizationContext
             {
-                CurrentLanguage = com.MiAO.Unity.MCP.Editor.Common.LocalizationManager.CurrentLanguage.ToString(),
+                CurrentLanguage = com.MiAO.MCP.Editor.Common.LocalizationManager.CurrentLanguage.ToString(),
                 IsBatchMode = true,
                 Stats = new LocalizationPerformanceStats()
             };

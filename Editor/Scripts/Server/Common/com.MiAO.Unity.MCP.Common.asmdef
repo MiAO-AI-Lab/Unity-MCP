@@ -1,6 +1,6 @@
 {
-    "name": "com.MiAO.Unity.MCP.Common",
-    "rootNamespace": "com.MiAO.Unity.MCP.Common",
+    "name": "com.MiAO.MCP.Common",
+    "rootNamespace": "com.MiAO.MCP.Common",
     "references": [],
     "includePlatforms": [
         "Editor"

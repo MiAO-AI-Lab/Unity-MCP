@@ -2,13 +2,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 using com.IvanMurzak.ReflectorNet.Model;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using R3;
 
-namespace com.MiAO.Unity.MCP.Server
+namespace com.MiAO.MCP.Server
 {
     public class RemoteToolRunner : IToolRunner, IDisposable
     {

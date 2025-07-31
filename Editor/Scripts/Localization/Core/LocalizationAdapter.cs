@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Editor.Common;
-using com.MiAO.Unity.MCP.Editor.Localization.Providers;
-using com.MiAO.Unity.MCP.Editor.Localization.Extensions;
+using com.MiAO.MCP.Editor.Common;
+using com.MiAO.MCP.Editor.Localization.Providers;
+using com.MiAO.MCP.Editor.Localization.Extensions;
 
-namespace com.MiAO.Unity.MCP.Editor.Localization
+namespace com.MiAO.MCP.Editor.Localization
 {
     /// <summary>
     /// Localization adapter

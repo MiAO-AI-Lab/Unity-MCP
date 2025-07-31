@@ -1,9 +1,9 @@
 using System;
 using System.Reflection;
 using UnityEngine;
-using com.MiAO.Unity.MCP.Common;
+using com.MiAO.MCP.Common;
 
-namespace com.MiAO.Unity.MCP.Bootstrap
+namespace com.MiAO.MCP.Bootstrap
 {
     /// <summary>
     /// Universal Package Bootstrap Framework - Provides common bootstrap functionality for all MCP extension packages
@@ -11,9 +11,9 @@ namespace com.MiAO.Unity.MCP.Bootstrap
     /// </summary>
     public static class UniversalPackageBootstrap
     {
-        private const string HubPackageName = "com.miao.unity.mcp";
-        private const string HubClassName = "com.MiAO.Unity.MCP.McpPluginUnity";
-        private const string HubAssemblyName = "com.MiAO.Unity.MCP.Runtime";
+        private const string HubPackageName = "com.miao.mcp";
+        private const string HubClassName = "com.MiAO.MCP.McpPluginUnity";
+        private const string HubAssemblyName = "com.MiAO.MCP.Runtime";
 
         /// <summary>
         /// Configuration for a package that uses the Universal Bootstrap Framework

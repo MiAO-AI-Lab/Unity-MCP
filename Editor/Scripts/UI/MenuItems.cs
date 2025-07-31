@@ -2,11 +2,11 @@
 #if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Editor.UI;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Editor.UI;
 using System.Threading.Tasks;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
     public static class MenuItems
     {
@@ -37,7 +37,7 @@ namespace com.MiAO.Unity.MCP.Editor
         [MenuItem("Tools/MCP Hub/MCP Server/Open Error Logs", priority = 1015)]
         public static void OpenErrorLogs() => OpenFile(Startup.ServerErrorLogsPath);
 		
-        static void ConfigureVisualStudio(com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation location)
+        static void ConfigureVisualStudio(com.MiAO.MCP.Editor.Common.VisualStudioConfigLocation location)
         {
             var mainWindow = EditorWindow.GetWindow<MainWindowEditor>();
             var configPath = mainWindow.GetVisualStudioConfigPath(location);
@@ -54,17 +54,17 @@ namespace com.MiAO.Unity.MCP.Editor
             }
         }
 
-        public static string GetVisualStudioLocationDisplayName(com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation location)
+        public static string GetVisualStudioLocationDisplayName(com.MiAO.MCP.Editor.Common.VisualStudioConfigLocation location)
         {
             switch (location)
             {
-                case com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation.Global:
+                case com.MiAO.MCP.Editor.Common.VisualStudioConfigLocation.Global:
                     return "Global User Configuration";
                 
-                case com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation.Solution:
+                case com.MiAO.MCP.Editor.Common.VisualStudioConfigLocation.Solution:
                     return "Solution Level Configuration";
                 
-                case com.MiAO.Unity.MCP.Editor.Common.VisualStudioConfigLocation.VisualStudioSpecific:
+                case com.MiAO.MCP.Editor.Common.VisualStudioConfigLocation.VisualStudioSpecific:
                     return "Visual Studio Specific Configuration";
                 
                 default:

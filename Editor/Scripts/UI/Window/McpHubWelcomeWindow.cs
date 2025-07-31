@@ -4,13 +4,11 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Editor.Extensions;
-using com.MiAO.Unity.MCP.Editor;
-using com.MiAO.Unity.MCP.Editor.Common;
-using Consts = com.MiAO.Unity.MCP.Common.Consts;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Editor.Extensions;
+using com.MiAO.MCP.Editor;
 
-namespace com.MiAO.Unity.MCP.Editor.UI
+namespace com.MiAO.MCP.Editor.UI
 {
     /// <summary>
     /// MCP Hub Welcome window - provides an overview and quick access to Hub features
@@ -18,6 +16,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
     /// </summary>
     public class McpHubWelcomeWindow : EditorWindow
     {
+        private const string MENU_TITLE = "Welcome to MCP Hub";
         private const int MIN_WIDTH = 600;
         private const int MIN_HEIGHT = 500;
         
@@ -55,7 +54,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 return;
             }
             
-            s_Instance = GetWindow<McpHubWelcomeWindow>(false, LocalizationManager.GetText("welcome.title"), true);
+            s_Instance = GetWindow<McpHubWelcomeWindow>(false, MENU_TITLE, true);
             s_Instance.minSize = new Vector2(MIN_WIDTH, MIN_HEIGHT);
             s_Instance.Show();
         }
@@ -63,7 +62,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// <summary>
         /// Shows welcome window on startup if enabled
         /// </summary>
-        [InitializeOnLoadMethod]
+        // [InitializeOnLoadMethod]
         public static void ShowOnStartup()
         {
             if (EditorPrefs.GetBool(KEY_SHOW_ON_STARTUP, true))
@@ -86,66 +85,15 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private void OnEnable()
         {
             s_Instance = this;
-            titleContent = new GUIContent(LocalizationManager.GetText("welcome.title"), LocalizationManager.GetText("welcome.title"));
-            
-            // Subscribe to language change events
-            LocalizationManager.OnLanguageChanged += OnLanguageChanged;
+            titleContent = new GUIContent(MENU_TITLE, "Welcome to MCP Hub");
             
             CreateUIElements();
             UpdateContent();
-            UpdateLocalizedTexts();
         }
 
         private void OnDisable()
         {
             if (s_Instance == this) s_Instance = null;
-            
-            // Unsubscribe from language change events
-            LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
-        }
-
-        /// <summary>
-        /// Handle language change events
-        /// </summary>
-        private void OnLanguageChanged(LocalizationManager.Language newLanguage)
-        {
-            UpdateLocalizedTexts();
-            UpdateContent(); // Refresh content with new language
-        }
-
-        /// <summary>
-        /// Update all localized texts
-        /// </summary>
-        private void UpdateLocalizedTexts()
-        {
-            try
-            {
-                // Update window title
-                titleContent = new GUIContent(LocalizationManager.GetText("welcome.title"), LocalizationManager.GetText("welcome.title"));
-                
-                // Update version label
-                if (m_VersionLabel != null)
-                {
-                    m_VersionLabel.text = LocalizationManager.GetText("welcome.version", (object)GetCurrentVersion());
-                }
-                
-                // Update toggle
-                if (m_ShowOnStartupToggle != null)
-                {
-                    m_ShowOnStartupToggle.text = LocalizationManager.GetText("welcome.show_on_startup");
-                }
-                
-                // Recreate UI elements to update all text
-                if (m_Root != null)
-                {
-                    CreateUIElements();
-                    UpdateContent();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"{Consts.Log.Tag} Failed to update localized texts: {ex.Message}");
-            }
         }
 
         /// <summary>
@@ -204,18 +152,18 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             var titleContainer = new VisualElement();
             titleContainer.style.alignItems = Align.Center;
             
-            var title = new Label(LocalizationManager.GetText("welcome.main_title"));
+            var title = new Label("MCP Hub");
             title.style.fontSize = 32;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
             title.style.color = new Color(0.85f, 0.85f, 1f);
             title.style.marginBottom = 5;
             
-            var subtitle = new Label(LocalizationManager.GetText("welcome.subtitle"));
+            var subtitle = new Label("Unity Model Context Protocol Hub");
             subtitle.style.fontSize = 16;
             subtitle.style.color = new Color(0.7f, 0.7f, 0.7f);
             subtitle.style.marginBottom = 10;
             
-            m_VersionLabel = new Label(LocalizationManager.GetText("welcome.version", (object)GetCurrentVersion()));
+            m_VersionLabel = new Label($"Version {GetCurrentVersion()}");
             m_VersionLabel.style.fontSize = 12;
             m_VersionLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
             
@@ -258,15 +206,15 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void CreateQuickActionsPanel()
         {
-            m_QuickActionsPanel = CreatePanel(LocalizationManager.GetText("welcome.quick_actions"));
+            m_QuickActionsPanel = CreatePanel("Quick Actions");
             
             var actions = new (string, string, System.Action)[]
             {
-                (LocalizationManager.GetText("welcome.open_hub_manager"), LocalizationManager.GetText("welcome.open_hub_manager_desc"), () => McpHubWindow.ShowWindow()),
-                (LocalizationManager.GetText("welcome.open_main_window"), LocalizationManager.GetText("welcome.open_main_window_desc"), () => OpenMcpMainWindow()),
-                (LocalizationManager.GetText("welcome.tutorial"), LocalizationManager.GetText("welcome.tutorial_desc"), () => OpenTutorial()),
-                (LocalizationManager.GetText("welcome.community"), LocalizationManager.GetText("welcome.community_desc"), () => OpenCommunity()),
-                (LocalizationManager.GetText("welcome.hub_settings"), LocalizationManager.GetText("welcome.hub_settings_desc"), () => McpHubSettingsWindow.ShowWindow()),
+                ("Open Hub Manager", "Manage extensions and settings", () => McpHubWindow.ShowWindow()),
+                ("Open MCP Main Window", "Open MCP main interface", () => OpenMcpMainWindow()),
+                ("Tutorial", "View MCP Hub tutorial", () => OpenTutorial()),
+                ("Community", "Join the MCP Hub community", () => OpenCommunity()),
+                ("Hub Settings", "Configure MCP Hub preferences", () => McpHubSettingsWindow.ShowWindow()),
             };
 
             foreach (var (title, description, action) in actions)
@@ -281,13 +229,13 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void CreateRecentExtensionsPanel()
         {
-            m_RecentExtensionsPanel = CreatePanel(LocalizationManager.GetText("welcome.extensions_status"));
+            m_RecentExtensionsPanel = CreatePanel("Extensions Status");
             
             // Status info
             var statusContainer = new VisualElement();
             statusContainer.style.marginBottom = 15;
             
-            m_StatusLabel = new Label(LocalizationManager.GetText("welcome.loading_status"));
+            m_StatusLabel = new Label("Loading extension status...");
             m_StatusLabel.style.fontSize = 12;
             m_StatusLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
             statusContainer.Add(m_StatusLabel);
@@ -296,6 +244,8 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             
             // Extension list will be populated by UpdateContent()
         }
+
+
 
         /// <summary>
         /// Creates a panel with title
@@ -400,7 +350,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_Footer.style.borderTopWidth = 1;
             m_Footer.style.borderTopColor = new Color(0.4f, 0.4f, 0.4f);
             
-            m_ShowOnStartupToggle = new Toggle(LocalizationManager.GetText("welcome.show_on_startup"));
+            m_ShowOnStartupToggle = new Toggle("Show this window on startup");
             m_ShowOnStartupToggle.value = EditorPrefs.GetBool(KEY_SHOW_ON_STARTUP, true);
             m_ShowOnStartupToggle.RegisterValueChangedCallback(evt =>
             {
@@ -409,7 +359,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             
             var closeButton = new Button(() => Close())
             {
-                text = LocalizationManager.GetText("welcome.get_started")
+                text = "Get Started"
             };
             closeButton.style.minWidth = 100;
             closeButton.style.height = 30;
@@ -431,32 +381,17 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 var availableExtensions = ExtensionManager.GetAvailableExtensions();
                 var updatesAvailable = ExtensionManager.GetExtensionsWithUpdates();
                 
-                if (m_StatusLabel != null)
-                {
-                    m_StatusLabel.text = LocalizationManager.GetText("welcome.extensions_summary", 
-                        installedExtensions.Count, 
-                        availableExtensions.Count - installedExtensions.Count, 
-                        updatesAvailable.Count);
-                }
-
-                // Clear existing extension list items (keep status)
-                if (m_RecentExtensionsPanel != null)
-                {
-                    // Remove all children except the first one (status container)
-                    var children = m_RecentExtensionsPanel.Children().ToList();
-                    for (int i = 1; i < children.Count; i++)
-                    {
-                        m_RecentExtensionsPanel.Remove(children[i]);
-                    }
-                }
+                m_StatusLabel.text = $"Extensions: {installedExtensions.Count} installed, " +
+                                   $"{availableExtensions.Count - installedExtensions.Count} available, " +
+                                   $"{updatesAvailable.Count} updates";
 
                 // Add extension quick info
-                if (installedExtensions.Count > 0 && m_RecentExtensionsPanel != null)
+                if (installedExtensions.Count > 0)
                 {
                     var extensionsList = new VisualElement();
                     extensionsList.style.marginTop = 10;
                     
-                    var listTitle = new Label(LocalizationManager.GetText("welcome.installed_extensions"));
+                    var listTitle = new Label("Installed Extensions:");
                     listTitle.style.fontSize = 12;
                     listTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
                     listTitle.style.marginBottom = 5;
@@ -472,7 +407,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                     
                     if (installedExtensions.Count > 5)
                     {
-                        var moreLabel = new Label(LocalizationManager.GetText("welcome.and_more", installedExtensions.Count - 5));
+                        var moreLabel = new Label($"... and {installedExtensions.Count - 5} more");
                         moreLabel.style.fontSize = 11;
                         moreLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
                         moreLabel.style.unityFontStyleAndWeight = FontStyle.Italic;
@@ -485,10 +420,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             catch (Exception ex)
             {
                 Debug.LogWarning($"{Consts.Log.Tag} Error updating welcome content: {ex.Message}");
-                if (m_StatusLabel != null)
-                {
-                    m_StatusLabel.text = LocalizationManager.GetText("welcome.error_loading_status");
-                }
+                m_StatusLabel.text = "Error loading extension status";
             }
         }
 

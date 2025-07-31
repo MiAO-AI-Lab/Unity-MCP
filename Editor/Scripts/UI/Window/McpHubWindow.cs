@@ -6,12 +6,10 @@ using System.IO;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UIElements;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Editor.Extensions;
-using com.MiAO.Unity.MCP.Editor.Common;
-using Consts = com.MiAO.Unity.MCP.Common.Consts;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Editor.Extensions;
 
-namespace com.MiAO.Unity.MCP.Editor.UI
+namespace com.MiAO.MCP.Editor.UI
 {
     /// <summary>
     /// Main MCP Hub window for managing extension packages and Hub settings
@@ -19,6 +17,8 @@ namespace com.MiAO.Unity.MCP.Editor.UI
     /// </summary>
     public class McpHubWindow : EditorWindow
     {
+        private const string MENU_TITLE = "MCP Hub Manager";
+        
         private const int MIN_WIDTH = 900;
         private const int MIN_HEIGHT = 600;
         
@@ -34,7 +34,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private const string KEY_LAST_REFRESH = "mcp-hub:last-refresh";
         
         // Special package IDs that should be treated differently
-        private const string HUB_CORE_FRAMEWORK_ID = "com.miao.unity.mcp";
+        private const string HUB_CORE_FRAMEWORK_ID = "com.miao.mcp";
 
         private static McpHubWindow s_Instance;
         
@@ -69,7 +69,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         // Menu Items
         public static void ShowWindow()
         {
-            s_Instance = GetWindow<McpHubWindow>(false, LocalizationManager.GetText("hub.title"), true);
+            s_Instance = GetWindow<McpHubWindow>(false, MENU_TITLE, true);
             s_Instance.minSize = new Vector2(MIN_WIDTH, MIN_HEIGHT);
             s_Instance.Show();
         }
@@ -77,72 +77,16 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private void OnEnable()
         {
             s_Instance = this;
-            titleContent = new GUIContent(LocalizationManager.GetText("hub.title"), LocalizationManager.GetText("hub.window_desc"));
-            
-            // Subscribe to language change events
-            LocalizationManager.OnLanguageChanged += OnLanguageChanged;
+            titleContent = new GUIContent(MENU_TITLE, "Manage MCP extension packages");
             
             CreateUIElements();
             LoadData();
             RefreshExtensionList();
-            UpdateLocalizedTexts();
         }
 
         private void OnDisable()
         {
             if (s_Instance == this) s_Instance = null;
-            
-            // Unsubscribe from language change events
-            LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
-        }
-
-        /// <summary>
-        /// Handle language change events
-        /// </summary>
-        private void OnLanguageChanged(LocalizationManager.Language newLanguage)
-        {
-            UpdateLocalizedTexts();
-        }
-
-        /// <summary>
-        /// Update all localized texts
-        /// </summary>
-        private void UpdateLocalizedTexts()
-        {
-            try
-            {
-                // Update window title
-                titleContent = new GUIContent(LocalizationManager.GetText("hub.title"), LocalizationManager.GetText("hub.window_desc"));
-                
-                // Update UI elements
-                if (m_SearchField != null)
-                {
-                    m_SearchField.label = LocalizationManager.GetText("hub.search_placeholder");
-                }
-                
-                if (m_RefreshButton != null)
-                {
-                    m_RefreshButton.text = LocalizationManager.GetText("hub.refresh");
-                }
-                
-                if (m_SettingsButton != null)
-                {
-                    m_SettingsButton.text = LocalizationManager.GetText("hub.settings");
-                }
-                
-                if (m_StatusLabel != null && m_StatusLabel.text == "Ready")
-                {
-                    m_StatusLabel.text = LocalizationManager.GetText("hub.ready");
-                }
-                
-                // Recreate sidebar and main content to update all text
-                RefreshSidebar();
-                RefreshExtensionList();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"{Consts.Log.Tag} Failed to update localized texts: {ex.Message}");
-            }
         }
 
         /// <summary>
@@ -200,7 +144,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_Toolbar.style.borderBottomColor = Color.gray;
             
             // Search field
-            m_SearchField = new TextField(LocalizationManager.GetText("hub.search_placeholder"));
+            m_SearchField = new TextField("Search Extensions");
             m_SearchField.style.flexGrow = 1;
             m_SearchField.style.marginRight = 10;
             
@@ -210,7 +154,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             // Refresh button
             m_RefreshButton = new Button(() => RefreshExtensionList())
             {
-                text = LocalizationManager.GetText("hub.refresh")
+                text = "Refresh"
             };
             m_RefreshButton.style.minWidth = 80;
             m_RefreshButton.style.marginRight = 5;
@@ -218,7 +162,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             // Settings button
             m_SettingsButton = new Button(() => McpHubSettingsWindow.ShowWindow())
             {
-                text = LocalizationManager.GetText("hub.settings")
+                text = "Settings"
             };
             m_SettingsButton.style.minWidth = 80;
             
@@ -261,10 +205,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_Sidebar.style.paddingRight = 10;
             
             // Category buttons
-            CreateCategoryButton(LocalizationManager.GetText("hub.all_extensions"), 0);
-            CreateCategoryButton(LocalizationManager.GetText("hub.installed"), 1);
-            CreateCategoryButton(LocalizationManager.GetText("hub.available"), 2);
-            CreateCategoryButton(LocalizationManager.GetText("hub.updates"), 3);
+            CreateCategoryButton("All Extensions", 0);
+            CreateCategoryButton("Installed", 1);
+            CreateCategoryButton("Available", 2);
+            CreateCategoryButton("Updates", 3);
             
             // Separator
             var separator = new VisualElement();
@@ -274,7 +218,20 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             separator.style.marginBottom = 10;
             m_Sidebar.Add(separator);
             
-            CreateCategoryButton(LocalizationManager.GetText("hub.workflows"), 4);
+            CreateCategoryButton("Workflows", 4);
+            
+            // Separator
+            // var separator = new VisualElement();
+            // separator.style.height = 1;
+            // separator.style.backgroundColor = Color.gray;
+            // separator.style.marginTop = 10;
+            // separator.style.marginBottom = 10;
+            // m_Sidebar.Add(separator);
+            
+            // Extension categories
+            // CreateCategoryButton("Essential Tools", 4);
+            // CreateCategoryButton("Vision Packs", 5);
+            // CreateCategoryButton("Programmer Packs", 6);
         }
 
         /// <summary>
@@ -444,19 +401,19 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 {
                     if (extension.HasUpdate)
                     {
-                        button.text = LocalizationManager.GetText("hub.update");
+                        button.text = "Update";
                         button.clicked += () => UpdateExtension(extension);
                     }
                     else
                     {
-                        button.text = LocalizationManager.GetText("hub.up_to_date");
+                        button.text = "Up to Date";
                         button.SetEnabled(false);
                         button.style.opacity = 0.5f;
                     }
                 }
                 else
                 {
-                    button.text = LocalizationManager.GetText("hub.core_package");
+                    button.text = "Core Package";
                     button.SetEnabled(false);
                     button.style.opacity = 0.5f;
                 }
@@ -468,18 +425,18 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             {
                 if (extension.HasUpdate)
                 {
-                    button.text = LocalizationManager.GetText("hub.update");
+                    button.text = "Update";
                     button.clicked += () => UpdateExtension(extension);
                 }
                 else
                 {
-                    button.text = LocalizationManager.GetText("hub.uninstall");
+                    button.text = "Uninstall";
                     button.clicked += () => UninstallExtension(extension);
                 }
             }
             else
             {
-                button.text = LocalizationManager.GetText("hub.install");
+                button.text = "Install";
                 button.clicked += () => InstallExtension(extension);
             }
             
@@ -503,7 +460,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             m_StatusBar.style.borderTopColor = Color.gray;
             
             // Status label
-            m_StatusLabel = new Label(LocalizationManager.GetText("hub.ready"));
+            m_StatusLabel = new Label("Ready");
             m_StatusLabel.style.fontSize = 12;
             m_StatusLabel.style.marginBottom = 2;
             
@@ -554,10 +511,10 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             // Recreate sidebar to update button states
             m_Sidebar.Clear();
             
-            CreateCategoryButton(LocalizationManager.GetText("hub.all_extensions"), 0);
-            CreateCategoryButton(LocalizationManager.GetText("hub.installed"), 1);
-            CreateCategoryButton(LocalizationManager.GetText("hub.available"), 2);
-            CreateCategoryButton(LocalizationManager.GetText("hub.updates"), 3);
+            CreateCategoryButton("All Extensions", 0);
+            CreateCategoryButton("Installed", 1);
+            CreateCategoryButton("Available", 2);
+            CreateCategoryButton("Updates", 3);
             
             // Separator
             var separator = new VisualElement();
@@ -567,7 +524,18 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             separator.style.marginBottom = 10;
             m_Sidebar.Add(separator);
             
-            CreateCategoryButton(LocalizationManager.GetText("hub.workflows"), 4);
+            CreateCategoryButton("Workflows", 4);
+            
+            // var separator = new VisualElement();
+            // separator.style.height = 1;
+            // separator.style.backgroundColor = Color.gray;
+            // separator.style.marginTop = 10;
+            // separator.style.marginBottom = 10;
+            // m_Sidebar.Add(separator);
+            
+            // CreateCategoryButton("Essential Tools", 4);
+            // CreateCategoryButton("Vision Packs", 5);
+            // CreateCategoryButton("Programmer Packs", 6);
         }
 
         /// <summary>
@@ -576,6 +544,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         private void LoadData()
         {
             m_AvailableExtensions = ExtensionManager.GetAvailableExtensions();
+            Debug.Log($"{Consts.Log.Tag} Loaded {m_AvailableExtensions.Count} extensions");
             
             // Load workflow data
             LoadWorkflowData();
@@ -586,7 +555,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void RefreshExtensionList()
         {
-            UpdateStatus(LocalizationManager.GetText("hub.refreshing"));
+            UpdateStatus("Refreshing extension list...");
             
             try
             {
@@ -598,12 +567,12 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                     m_ExtensionList.Rebuild();
                 }
                 
-                UpdateStatus(LocalizationManager.GetText("hub.found_extensions", m_AvailableExtensions.Count));
+                UpdateStatus($"Found {m_AvailableExtensions.Count} extensions");
                 EditorPrefs.SetString(KEY_LAST_REFRESH, DateTime.Now.ToString());
             }
             catch (Exception ex)
             {
-                UpdateStatus(LocalizationManager.GetText("hub.error_refreshing", ex.Message));
+                UpdateStatus($"Error refreshing extensions: {ex.Message}");
                 Debug.LogError($"{Consts.Log.Tag} Error refreshing extension list: {ex}");
             }
         }
@@ -704,7 +673,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 m_ExtensionList.Rebuild();
             }
             
-            UpdateStatus(LocalizationManager.GetText("hub.showing_extensions", m_FilteredExtensions.Count));
+            UpdateStatus($"Showing {m_FilteredExtensions.Count} extensions");
         }
 
         /// <summary>
@@ -736,7 +705,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             workflowContainer.style.paddingLeft = 10;
             workflowContainer.style.paddingRight = 10;
             
-            var title = new Label(LocalizationManager.GetText("hub.available_workflows"));
+            var title = new Label("Available Workflows");
             title.style.fontSize = 18;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
             title.style.marginBottom = 20;
@@ -746,7 +715,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             
             if (workflowsToShow.Count == 0)
             {
-                var noWorkflowsLabel = new Label(LocalizationManager.GetText("hub.no_workflows"));
+                var noWorkflowsLabel = new Label("No workflow configurations found.");
                 noWorkflowsLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
                 workflowContainer.Add(noWorkflowsLabel);
             }
@@ -760,7 +729,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             }
             
             m_MainContent.Add(workflowContainer);
-            UpdateStatus(LocalizationManager.GetText("hub.showing_workflows", workflowsToShow.Count));
+            UpdateStatus($"Showing {workflowsToShow.Count} workflows");
         }
 
         /// <summary>
@@ -814,7 +783,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             // Edit button
             var editButton = new Button(() => EditWorkflow(workflow))
             {
-                text = LocalizationManager.GetText("hub.workflow_edit")
+                text = "Edit"
             };
             editButton.style.minWidth = 80;
             editButton.style.height = 30;
@@ -839,20 +808,20 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                 {
                     // Open the file in the default text editor
                     UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(workflowPath, 1);
-                    UpdateStatus(LocalizationManager.GetText("hub.workflow_opened", workflow.FileName));
+                    UpdateStatus($"Opened {workflow.FileName} for editing");
                 }
                 else
                 {
-                    EditorUtility.DisplayDialog(LocalizationManager.GetText("common.error"), 
-                        LocalizationManager.GetText("hub.workflow_file_not_found", workflow.FileName), 
-                        LocalizationManager.GetText("common.ok"));
+                    EditorUtility.DisplayDialog("File Not Found", 
+                        $"Could not find workflow file: {workflow.FileName}", 
+                        "OK");
                 }
             }
             catch (Exception ex)
             {
-                EditorUtility.DisplayDialog(LocalizationManager.GetText("common.error"), 
-                    LocalizationManager.GetText("hub.workflow_open_error", ex.Message), 
-                    LocalizationManager.GetText("common.ok"));
+                EditorUtility.DisplayDialog("Error", 
+                    $"Failed to open workflow file: {ex.Message}", 
+                    "OK");
                 Debug.LogError($"{Consts.Log.Tag} Failed to open workflow file: {ex}");
             }
         }
@@ -862,16 +831,16 @@ namespace com.MiAO.Unity.MCP.Editor.UI
         /// </summary>
         private void ShowWorkflowDetails(WorkflowInfo workflow)
         {
-            var message = LocalizationManager.GetText("hub.workflow_details", 
-                workflow.DisplayName,
-                workflow.DisplayDescription,
-                workflow.Version,
-                workflow.Author,
-                workflow.Category,
-                workflow.FileName,
-                string.Join(", ", workflow.Tags));
+            var message = $"Workflow Details:\n\n" +
+                         $"Name: {workflow.DisplayName}\n" +
+                         $"Description: {workflow.DisplayDescription}\n" +
+                         $"Version: {workflow.Version}\n" +
+                         $"Author: {workflow.Author}\n" +
+                         $"Category: {workflow.Category}\n" +
+                         $"File: {workflow.FileName}\n" +
+                         $"Tags: {string.Join(", ", workflow.Tags)}";
             
-            EditorUtility.DisplayDialog(LocalizationManager.GetText("hub.workflow_details_title"), message, LocalizationManager.GetText("common.ok"));
+            EditorUtility.DisplayDialog("Workflow Details", message, "OK");
         }
 
         /// <summary>
@@ -884,21 +853,21 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             {
                 if (extension.IsInstalled)
                 {
-                                    if (extension.HasUpdate)
-                    return LocalizationManager.GetText("hub.core_framework_status_update", (object)extension.InstalledVersion, (object)extension.LatestVersion);
-                return LocalizationManager.GetText("hub.core_framework_status_installed", (object)extension.InstalledVersion);
-            }
-            return LocalizationManager.GetText("hub.core_framework_status_available", (object)extension.LatestVersion);
+                    if (extension.HasUpdate)
+                        return $"Core Framework v{extension.InstalledVersion} (Update available: v{extension.LatestVersion})";
+                    return $"Core Framework v{extension.InstalledVersion} (Required)";
+                }
+                return $"Core Framework v{extension.LatestVersion} (Required)";
             }
             
             // Normal extension status
             if (extension.IsInstalled)
             {
                 if (extension.HasUpdate)
-                    return LocalizationManager.GetText("hub.extension_status_update", (object)extension.InstalledVersion, (object)extension.LatestVersion);
-                return LocalizationManager.GetText("hub.extension_status_installed", (object)extension.InstalledVersion);
+                    return $"Installed v{extension.InstalledVersion} (Update available: v{extension.LatestVersion})";
+                return $"Installed v{extension.InstalledVersion}";
             }
-            return LocalizationManager.GetText("hub.extension_status_available", (object)extension.LatestVersion);
+            return $"Available v{extension.LatestVersion}";
         }
 
         /// <summary>
@@ -909,9 +878,9 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             // Prevent installation of Hub Core Framework
             if (extension.Id == HUB_CORE_FRAMEWORK_ID)
             {
-                EditorUtility.DisplayDialog(LocalizationManager.GetText("hub.core_package_install_title"), 
-                    LocalizationManager.GetText("hub.core_package_install_message"), 
-                    LocalizationManager.GetText("common.ok"));
+                EditorUtility.DisplayDialog("Core Package", 
+                    "Hub Core Framework is a required core package and cannot be installed separately.", 
+                    "OK");
                 return;
             }
             
@@ -922,17 +891,17 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             var originalText = button.text;
             SetButtonLoadingState(button, true, originalText);
             ShowProgressBar();
-            UpdateStatus(LocalizationManager.GetText("hub.installing", extension.DisplayName));
+            UpdateStatus($"Installing {extension.DisplayName}...");
             
             try
             {
                 await ExtensionManager.InstallExtensionAsync(extension);
-                UpdateStatus(LocalizationManager.GetText("hub.install_success", extension.DisplayName));
+                UpdateStatus($"Successfully installed {extension.DisplayName}");
                 RefreshExtensionList();
             }
             catch (Exception ex)
             {
-                UpdateStatus(LocalizationManager.GetText("hub.install_failed", extension.DisplayName, ex.Message));
+                UpdateStatus($"Failed to install {extension.DisplayName}: {ex.Message}");
                 Debug.LogError($"{Consts.Log.Tag} Installation failed: {ex}");
             }
             finally
@@ -950,15 +919,15 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             // Prevent uninstallation of Hub Core Framework
             if (extension.Id == HUB_CORE_FRAMEWORK_ID)
             {
-                EditorUtility.DisplayDialog(LocalizationManager.GetText("hub.core_package_install_title"), 
-                    LocalizationManager.GetText("hub.core_package_uninstall_message"), 
-                    LocalizationManager.GetText("common.ok"));
+                EditorUtility.DisplayDialog("Core Package", 
+                    "Hub Core Framework is a required core package and cannot be uninstalled.", 
+                    "OK");
                 return;
             }
             
-            if (!EditorUtility.DisplayDialog(LocalizationManager.GetText("hub.uninstall_confirm_title"), 
-                LocalizationManager.GetText("hub.uninstall_confirm_message", extension.DisplayName), 
-                LocalizationManager.GetText("hub.uninstall"), LocalizationManager.GetText("common.cancel")))
+            if (!EditorUtility.DisplayDialog("Uninstall Extension", 
+                $"Are you sure you want to uninstall {extension.DisplayName}?", 
+                "Uninstall", "Cancel"))
             {
                 return;
             }
@@ -970,17 +939,17 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             var originalText = button.text;
             SetButtonLoadingState(button, true, originalText);
             ShowProgressBar();
-            UpdateStatus(LocalizationManager.GetText("hub.uninstalling", extension.DisplayName));
+            UpdateStatus($"Uninstalling {extension.DisplayName}...");
             
             try
             {
                 await ExtensionManager.UninstallExtensionAsync(extension);
-                UpdateStatus(LocalizationManager.GetText("hub.uninstall_success", extension.DisplayName));
+                UpdateStatus($"Successfully uninstalled {extension.DisplayName}");
                 RefreshExtensionList();
             }
             catch (Exception ex)
             {
-                UpdateStatus(LocalizationManager.GetText("hub.uninstall_failed", extension.DisplayName, ex.Message));
+                UpdateStatus($"Failed to uninstall {extension.DisplayName}: {ex.Message}");
                 Debug.LogError($"{Consts.Log.Tag} Uninstallation failed: {ex}");
             }
             finally
@@ -1002,17 +971,17 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             var originalText = button.text;
             SetButtonLoadingState(button, true, originalText);
             ShowProgressBar();
-            UpdateStatus(LocalizationManager.GetText("hub.updating", extension.DisplayName));
+            UpdateStatus($"Updating {extension.DisplayName}...");
             
             try
             {
                 await ExtensionManager.UpdateExtensionAsync(extension);
-                UpdateStatus(LocalizationManager.GetText("hub.update_success", extension.DisplayName, extension.LatestVersion));
+                UpdateStatus($"Successfully updated {extension.DisplayName} to v{extension.LatestVersion}");
                 RefreshExtensionList();
             }
             catch (Exception ex)
             {
-                UpdateStatus(LocalizationManager.GetText("hub.update_failed", extension.DisplayName, ex.Message));
+                UpdateStatus($"Failed to update {extension.DisplayName}: {ex.Message}");
                 Debug.LogError($"{Consts.Log.Tag} Update failed: {ex}");
             }
             finally
@@ -1050,7 +1019,7 @@ namespace com.MiAO.Unity.MCP.Editor.UI
             {
                 button.SetEnabled(false);
                 button.style.opacity = 0.6f;
-                button.text = LocalizationManager.GetText("hub.loading");
+                button.text = "Loading...";
                 
                 // Show loading indicator
                 var loadingIndicator = button.parent?.Q<VisualElement>("loading-indicator");
@@ -1196,6 +1165,8 @@ namespace com.MiAO.Unity.MCP.Editor.UI
                         }
                     }
                 }
+                
+                Debug.Log($"{Consts.Log.Tag} Loaded {m_AvailableWorkflows.Count} workflows");
             }
             catch (Exception ex)
             {

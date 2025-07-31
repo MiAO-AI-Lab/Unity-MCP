@@ -4,7 +4,7 @@ using System.IO;
 using System.Globalization;
 using UnityEngine;
 
-namespace com.MiAO.Unity.MCP.Editor.Common
+namespace com.MiAO.MCP.Editor.Common
 {
     /// <summary>
     /// Lightweight localization manager with no external dependencies
@@ -42,8 +42,8 @@ namespace com.MiAO.Unity.MCP.Editor.Common
 
         private static readonly Dictionary<Language, string> _resourceFilePaths = new Dictionary<Language, string>
         {
-            [Language.English] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/Language/en.json",
-            [Language.ChineseSimplified] = "Packages/com.miao.unity.mcp/Editor/Scripts/Common/Localization/Language/zh-CN.json"
+            [Language.English] = "Packages/com.miao.mcp/Editor/Scripts/Common/Localization/Language/en.json",
+            [Language.ChineseSimplified] = "Packages/com.miao.mcp/Editor/Scripts/Common/Localization/Language/zh-CN.json"
         };
 
         #endregion

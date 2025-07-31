@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UIElements;
 
-namespace com.MiAO.Unity.MCP.Editor.Localization.Providers
+namespace com.MiAO.MCP.Editor.Localization.Providers
 {
     /// <summary>
     /// UXML attribute-based localization configuration provider

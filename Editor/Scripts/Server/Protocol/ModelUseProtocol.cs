@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
-using com.MiAO.Unity.MCP.Common;
-using com.MiAO.Unity.MCP.Server.Proxy;
+using com.MiAO.MCP.Common;
+using com.MiAO.MCP.Server.Proxy;
 
-namespace com.MiAO.Unity.MCP.Server.Protocol
+namespace com.MiAO.MCP.Server.Protocol
 {
     /// <summary>
     /// Model use protocol handler - Handles Unity Runtime reverse calls to Agent's ModelUse requests
