@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 
-namespace com.MiAO.Unity.MCP.Editor
+namespace com.MiAO.MCP.Editor
 {
     /// <summary>
     /// AI Configuration Manager using EditorPrefs for persistent storage.

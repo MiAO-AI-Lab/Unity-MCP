@@ -117,6 +117,7 @@ namespace com.MiAO.MCP.Editor.Common
                 // Fallback to English if initialization fails
                 _currentLanguage = Language.English;
                 _isInitialized = true;
+                Debug.LogError($"[LocalizationManager] Failed to initialize: {ex.Message}");
             }
         }
 

@@ -384,9 +384,9 @@ namespace com.MiAO.MCP.Editor.Localization
             // Model configuration related
             CodeConfigProvider.RegisterTextConfig("btnSaveConfig", "common.save_config");
             CodeConfigProvider.RegisterTextConfig("btnResetConfig", "common.reset_config");
-            CodeConfigProvider.RegisterTextConfig("btnImportConfig", "common.import_config");
-            CodeConfigProvider.RegisterTextConfig("btnExportConfig", "common.export_config");
-            
+            CodeConfigProvider.RegisterTextConfig("btnImportConfig", "model.import_config");
+            CodeConfigProvider.RegisterTextConfig("btnExportConfig", "model.export_config");
+
             // User input related
             CodeConfigProvider.RegisterTextConfig("userInputField", "userinput.placeholder");
             CodeConfigProvider.RegisterTextConfig("selectedObjectsText", "userinput.no_objects");
