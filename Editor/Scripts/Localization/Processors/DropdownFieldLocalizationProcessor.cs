@@ -72,7 +72,6 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
                         ApplyLocalizedChoices(dropdown, localizedValue, context);
                         break;
                     default:
-                        UnityEngine.Debug.Log($"[DropdownFieldLocalizationProcessor] Unsupported custom property: {kvp.Key}");
                         break;
                 }
             }

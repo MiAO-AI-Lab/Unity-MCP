@@ -311,7 +311,17 @@
                             </ui:Foldout>
                         </ui:VisualElement>
                         
-                        <ui:Button name="btnSaveConfig" text="Save Configuration" class="Button-Primary save-config-btn" />
+                        <!-- Configuration Action Buttons -->
+                        <ui:VisualElement style="flex-direction: column; margin-top: 10px;">
+                            <ui:Button name="btnSaveConfig" text="Save Configuration" class="Button-Primary save-config-btn" style="margin-bottom: 6px;" />
+                            <ui:Button name="btnResetConfig" text="Reset to Defaults" class="Button-Secondary" style="margin-bottom: 10px;" />
+                            
+                            <!-- Import/Export Actions -->
+                            <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
+                                <ui:Button name="btnImportConfig" text="Import Configuration" class="Button-Secondary" style="flex-grow: 1; margin-right: 4px;" />
+                                <ui:Button name="btnExportConfig" text="Export Configuration" class="Button-Secondary" style="flex-grow: 1; margin-left: 4px;" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
                     </ui:Foldout>
                 </ui:VisualElement>
             </ui:ScrollView>

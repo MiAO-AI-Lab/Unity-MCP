@@ -78,7 +78,6 @@ namespace com.MiAO.Unity.MCP.Editor.Localization.Processors
                         ApplyEnabledState(button, localizedValue);
                         break;
                     default:
-                        UnityEngine.Debug.Log($"[ButtonLocalizationProcessor] Unsupported custom property: {kvp.Key}");
                         break;
                 }
             }

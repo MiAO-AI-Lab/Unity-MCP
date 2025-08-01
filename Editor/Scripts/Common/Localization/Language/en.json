@@ -178,7 +178,19 @@
     "reset": "Reset",
     "reset_success": "Settings reset to default values successfully",
     "reset_failed": "Failed to reset settings: {0}",
-    "invalid_settings": "Invalid settings configuration"
+    "invalid_settings": "Invalid settings configuration",
+    "reset_ai_config_title": "Reset AI Configuration",
+    "reset_ai_config_message": "Are you sure you want to reset all AI configuration settings to their default values?",
+    "reset_ai_config_success": "AI configuration has been reset to defaults.",
+    "import_ai_config_title": "Import AI Configuration",
+    "import_ai_config_message": "Are you sure you want to import configuration from:\n{0}\n\nThis will overwrite your current settings.",
+    "import_ai_config_success": "Configuration imported successfully.",
+    "import_ai_config_failed": "Failed to import configuration:\n{0}",
+    "export_ai_config_title": "Export Complete",
+    "export_ai_config_success": "Configuration exported to:\n{0}",
+    "export_ai_config_failed": "Failed to export configuration:\n{0}",
+    "import": "Import",
+    "export": "Export"
   },
   "connector": {
     "title": "MCP Connector",
@@ -257,6 +269,9 @@
     "save_current": "Save current configuration",
     "reset_default": "Reset to default settings",
     "save_config": "Save Configuration",
+    "reset_config": "Reset to Defaults",
+    "import_config": "Import Configuration",
+    "export_config": "Export Configuration",
     "general_settings": "General Settings",
     "timeout": "Timeout",
     "code_provider": "Code Provider"

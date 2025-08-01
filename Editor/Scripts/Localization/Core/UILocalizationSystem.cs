@@ -80,8 +80,6 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             
             try
             {
-                UnityEngine.Debug.Log("[UILocalizationSystem] Initializing...");
-                
                 // Clear old data
                 _processors.Clear();
                 _configProviders.Clear();
@@ -98,7 +96,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                 LocalizationManager.OnLanguageChanged += OnLanguageChanged;
                 
                 _isInitialized = true;
-                UnityEngine.Debug.Log($"[UILocalizationSystem] Initialized with {_processors.Count} processors and {_configProviders.Count} config providers");
+    
             }
             catch (Exception ex)
             {
@@ -127,7 +125,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                 _configProviders.Clear();
                 
                 _isInitialized = false;
-                UnityEngine.Debug.Log("[UILocalizationSystem] Shutdown completed");
+    
             }
             catch (Exception ex)
             {
@@ -167,8 +165,6 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             
             // Sort by priority
             _processors.Sort((a, b) => b.Priority.CompareTo(a.Priority));
-            
-            // UnityEngine.Debug.Log($"[UILocalizationSystem] Registered processor: {processor.GetType().Name} (Priority: {processor.Priority})");
         }
         
         /// <summary>
@@ -182,7 +178,6 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             if (processor != null)
             {
                 _processors.Remove(processor);
-                UnityEngine.Debug.Log($"[UILocalizationSystem] Unregistered processor: {typeof(T).Name}");
                 return true;
             }
             return false;
@@ -216,7 +211,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             }
             
             _configProviders.Add(provider);
-            UnityEngine.Debug.Log($"[UILocalizationSystem] Registered config provider: {provider.GetType().Name}");
+
         }
         
         #endregion
@@ -302,7 +297,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                 
                 OnLocalizationCompleted?.Invoke(root, context);
                 
-                // UnityEngine.Debug.Log($"[UILocalizationSystem] Localized {context.Stats.ProcessedElementsCount} elements in {context.Stats.ProcessingTimeMs}ms");
+    
             }
             catch (Exception ex)
             {
@@ -330,7 +325,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         public static void ClearTextCache()
         {
             _textCache.Clear();
-            UnityEngine.Debug.Log("[UILocalizationSystem] Text cache cleared");
+
         }
         
         /// <summary>
@@ -339,7 +334,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         public static void ClearConfigCache()
         {
             _elementConfigCache.Clear();
-            UnityEngine.Debug.Log("[UILocalizationSystem] Config cache cleared");
+
         }
         
         #endregion
@@ -355,8 +350,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             RegisterProcessor<Processors.FoldoutLocalizationProcessor>();
             RegisterProcessor<Processors.DropdownFieldLocalizationProcessor>();
             RegisterProcessor<Processors.ToggleLocalizationProcessor>();
-            
-            UnityEngine.Debug.Log("[UILocalizationSystem] Registered default processors");
+        
         }
         
         private static void RegisterDefaultConfigProviders()
@@ -364,13 +358,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             // Register default configuration providers (in priority order)
             RegisterConfigProvider<Providers.AttributeConfigProvider>();
             RegisterConfigProvider<Providers.CodeConfigProvider>();
-            
-            UnityEngine.Debug.Log("[UILocalizationSystem] Registered default config providers");
+        
         }
         
         private static void OnLanguageChanged(LocalizationManager.Language newLanguage)
         {
-            UnityEngine.Debug.Log($"[UILocalizationSystem] Language changed to {newLanguage}, clearing all caches");
             // Clear all caches to ensure all elements are reprocessed after language switch
             ClearAllCaches();
         }

@@ -178,7 +178,19 @@
     "reset": "重置",
     "reset_success": "设置已成功重置为默认值",
     "reset_failed": "重置设置失败：{0}",
-    "invalid_settings": "无效的设置配置"
+    "invalid_settings": "无效的设置配置",
+    "reset_ai_config_title": "重置AI配置",
+    "reset_ai_config_message": "确定要将所有AI配置设置重置为默认值吗？",
+    "reset_ai_config_success": "AI配置已重置为默认值。",
+    "import_ai_config_title": "导入AI配置",
+    "import_ai_config_message": "确定要从以下位置导入配置吗：\n{0}\n\n这将覆盖您当前的设置。",
+    "import_ai_config_success": "配置导入成功。",
+    "import_ai_config_failed": "导入配置失败：\n{0}",
+    "export_ai_config_title": "导出完成",
+    "export_ai_config_success": "配置已导出至：\n{0}",
+    "export_ai_config_failed": "导出配置失败：\n{0}",
+    "import": "导入",
+    "export": "导出"
   },
   "connector": {
     "title": "MCP连接",
@@ -257,6 +269,9 @@
     "save_current": "保存当前配置",
     "reset_default": "重置为默认设置",
     "save_config": "保存配置",
+    "reset_config": "重置为默认值",
+    "import_config": "导入配置",
+    "export_config": "导出配置",
     "general_settings": "通用设置",
     "timeout": "超时时间",
     "code_provider": "代码提供商"

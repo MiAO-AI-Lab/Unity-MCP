@@ -111,11 +111,9 @@ namespace com.MiAO.Unity.MCP.Editor.Common
                 LoadResourceFile();
 
                 _isInitialized = true;
-                Debug.Log($"[LocalizationManager] Initialized with language: {_currentLanguage}, loaded {_currentTranslations.Count} translations");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[LocalizationManager] Failed to initialize: {ex.Message}");
                 // Fallback to English if initialization fails
                 _currentLanguage = Language.English;
                 _isInitialized = true;
@@ -141,7 +139,7 @@ namespace com.MiAO.Unity.MCP.Editor.Common
                     return text;
                 }
 
-                // Log missing translation only once per session
+                // Track missing keys for debugging purposes
                 if (!_missingKeys.Contains(key))
                 {
                     _missingKeys.Add(key);
@@ -314,7 +312,6 @@ namespace com.MiAO.Unity.MCP.Editor.Common
         public static void Reload()
         {
             LoadResourceFile();
-            Debug.Log($"[LocalizationManager] Resources reloaded, {_currentTranslations.Count} translations loaded");
         }
 
         /// <summary>
@@ -324,7 +321,6 @@ namespace com.MiAO.Unity.MCP.Editor.Common
         {
             _currentTranslations.Clear();
             _missingKeys.Clear();
-            Debug.Log("[LocalizationManager] All translations cleared");
         }
 
 
@@ -376,8 +372,6 @@ namespace com.MiAO.Unity.MCP.Editor.Common
                 
                 // Parse using Unity's built-in JSON support
                 ParseJsonRecursive(jsonContent, "", _currentTranslations);
-                
-                Debug.Log($"[LocalizationManager] Successfully loaded {_currentTranslations.Count} translations from: {fullPath}");
             }
             catch (Exception ex)
             {

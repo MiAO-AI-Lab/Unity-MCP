@@ -279,13 +279,83 @@ namespace com.MiAO.Unity.MCP.Editor
         private void ConfigureAISettings(VisualElement root)
         {
             var btnSaveConfig = root.Query<Button>("btnSaveConfig").First();
+            var btnResetConfig = root.Query<Button>("btnResetConfig").First();
+            var btnImportConfig = root.Query<Button>("btnImportConfig").First();
+            var btnExportConfig = root.Query<Button>("btnExportConfig").First();
 
             // Load current configuration
             LoadAIConfiguration(root);
 
+            // Save Configuration button
             btnSaveConfig.RegisterCallback<ClickEvent>(evt =>
             {
                 SaveAIConfiguration(root);
+            });
+
+            // Reset to Defaults button
+            btnResetConfig.RegisterCallback<ClickEvent>(evt =>
+            {
+                if (EditorUtility.DisplayDialog(
+                    LocalizationManager.GetText("dialog.reset_ai_config_title"), 
+                    LocalizationManager.GetText("dialog.reset_ai_config_message"), 
+                    LocalizationManager.GetText("dialog.reset"), LocalizationManager.GetText("dialog.cancel")))
+                {
+                    AIConfigManager.ResetToDefaults();
+                    LoadAIConfiguration(root); // Reload UI with default values
+                    EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.reset_ai_config_title"), LocalizationManager.GetText("dialog.reset_ai_config_success"), LocalizationManager.GetText("common.ok"));
+                }
+            });
+
+            // Import Configuration button
+            btnImportConfig.RegisterCallback<ClickEvent>(evt =>
+            {
+                var path = EditorUtility.OpenFilePanel(
+                    LocalizationManager.GetText("dialog.import_ai_config_title"),
+                    "",
+                    "json");
+                    
+                if (!string.IsNullOrEmpty(path))
+                {
+                    if (EditorUtility.DisplayDialog(
+                        LocalizationManager.GetText("dialog.import_ai_config_title"), 
+                        LocalizationManager.GetText("dialog.import_ai_config_message", path), 
+                        LocalizationManager.GetText("dialog.import"), LocalizationManager.GetText("dialog.cancel")))
+                    {
+                        try
+                        {
+                            AIConfigManager.ImportFromJson(path);
+                            LoadAIConfiguration(root); // Reload UI with imported values
+                            EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.import_ai_config_title"), LocalizationManager.GetText("dialog.import_ai_config_success"), LocalizationManager.GetText("common.ok"));
+                        }
+                        catch (System.Exception ex)
+                        {
+                            EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.import_ai_config_title"), LocalizationManager.GetText("dialog.import_ai_config_failed", ex.Message), LocalizationManager.GetText("common.ok"));
+                        }
+                    }
+                }
+            });
+
+            // Export Configuration button
+            btnExportConfig.RegisterCallback<ClickEvent>(evt =>
+            {
+                var path = EditorUtility.SaveFilePanel(
+                    LocalizationManager.GetText("dialog.export_ai_config_title"),
+                    "",
+                    "AIConfig.json",
+                    "json");
+                    
+                if (!string.IsNullOrEmpty(path))
+                {
+                    try
+                    {
+                        AIConfigManager.ExportToJson(path);
+                        EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.export_ai_config_title"), LocalizationManager.GetText("dialog.export_ai_config_success", path), LocalizationManager.GetText("common.ok"));
+                    }
+                    catch (System.Exception ex)
+                    {
+                        EditorUtility.DisplayDialog(LocalizationManager.GetText("dialog.export_ai_config_title"), LocalizationManager.GetText("dialog.export_ai_config_failed", ex.Message), LocalizationManager.GetText("common.ok"));
+                    }
+                }
             });
         }
 
@@ -293,32 +363,22 @@ namespace com.MiAO.Unity.MCP.Editor
         {
             try
             {
-                var configPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json";
-                var exampleConfigPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json.example";
-                
-                // If AI_Config.json doesn't exist, copy from AI_Config.json.example
-                if (!System.IO.File.Exists(configPath) && System.IO.File.Exists(exampleConfigPath))
-                {
-                    System.IO.File.Copy(exampleConfigPath, configPath);
-                }
-                
-                var configText = System.IO.File.ReadAllText(configPath);
-                var config = JsonUtility.FromJson<AIConfigData>(configText);
+                var config = AIConfigManager.LoadConfig();
 
                 // Load provider settings
                 SetFieldValue<TextField>(root, "openaiApiKey", config.openaiApiKey, "");
                 SetFieldValue<TextField>(root, "openaiModel", config.openaiModel, "gpt-4o");
-                SetFieldValue<TextField>(root, "openaiBaseUrl", config.openaiBaseUrl, "");
+                SetFieldValue<TextField>(root, "openaiBaseUrl", config.openaiBaseUrl, "https://api.openai.com/v1/chat/completions");
 
                 SetFieldValue<TextField>(root, "geminiApiKey", config.geminiApiKey, "");
                 SetFieldValue<TextField>(root, "geminiModel", config.geminiModel, "gemini-pro");
-                SetFieldValue<TextField>(root, "geminiBaseUrl", config.geminiBaseUrl, "");
+                SetFieldValue<TextField>(root, "geminiBaseUrl", config.geminiBaseUrl, "https://generativelanguage.googleapis.com/v1/models");
 
                 SetFieldValue<TextField>(root, "claudeApiKey", config.claudeApiKey, "");
                 SetFieldValue<TextField>(root, "claudeModel", config.claudeModel, "claude-3-sonnet-20240229");
-                SetFieldValue<TextField>(root, "claudeBaseUrl", config.claudeBaseUrl, "");
+                SetFieldValue<TextField>(root, "claudeBaseUrl", config.claudeBaseUrl, "https://api.anthropic.com/v1/messages");
 
-                SetFieldValue<TextField>(root, "localApiUrl", config.localApiUrl, "");
+                SetFieldValue<TextField>(root, "localApiUrl", config.localApiUrl, "http://localhost:11434/api/generate");
                 SetFieldValue<TextField>(root, "localModel", config.localModel, "llava");
 
                 // Model provider settings
@@ -343,36 +403,6 @@ namespace com.MiAO.Unity.MCP.Editor
             SaveAIConfigurationInternal(root, "[AI Connector] AI configuration updated");
         }
 
-        /// <summary>
-        /// Update server environment configuration file
-        /// </summary>
-        private void UpdateServerConfiguration(AIConfigData config)
-        {
-            try
-            {
-                // Build server configuration file path (based on the actual path you provided)
-                var projectRoot = System.IO.Path.Combine(UnityEngine.Application.dataPath, "..");
-                var serverConfigPath = System.IO.Path.Combine(
-                    projectRoot,
-                    "Library", "com.miao.unity.mcp.server", "bin~", "Release", "net9.0", 
-                    "Config", "AI_Config.json"
-                );
-                
-                // Ensure directory exists
-                var serverConfigDir = System.IO.Path.GetDirectoryName(serverConfigPath);
-                if (!System.IO.Directory.Exists(serverConfigDir))
-                {
-                    System.IO.Directory.CreateDirectory(serverConfigDir);
-                }
-                
-                // Save configuration file to server environment
-                System.IO.File.WriteAllText(serverConfigPath, JsonUtility.ToJson(config, true));
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"Failed to update server configuration: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// Save AI configuration immediately when dropdown values change
@@ -391,13 +421,8 @@ namespace com.MiAO.Unity.MCP.Editor
             {
                 var config = CollectAIConfigurationFromUI(root);
 
-                // 1. Save configuration file in Unity package
-                var unityConfigPath = "Packages/com.miao.unity.mcp/Config/AI_Config.json";
-                var jsonText = JsonUtility.ToJson(config, true);
-                System.IO.File.WriteAllText(unityConfigPath, jsonText);
-                
-                // 2. Update server environment
-                UpdateServerConfiguration(config);
+                // Save configuration to EditorPrefs (primary and only storage)
+                AIConfigManager.SaveConfig(config);
                 
                 SaveChanges(changeMessage);
             }
@@ -467,26 +492,7 @@ namespace com.MiAO.Unity.MCP.Editor
 
 
 
-        [System.Serializable]
-        private class AIConfigData
-        {
-            public string openaiApiKey;
-            public string openaiModel;
-            public string openaiBaseUrl;
-            public string geminiApiKey;
-            public string geminiModel;
-            public string geminiBaseUrl;
-            public string claudeApiKey;
-            public string claudeModel;
-            public string claudeBaseUrl;
-            public string localApiUrl;
-            public string localModel;
-            public string visionModelProvider;
-            public string textModelProvider;
-            public string codeModelProvider;
-            public int timeoutSeconds;
-            public int maxTokens;
-        }
+        // AIConfigData class moved to AIConfigManager.cs
 
 
 

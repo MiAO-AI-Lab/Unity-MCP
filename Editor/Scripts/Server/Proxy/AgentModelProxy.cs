@@ -880,169 +880,68 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
         }
 
         /// <summary>
-        /// Load AI configuration (referencing AI.Config.cs)
+        /// Load AI configuration
         /// </summary>
         private static AIConfig LoadConfig()
         {
 #if UNITY_5_3_OR_NEWER
-            // Use Unity path in Unity environment
-            var configPath = Path.Combine(UnityEngine.Application.dataPath, "..", "Packages", "com.miao.unity.mcp", "Config", "AI_Config.json");
-#else
-            // Use relative path in Server environment
-            var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "AI_Config.json");
-#endif
-
             try
             {
-                if (File.Exists(configPath))
-                {
-                    string json = File.ReadAllText(configPath);
-                    var config = JsonSerializer.Deserialize<AIConfig>(json);
-                    return config ?? new AIConfig();
-                }
-                else
-                {
-#if UNITY_5_3_OR_NEWER
-                    // Create default configuration in Unity environment
-                    var config = new AIConfig();
-                    SaveConfig(config, configPath);
-                    return config;
-#else
-                    // Try to copy configuration file from Unity package in Server environment
-                    return LoadConfigFromUnityPackage(configPath);
-#endif
-                }
+                // In Unity environment, load from EditorPrefs
+                return LoadConfigFromEditorPrefs();
             }
             catch (Exception ex)
             {
-#if UNITY_5_3_OR_NEWER
-                UnityEngine.Debug.LogError($"[AgentModelProxy] Failed to load config: {ex.Message}");
-#else
-                Console.WriteLine($"[AgentModelProxy] Failed to load config: {ex.Message}");
-#endif
+                UnityEngine.Debug.LogWarning($"[AgentModelProxy] Failed to load from EditorPrefs, using defaults: {ex.Message}");
+                // Use built-in defaults
                 return new AIConfig();
             }
-        }
-
-#if !UNITY_5_3_OR_NEWER
-        /// <summary>
-        /// Load configuration file from Unity package to Server environment
-        /// </summary>
-        private static AIConfig LoadConfigFromUnityPackage(string serverConfigPath)
-        {
-            try
-            {
-                // Build configuration file path in Unity package
-                var unityConfigPath = GetUnityPackageConfigPath();
-                
-                if (File.Exists(unityConfigPath))
-                {
-                    Console.WriteLine($"[AgentModelProxy] Copying config from Unity package: {unityConfigPath}");
-                    
-                    // Create Server configuration directory
-                    string? serverConfigDir = Path.GetDirectoryName(serverConfigPath);
-                    if (!string.IsNullOrEmpty(serverConfigDir) && !Directory.Exists(serverConfigDir))
-                        Directory.CreateDirectory(serverConfigDir);
-                    
-                    // Copy configuration file
-                    File.Copy(unityConfigPath, serverConfigPath, true);
-                    
-                    // Read and return configuration
-                    string json = File.ReadAllText(serverConfigPath);
-                    var config = JsonSerializer.Deserialize<AIConfig>(json);
-                    
-                    Console.WriteLine($"[AgentModelProxy] Config copied and loaded successfully");
-                    return config ?? new AIConfig();
-                }
-                else
-                {
-                    Console.WriteLine($"[AgentModelProxy] Unity package config not found: {unityConfigPath}");
-                    // Create default configuration
-                    var config = new AIConfig();
-                    SaveConfig(config, serverConfigPath);
-                    return config;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[AgentModelProxy] Failed to load config from Unity package: {ex.Message}");
-                // Create default configuration
-                var config = new AIConfig();
-                SaveConfig(config, serverConfigPath);
-                return config;
-            }
-        }
-
-        /// <summary>
-        /// Get configuration file path in Unity package
-        /// </summary>
-        private static string GetUnityPackageConfigPath()
-        {
-            // Search upward from Server's bin directory to find Unity project root
-            var currentDir = AppDomain.CurrentDomain.BaseDirectory;
-            var projectRoot = FindUnityProjectRoot(currentDir);
-            
-            if (!string.IsNullOrEmpty(projectRoot))
-            {
-                return Path.Combine(projectRoot, "Packages", "com.miao.unity.mcp", "Config", "AI_Config.json");
-            }
-            
-            // If project root not found, try using relative path
-            return Path.Combine(currentDir, "..", "..", "..", "..", "..", "Packages", "com.miao.unity.mcp", "Config", "AI_Config.json");
-        }
-
-        /// <summary>
-        /// Find Unity project root directory
-        /// </summary>
-        private static string FindUnityProjectRoot(string startPath)
-        {
-            var currentDir = new DirectoryInfo(startPath);
-            
-            while (currentDir != null)
-            {
-                // Check if Unity project identifier files exist
-                if (File.Exists(Path.Combine(currentDir.FullName, "ProjectSettings", "ProjectVersion.txt")) ||
-                    Directory.Exists(Path.Combine(currentDir.FullName, "Assets")) ||
-                    Directory.Exists(Path.Combine(currentDir.FullName, "Packages")))
-                {
-                    return currentDir.FullName;
-                }
-                
-                currentDir = currentDir.Parent;
-            }
-            
-            return string.Empty;
-        }
-#endif
-
-        /// <summary>
-        /// Save configuration
-        /// </summary>
-        private static void SaveConfig(AIConfig config, string configPath)
-        {
-            try
-            {
-                string? configDir = Path.GetDirectoryName(configPath);
-                if (!string.IsNullOrEmpty(configDir) && !Directory.Exists(configDir))
-                    Directory.CreateDirectory(configDir);
-
-                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(configPath, json);
-#if UNITY_5_3_OR_NEWER
-                UnityEngine.Debug.Log($"[AgentModelProxy] Config saved to: {configPath}");
 #else
-                Console.WriteLine($"[AgentModelProxy] Config saved to: {configPath}");
+            // In Server environment, use built-in defaults
+            return new AIConfig();
 #endif
-            }
-            catch (Exception ex)
-            {
-#if UNITY_5_3_OR_NEWER
-                UnityEngine.Debug.LogError($"[AgentModelProxy] Failed to save config: {ex.Message}");
-#else
-                Console.WriteLine($"[AgentModelProxy] Failed to save config: {ex.Message}");
-#endif
-            }
         }
+
+        // LoadConfigFromJson method removed - no longer needed since we use EditorPrefs and built-in defaults
+
+#if UNITY_5_3_OR_NEWER
+        /// <summary>
+        /// Load configuration directly from EditorPrefs (Unity environment)
+        /// </summary>
+        private static AIConfig LoadConfigFromEditorPrefs()
+        {
+            const string PREFS_PREFIX = "com.miao.unity.mcp.ai.";
+            
+            return new AIConfig
+            {
+                openaiApiKey = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "openaiApiKey", ""),
+                openaiModel = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "openaiModel", "gpt-4o"),
+                openaiBaseUrl = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "openaiBaseUrl", "https://api.openai.com/v1/chat/completions"),
+                
+                geminiApiKey = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "geminiApiKey", ""),
+                geminiModel = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "geminiModel", "gemini-pro"),
+                geminiBaseUrl = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "geminiBaseUrl", "https://generativelanguage.googleapis.com/v1/models"),
+                
+                claudeApiKey = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "claudeApiKey", ""),
+                claudeModel = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "claudeModel", "claude-3-sonnet-20240229"),
+                claudeBaseUrl = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "claudeBaseUrl", "https://api.anthropic.com/v1/messages"),
+                
+                localApiUrl = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "localApiUrl", "http://localhost:11434/api/generate"),
+                localModel = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "localModel", "llava"),
+                
+                visionModelProvider = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "visionModelProvider", "openai"),
+                textModelProvider = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "textModelProvider", "openai"),
+                codeModelProvider = UnityEditor.EditorPrefs.GetString(PREFS_PREFIX + "codeModelProvider", "claude"),
+                
+                timeoutSeconds = UnityEditor.EditorPrefs.GetInt(PREFS_PREFIX + "timeoutSeconds", 30),
+                maxTokens = UnityEditor.EditorPrefs.GetInt(PREFS_PREFIX + "maxTokens", 1000)
+            };
+        }
+#endif
+
+// LoadConfigFromUnityPackage method removed - no longer needed since we use built-in defaults
+
+        // SaveConfig method removed - no longer needed since we don't save JSON files
 
         /// <summary>
         /// Reload configuration file

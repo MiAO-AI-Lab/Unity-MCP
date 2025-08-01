@@ -192,7 +192,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["Timeout"] = "model.timeout",
                   ["Max Tokens"] = "model.max_tokens",
                   
-                  // === 操作监控页面 ===
+                  // === Operations Monitor Page ===
                   ["Operations Monitor"] = "operations.title",
                   ["Undo Stack"] = "operations.undo_stack",
                   ["History"] = "operations.history",
@@ -203,7 +203,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["Clear Stack"] = "operations.clear_stack",
                   ["Total operations: {0}"] = "operations.stack_status",
                   
-                  // === 用户输入页面 ===
+                  // === User Input Page ===
                   ["User Input Panel"] = "userinput.title",
                   ["Prompt Message:"] = "userinput.prompt_label",
                   ["User Input:"] = "userinput.input_label",
@@ -214,7 +214,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["Cancel"] = "userinput.cancel",
                   ["Waiting for user input request..."] = "userinput.waiting",
                   
-                  // === 设置页面 ===
+                  // === Settings Page ===
                   ["User Preferences"] = "settings.title",
                   ["Language Settings"] = "settings.language_settings",
                   ["Theme Settings"] = "settings.theme_settings",
@@ -228,11 +228,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["Save"] = "settings.save",
                   ["Reset"] = "settings.reset",
                   
-                  // === 通用按钮 ===
+                  // === Common Buttons ===
                   ["Save Configuration"] = "common.save_config",
                   ["Not configured"] = "common.not_configured",
                   
-                  // === 变体和额外映射 ===
+                  // === Variants and Additional Mappings ===
                   ["More Clients (Click to expand, drag items up to pin)"] = "connector.more_clients",
                   ["Pinned Clients (Drag to reorder)"] = "connector.pinned_clients",
                   ["Timeout (seconds)"] = "model.timeout",
@@ -246,23 +246,23 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["Stack Status: 0 operations"] = "operations.stack_status"
               };
               
-              // 添加英文映射
+              // Add English mappings
               foreach (var mapping in englishMappings)
               {
                   _textMappings[mapping.Key] = mapping.Value;
               }
               
-              // 添加中文映射 - 确保中文到英文的切换正常工作
+              // Add Chinese mappings - ensure Chinese to English switching works properly
               var chineseMappings = new Dictionary<string, string>
               {
-                  // === 标签页文本 ===
+                  // === Tab Text ===
                   ["MCP连接"] = "tab.connector",
                   ["模型配置"] = "tab.modelconfig", 
                   ["用户输入"] = "tab.userinput",
                   ["操作"] = "tab.operations",
                   ["设置"] = "tab.settings",
                   
-                  // === 连接器页面 ===
+                  // === Connector Page ===
                   ["MCP连接"] = "connector.title",
                   ["日志级别"] = "connector.log_level",
                   ["服务器地址"] = "connector.server_url",
@@ -280,7 +280,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["请查看日志以了解操作结果。"] = "connector.check_logs",
                   ["配置位置"] = "connector.config_location",
                   
-                  // 客户端名称
+                  // Client names
                   ["Cursor"] = "connector.client.cursor",
                   ["Claude 桌面版"] = "connector.client.claude_desktop",
                   ["VS Code"] = "connector.client.vscode",
@@ -289,11 +289,11 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["Windsurf"] = "connector.client.windsurf",
                   ["Cline"] = "connector.client.cline",
                   
-                  // 描述性文本
+                  // Descriptive text
                   ["通常服务器运行在本地地址：\nhttp://localhost:60606\n\n如果需要，您也可以连接到远程 MCP 服务器。底层连接使用 SignalR 建立，支持丰富的功能特性。"] = "connector.info_desc",
                   ["至少需要配置一个客户端。\n某些客户端配置后需要重启。"] = "connector.client_desc",
                   
-                  // 连接状态
+                  // Connection status
                   ["连接中..."] = "connector.connecting",
                   ["停止"] = "connector.stop",
                   ["连接"] = "connector.connect",
@@ -303,7 +303,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["已配置"] = "connector.configured",
                   ["未配置"] = "connector.not_configured",
                   
-                  // === 模型配置页面 ===
+                  // === Model Configuration Page ===
                   ["AI 模型配置"] = "model.title",
                   ["AI 提供商设置"] = "model.provider_settings",
                   ["OpenAI 设置"] = "model.openai_settings",
@@ -322,7 +322,7 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["超时时间"] = "model.timeout",
                   ["最大令牌数"] = "model.max_tokens",
                   
-                  // === 设置页面 ===
+                  // === Settings Page ===
                   ["用户偏好"] = "settings.title",
                   ["语言设置"] = "settings.language_settings",
                   ["界面语言"] = "settings.language",
@@ -334,23 +334,23 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                   ["语言"] = "settings.language",
                   ["主题"] = "settings.theme",
                   
-                  // === 用户输入页面 ===
+                  // === User Input Page ===
                   ["用户输入面板"] = "userinput.title",
                   ["提示消息："] = "userinput.prompt_label",
                   ["用户输入："] = "userinput.input_label",
                   ["当前选定对象："] = "userinput.selected_objects_label",
                   
-                  // === 操作监控页面 ===
+                  // === Operations Monitor Page ===
                   ["操作监控"] = "operations.title",
                   ["撤销堆栈"] = "operations.undo_stack",
                   ["历史记录"] = "operations.history",
                   
-                  // === 按钮文本 ===
+                  // === Button Text ===
                   ["保存"] = "common.save",
                   ["重置"] = "common.reset"
               };
               
-              // 添加中文映射
+              // Add Chinese mappings
               foreach (var mapping in chineseMappings)
               {
                   _textMappings[mapping.Key] = mapping.Value;
@@ -383,6 +383,9 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
             
             // Model configuration related
             CodeConfigProvider.RegisterTextConfig("btnSaveConfig", "common.save_config");
+            CodeConfigProvider.RegisterTextConfig("btnResetConfig", "common.reset_config");
+            CodeConfigProvider.RegisterTextConfig("btnImportConfig", "common.import_config");
+            CodeConfigProvider.RegisterTextConfig("btnExportConfig", "common.export_config");
             
             // User input related
             CodeConfigProvider.RegisterTextConfig("userInputField", "userinput.placeholder");
@@ -546,66 +549,66 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         }
         
         /// <summary>
-        /// 通过反向查找找到文本对应的localization key
-        /// 检查当前文本是否是某个localization key的翻译结果
-        /// 使用缓存来提高性能
+        /// Find the localization key corresponding to text through reverse lookup
+        /// Check if the current text is a translation result of some localization key
+        /// Use cache to improve performance
         /// </summary>
-        /// <param name="currentText">当前显示的文本</param>
-        /// <returns>找到的localization key，如果没找到返回null</returns>
+        /// <param name="currentText">Currently displayed text</param>
+        /// <returns>Found localization key, returns null if not found</returns>
         private static string FindLocalizationKeyByReverse(string currentText)
         {
             if (string.IsNullOrEmpty(currentText)) return null;
             
-            // 检查语言是否变化，如果变化则清空缓存
+            // Check if language has changed, clear cache if changed
             if (LocalizationManager.CurrentLanguage != _lastCacheLanguage)
             {
                 _reverseCache.Clear();
                 _lastCacheLanguage = LocalizationManager.CurrentLanguage;
             }
             
-            // 1. 检查缓存
+            // 1. Check cache
             if (_reverseCache.TryGetValue(currentText, out var cachedKey))
             {
                 return cachedKey;
             }
             
-            // 2. 遍历所有已知的localization key，检查当前文本是否是其翻译结果
+            // 2. Iterate through all known localization keys, check if current text is their translation result
             foreach (var mapping in _textMappings)
             {
                 var key = mapping.Value;
                 
-                // 检查当前文本是否是这个key在当前语言下的翻译
+                // Check if current text is the translation of this key in current language
                 var translatedText = LocalizationManager.GetText(key);
                 if (string.Equals(currentText, translatedText, StringComparison.Ordinal))
                 {
-                    _reverseCache[currentText] = key; // 缓存结果
+                    _reverseCache[currentText] = key; // Cache result
                     return key;
                 }
             }
             
-            // 3. 如果还没找到，尝试在所有available keys中查找
+            // 3. If not found yet, try searching in all available keys
             var allKeys = LocalizationManager.GetAllKeys();
             foreach (var key in allKeys)
             {
-                // 检查当前语言的翻译
+                // Check translation in current language
                 var translatedText = LocalizationManager.GetText(key);
                 if (string.Equals(currentText, translatedText, StringComparison.Ordinal))
                 {
-                    _reverseCache[currentText] = key; // 缓存结果
+                    _reverseCache[currentText] = key; // Cache result
                     return key;
                 }
             }
             
-            // 4. 没找到，缓存null结果以避免重复搜索
+            // 4. Not found, cache null result to avoid repeated searches
             _reverseCache[currentText] = null;
             return null;
         }
         
         /// <summary>
-        /// 为元素注册本地化配置
+        /// Register localization configuration for element
         /// </summary>
-        /// <param name="element">UI元素</param>
-        /// <param name="localizationKey">本地化键</param>
+        /// <param name="element">UI element</param>
+        /// <param name="localizationKey">Localization key</param>
         private static void RegisterElementConfig(VisualElement element, string localizationKey)
         {
             if (!string.IsNullOrEmpty(element.name))
@@ -616,14 +619,14 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         
         #endregion
         
-        #region 辅助方法
+        #region Helper Methods
         
         /// <summary>
-        /// 为UI元素添加本地化标记
+        /// Add localization marker to UI element
         /// </summary>
-        /// <param name="element">目标元素</param>
-        /// <param name="currentText">当前显示的文本</param>
-        /// <returns>是否成功添加标记</returns>
+        /// <param name="element">Target element</param>
+        /// <param name="currentText">Currently displayed text</param>
+        /// <returns>Whether the marker was successfully added</returns>
         public static bool MarkElementForLocalization(VisualElement element, string currentText)
         {
             if (element == null || string.IsNullOrEmpty(currentText))
@@ -639,35 +642,35 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
         }
         
         /// <summary>
-        /// 获取建议的本地化键
+        /// Get suggested localization key
         /// </summary>
-        /// <param name="currentText">当前文本</param>
-        /// <returns>建议的本地化键，如果没有返回null</returns>
+        /// <param name="currentText">Current text</param>
+        /// <returns>Suggested localization key, returns null if none</returns>
         public static string GetSuggestedLocalizationKey(string currentText)
         {
             return _textMappings.TryGetValue(currentText, out var key) ? key : null;
         }
         
         /// <summary>
-        /// 获取所有文本映射
+        /// Get all text mappings
         /// </summary>
-        /// <returns>文本映射字典</returns>
+        /// <returns>Text mapping dictionary</returns>
         public static Dictionary<string, string> GetTextMappings()
         {
             return new Dictionary<string, string>(_textMappings);
         }
         
         /// <summary>
-        /// 调试方法：列出UI树中所有未本地化的文本
+        /// Debug method: List all unlocalized text in UI tree
         /// </summary>
-        /// <param name="root">根UI元素</param>
+        /// <param name="root">Root UI element</param>
         public static void DebugUnlocalizedTexts(VisualElement root)
         {
             if (!_isInitialized) Initialize();
             
             var unlocalizedTexts = new List<string>();
             
-            // 收集所有文本元素的文本内容
+            // Collect text content from all text elements
             root.Query<Label>().ForEach(label =>
             {
                 if (!string.IsNullOrEmpty(label.text) && !IsTextLocalized(label.text))
@@ -691,35 +694,29 @@ namespace com.MiAO.Unity.MCP.Editor.Localization
                     unlocalizedTexts.Add($"Foldout: '{foldout.text}' (name: '{foldout.name}')");
                 }
             });
-            
-            if (unlocalizedTexts.Count > 0)
-            {
-                UnityEngine.Debug.LogWarning($"[LocalizationAdapter] Found {unlocalizedTexts.Count} potentially unlocalized texts:\n" + 
-                    string.Join("\n", unlocalizedTexts));
-            }
         }
         
         /// <summary>
-        /// 检查文本是否需要本地化处理
-        /// 这个方法判断文本是否应该被本地化系统处理，而不是判断文本是否已经是正确的语言
+        /// Check if text needs localization processing
+        /// This method determines whether text should be processed by the localization system, not whether the text is already in the correct language
         /// </summary>
-        /// <param name="text">要检查的文本</param>
-        /// <returns>true如果文本不需要本地化处理</returns>
+        /// <param name="text">Text to check</param>
+        /// <returns>true if text does not need localization processing</returns>
         private static bool IsTextLocalized(string text)
         {
             if (string.IsNullOrEmpty(text)) return true;
             
-            // 检查是否为动态格式化文本（包含占位符）
+            // Check if it's dynamic formatted text (contains placeholders)
             if (text.Contains("{0}") || text.Contains("{1}")) return true;
             
-            // 检查是否为特殊的UI文本（通常不需要本地化）
+            // Check if it's special UI text (usually doesn't need localization)
             var specialTexts = new[] { "API", "URL", "HTTP", "JSON", "MCP", "AI" };
             if (specialTexts.Any(special => text.Equals(special, StringComparison.OrdinalIgnoreCase))) return true;
             
-            // 检查是否在直接映射字典中或者可以通过反向查找找到
+            // Check if it's in direct mapping dictionary or can be found through reverse lookup
             if (_textMappings.ContainsKey(text)) return true;
             
-            // 尝试反向查找，如果能找到对应的localization key，说明这个文本是可以本地化的
+            // Try reverse lookup, if a corresponding localization key can be found, this text is localizable
             var foundKey = FindLocalizationKeyByReverse(text);
             if (!string.IsNullOrEmpty(foundKey)) return true;
             
