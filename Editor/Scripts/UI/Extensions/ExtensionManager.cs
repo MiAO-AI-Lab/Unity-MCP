@@ -609,12 +609,12 @@ namespace com.MiAO.MCP.Editor.Extensions
         /// </summary>
         private static string GetPackageDirectoryName(string packageId)
         {
-            // Map package IDs to actual directory names in Assets/MiAO-MCP structure
+            // Map package IDs to actual directory names in Assets/MiAO-MCP-for-Unity structure
             var packageIdToDirectoryMap = new Dictionary<string, string>
             {
                 { "com.miao.mcp.behavior-designer-tools", "Unity-MCP-Tools-Behavior-Designer" },
                 { "com.miao.mcp.essential", "Unity-MCP-Essential" },
-                { "com.miao.mcp", "MiAO-MCP" }
+                { "com.miao.mcp", "MiAO-MCP-for-Unity" }
             };
 
             return packageIdToDirectoryMap.TryGetValue(packageId, out var directoryName) ? directoryName : packageId;
