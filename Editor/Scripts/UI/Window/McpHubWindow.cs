@@ -802,7 +802,7 @@ namespace com.MiAO.MCP.Editor.UI
         {
             try
             {
-                var workflowPath = Path.Combine(Application.dataPath, "..", "Packages", "Unity-MCP", "Editor", "Scripts", "Server", "Config", "WorkflowDefinitions", workflow.FileName);
+                var workflowPath = Path.Combine(Application.dataPath, "..", "Assets", "Unity-MCP", "Editor", "Scripts", "Server", "Config", "WorkflowDefinitions", workflow.FileName);
                 
                 if (File.Exists(workflowPath))
                 {
@@ -1142,7 +1142,7 @@ namespace com.MiAO.MCP.Editor.UI
             
             try
             {
-                var workflowPath = Path.Combine(Application.dataPath, "..", "Packages", "Unity-MCP", "Editor", "Scripts", "Server", "Config", "WorkflowDefinitions");
+                var workflowPath = Path.Combine(Application.dataPath, "..", "Assets", "Unity-MCP", "Editor", "Scripts", "Server", "Config", "WorkflowDefinitions");
                 
                 if (Directory.Exists(workflowPath))
                 {

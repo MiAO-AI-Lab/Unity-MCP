@@ -947,7 +947,7 @@ namespace com.MiAO.MCP.Editor.UI
         {
             try
             {
-                var packagesPath = System.IO.Path.Combine(Application.dataPath, "..", "Packages");
+                var packagesPath = System.IO.Path.Combine(Application.dataPath, "..", "Assets");
                 EditorUtility.RevealInFinder(packagesPath);
                 UpdateStatus(LocalizationManager.GetText("hubsettings.opened_extensions_folder"));
             }

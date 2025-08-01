@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Packages/com.MiAO.MCP/Editor/UI/uss/AiConnectorWindow.uss" />
+    <Style src="project://database/Assets/com.MiAO.MCP/Editor/UI/uss/AiConnectorWindow.uss" />
     
     <!-- Tab container -->
     <ui:VisualElement name="TabContainer" style="flex-grow: 1;">
@@ -23,7 +23,7 @@
                     <ui:EnumField label="Log Level" name="dropdownLogLevel" type="com.MiAO.MCP.Utils.LogLevel, com.MiAO.MCP.Runtime" value="Warning" class="ContentItem" style="align-self: flex-start;" />
                 </ui:VisualElement>
                 <ui:VisualElement name="imgLogoPivot" class="AnimatedSelectable" style="flex-grow: 0; height: 90px; width: 90px; right: 0; margin-left: 15px; flex-shrink: 0; margin-right: -8px; margin-top: 10px; flex-direction: row;">
-                    <ui:VisualElement name="imgLogo" style="flex-grow: 1; background-color: rgba(0, 0, 0, 0); background-image: url(&quot;project://database/Packages/com.MiAO.MCP/Editor/Gizmos/logo_512.png&quot;); -unity-background-scale-mode: stretch-to-fill; align-self: stretch;" />
+                    <ui:VisualElement name="imgLogo" style="flex-grow: 1; background-color: rgba(0, 0, 0, 0); background-image: url(&quot;project://database/Assets/com.MiAO.MCP/Editor/Gizmos/logo_512.png&quot;); -unity-background-scale-mode: stretch-to-fill; align-self: stretch;" />
                 </ui:VisualElement>
             </ui:Box>
             <ui:Label text="Connect to MCP server" class="Header" />

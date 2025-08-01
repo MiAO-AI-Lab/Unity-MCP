@@ -27,22 +27,22 @@ namespace com.MiAO.MCP.Editor
             _disposables.Clear();
             rootVisualElement.Clear();
 
-            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Packages/com.miao.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
+            var templateControlPanel = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/MiAO-MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
             if (templateControlPanel == null)
             {
-                Debug.LogError("'templateControlPanel' could not be loaded from path: Packages/com.miao.mcp/Editor/UI/uxml/AiConnectorWindow.uxml");
+                Debug.LogError("'templateControlPanel' could not be loaded from path: Assets/MiAO-MCP/Editor/UI/uxml/AiConnectorWindow.uxml");
                 return;
             }
 
             // Load and apply the stylesheet
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.miao.mcp/Editor/UI/uss/AiConnectorWindow.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/MiAO-MCP/Editor/UI/uss/AiConnectorWindow.uss");
             if (styleSheet != null)
             {
                 rootVisualElement.styleSheets.Add(styleSheet);
             }
             else
             {
-                Debug.LogWarning("Could not load stylesheet from: Packages/com.miao.mcp/Editor/UI/uss/AiConnectorWindow.uss");
+                Debug.LogWarning("Could not load stylesheet from: Assets/MiAO-MCP/Editor/UI/uss/AiConnectorWindow.uss");
             }
 
             var root = templateControlPanel.Instantiate();
@@ -131,8 +131,8 @@ namespace com.MiAO.MCP.Editor
                     if (logoElement != null)
                     {
                         var logoPath = isConnected
-                            ? "Packages/com.MiAO.MCP/Editor/Gizmos/512_logo_conneted.png"
-                            : "Packages/com.MiAO.MCP/Editor/Gizmos/logo_512.png";
+                            ? "Assets/MiAO-MCP/Editor/Gizmos/512_logo_conneted.png"
+                            : "Assets/MiAO-MCP/Editor/Gizmos/logo_512.png";
                         var logoTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(logoPath);
                         if (logoTexture != null)
                         {

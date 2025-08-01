@@ -34,9 +34,9 @@ namespace com.MiAO.MCP.Editor.Extensions
                     "com.miao.mcp.essential",
                     new ExtensionRegistryEntry(
                         "com.miao.mcp.essential",
-                        "Unity MCP Essential Tools",
+                        "MiAO MCP Essential Tools",
                         "Essential tools for basic Unity MCP operations including GameObject, Scene, Assets, Component, and Editor manipulation.",
-                        "MCP Team",
+                        "MiAO",
                         ExtensionCategory.Essential,
                         "https://github.com/MiAO-AI-LAB/Unity-MCP-Tools-Essential.git"
                     )
@@ -45,9 +45,9 @@ namespace com.MiAO.MCP.Editor.Extensions
                     "com.miao.mcp.behavior-designer-tools",
                     new ExtensionRegistryEntry(
                         "com.miao.mcp.behavior-designer-tools",
-                        "Unity MCP Behavior Designer Tools",
+                        "MiAO MCP Behavior Designer Tools",
                         "Behavior Designer Tools for Unity MCP",
-                        "MCP Team",
+                        "MiAO",
                         ExtensionCategory.Essential,
                         "https://github.com/MiAO-AI-LAB/Unity-MCP-Tools-Behavior-Designer.git"
                     )
@@ -124,14 +124,14 @@ namespace com.MiAO.MCP.Editor.Extensions
                     throw new InvalidOperationException($"Extension {extension.Id} not found in registry");
                 }
 
-                // Check if this is a local package installation
+                // Check if this is a local package installation (Assets structure)
                 if (IsLocalPackageInstallation(registryEntry))
                 {
                     Debug.Log($"{Consts.Log.Tag} Installing as local package: {extension.DisplayName}");
                     
-                    // Get the actual directory name for this package
+                    // Get the actual directory name for this package in Assets structure
                     var actualDirectoryName = GetPackageDirectoryName(extension.Id);
-                    var packagePath = Path.Combine("Packages", actualDirectoryName);
+                    var packagePath = Path.Combine("Assets", actualDirectoryName);
                     
                     // Check if package already exists
                     if (Directory.Exists(packagePath))
@@ -206,14 +206,14 @@ namespace com.MiAO.MCP.Editor.Extensions
             {
                 Debug.Log($"{Consts.Log.Tag} Uninstalling extension: {extension.DisplayName}");
 
-                // Check if this is a local package (installed in Packages directory)
+                // Check if this is a local package (installed in Assets directory)
                 if (IsLocalPackage(extension.Id))
                 {
-                    Debug.Log($"{Consts.Log.Tag} Detected local package: {extension.Id}, removing from Packages directory");
+                    Debug.Log($"{Consts.Log.Tag} Detected local package: {extension.Id}, removing from Assets directory");
                     
-                    // Get the actual directory name for this package
+                    // Get the actual directory name for this package in Assets structure
                     var actualDirectoryName = GetPackageDirectoryName(extension.Id);
-                    var packagePath = Path.Combine("Packages", actualDirectoryName);
+                    var packagePath = Path.Combine("Assets", actualDirectoryName);
                     
                     if (Directory.Exists(packagePath))
                     {
@@ -476,6 +476,11 @@ namespace com.MiAO.MCP.Editor.Extensions
                 {
                     extension.UpdateInstallationStatus(true, installedPackage.version);
                 }
+                else if (IsLocalPackage(registryEntry.Id))
+                {
+                    // Check if it's installed as a local package in Assets
+                    extension.UpdateInstallationStatus(true, "local");
+                }
 
                 s_KnownExtensions[extension.Id] = extension;
             }
@@ -541,20 +546,21 @@ namespace com.MiAO.MCP.Editor.Extensions
         }
 
         /// <summary>
-        /// Checks if a package is installed as a local package in the Packages directory
+        /// Checks if a package is installed as a local package in the Assets directory
         /// </summary>
         private static bool IsLocalPackage(string packageId)
         {
             // Check if the package directory exists
-            var packagePath = Path.Combine("Packages", packageId);
+            var packagePath = Path.Combine("Assets", packageId);
             if (Directory.Exists(packagePath))
             {
+                Debug.Log($"{Consts.Log.Tag} Found local package: {packageId} at {packagePath}");
                 return true;
             }
             
             // Check if it's a local package with a different directory name
             var actualDirectoryName = GetPackageDirectoryName(packageId);
-            var actualPackagePath = Path.Combine("Packages", actualDirectoryName);
+            var actualPackagePath = Path.Combine("Assets", actualDirectoryName);
             if (Directory.Exists(actualPackagePath))
             {
                 return true;
@@ -571,7 +577,7 @@ namespace com.MiAO.MCP.Editor.Extensions
         {
             try
             {
-                var lockFilePath = Path.Combine("Packages", "packages-lock.json");
+                var lockFilePath = Path.Combine("Assets", "packages-lock.json");
                 if (!File.Exists(lockFilePath))
                 {
                     return false;
@@ -599,16 +605,16 @@ namespace com.MiAO.MCP.Editor.Extensions
         }
 
         /// <summary>
-        /// Gets the actual directory name for a package ID
+        /// Gets the actual directory name for a package ID in Assets structure
         /// </summary>
         private static string GetPackageDirectoryName(string packageId)
         {
-            // Map package IDs to actual directory names
+            // Map package IDs to actual directory names in Assets/MiAO-MCP structure
             var packageIdToDirectoryMap = new Dictionary<string, string>
             {
                 { "com.miao.mcp.behavior-designer-tools", "Unity-MCP-Tools-Behavior-Designer" },
                 { "com.miao.mcp.essential", "Unity-MCP-Essential" },
-                { "com.miao.mcp", "Unity-MCP" }
+                { "com.miao.mcp", "MiAO-MCP" }
             };
 
             return packageIdToDirectoryMap.TryGetValue(packageId, out var directoryName) ? directoryName : packageId;
@@ -809,7 +815,7 @@ namespace com.MiAO.MCP.Editor.Extensions
         }
 
         /// <summary>
-        /// Clones a package from Git repository to the Packages directory
+        /// Clones a package from Git repository to the Assets directory
         /// </summary>
         private static async Task<bool> ClonePackageFromGit(string gitUrl, string targetPath, string directoryName)
         {
@@ -839,10 +845,10 @@ namespace com.MiAO.MCP.Editor.Extensions
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Path.GetFullPath("Packages")
+                    WorkingDirectory = Path.GetFullPath("Assets")
                 };
                 
-                Debug.Log($"{Consts.Log.Tag} Working directory: {Path.GetFullPath("Packages")}");
+                Debug.Log($"{Consts.Log.Tag} Working directory: {Path.GetFullPath("Assets")}");
                 Debug.Log($"{Consts.Log.Tag} Clone target: {directoryName}");
                 
                 using (var process = new System.Diagnostics.Process { StartInfo = startInfo })
