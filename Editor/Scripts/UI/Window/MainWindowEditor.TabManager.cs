@@ -8,7 +8,6 @@ using com.MiAO.MCP.Editor.API;
 using com.MiAO.MCP.Editor.Common;
 using com.MiAO.MCP.Editor.Localization;
 using com.MiAO.MCP.Editor.UI;
-using Unity.MCP;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;

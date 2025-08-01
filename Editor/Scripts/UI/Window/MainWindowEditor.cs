@@ -1,9 +1,9 @@
 using com.MiAO.MCP.Editor.Common;
+using com.MiAO.MCP.Common;
 using com.MiAO.MCP.Utils;
 using R3;
 using UnityEditor;
 using UnityEngine;
-using Unity.MCP;
 
 namespace com.MiAO.MCP.Editor
 {

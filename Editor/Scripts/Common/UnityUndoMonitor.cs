@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 
-namespace Unity.MCP
+namespace com.MiAO.MCP.Common
 {
     /// <summary>
     /// Unity undo stack monitor - Real-time monitoring of all undo operations
