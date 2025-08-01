@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
+  <metadata minClientVersion="2.8.1">
+    <id>Microsoft.Bcl.Compression</id>
+    <version>3.9.85</version>
+    <title>Microsoft Compression</title>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <licenseUrl>http://go.microsoft.com/fwlink/?LinkId=329770</licenseUrl>
+    <projectUrl>http://go.microsoft.com/fwlink/?LinkID=282261</projectUrl>
+    <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>This package allows projects targeting Windows Phone Silverlight 8 directly or using portable class libraries to use the same ZipArchive, GZipStream and DeflateStream classes that are already available to projects targeting .NET Framework 4.5, Windows 8, and Windows Phone 8.1.
+
+For more information on how to use these APIs, see the MSDN documentation:
+http://msdn.microsoft.com/en-us/library/system.io.compression.aspx
+
+Supported Platforms:
+- .NET Framework 4.5
+- Windows 8
+- Windows Phone 8.1
+- Windows Phone Silverlight 8
+- Portable Class Libraries
+
+This package is only required for projects targeting .NET Framework 4.5, Windows 8, or Windows Phone 8.1 when consuming a library that uses this package.</description>
+    <summary>This package contains APIs for compressing and de-compressing streams using the ZIP and GZIP formats.</summary>
+    <copyright>Copyright © Microsoft Corporation</copyright>
+    <tags>BCL Compression Deflate GZip Microsoft System Stream Zip ZipArchive</tags>
+    <dependencies>
+      <dependency id="Microsoft.Bcl.Build" version="1.0.14" />
+    </dependencies>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.IO.Compression" targetFramework=".NETFramework4.5" />
+    </frameworkAssemblies>
+  </metadata>
+</package>

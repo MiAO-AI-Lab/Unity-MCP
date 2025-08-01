@@ -886,7 +886,7 @@ namespace com.MiAO.MCP.Server.Proxy
         {
 #if UNITY_5_3_OR_NEWER
             // Use Unity path in Unity environment
-            var configPath = Path.Combine(UnityEngine.Application.dataPath, "..", "Packages", "com.miao.mcp", "Config", "AI_Config.json");
+            var configPath = Path.Combine(UnityEngine.Application.dataPath, "..", "Assets", "MiAO-MCP", "Config", "AI_Config.json");
 #else
             // Use relative path in Server environment
             var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "AI_Config.json");
@@ -984,11 +984,11 @@ namespace com.MiAO.MCP.Server.Proxy
             
             if (!string.IsNullOrEmpty(projectRoot))
             {
-                return Path.Combine(projectRoot, "Packages", "com.miao.mcp", "Config", "AI_Config.json");
+                return Path.Combine(projectRoot, "Assets", "com.miao.mcp", "Config", "AI_Config.json");
             }
 
             // If project root not found, try using relative path
-            return Path.Combine(currentDir, "..", "..", "..", "..", "..", "Packages", "com.miao.mcp", "Config", "AI_Config.json");
+            return Path.Combine(currentDir, "..", "..", "..", "..", "..", "Assets", "com.miao.mcp", "Config", "AI_Config.json");
         }
 
         /// <summary>
