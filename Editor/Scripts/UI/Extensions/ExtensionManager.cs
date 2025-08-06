@@ -38,7 +38,7 @@ namespace com.MiAO.MCP.Editor.Extensions
                         "Essential tools for basic Unity MCP operations including GameObject, Scene, Assets, Component, and Editor manipulation.",
                         "MiAO",
                         ExtensionCategory.Essential,
-                        "https://github.com/MiAO-AI-LAB/Unity-MCP-Tools-Essential.git"
+                        "https://github.com/MiAO-AI-Lab/Unity-MCP-Tools-Essential.git"
                     )
                 },
                 {
@@ -49,7 +49,7 @@ namespace com.MiAO.MCP.Editor.Extensions
                         "Behavior Designer Tools for Unity MCP",
                         "MiAO",
                         ExtensionCategory.Essential,
-                        "https://github.com/MiAO-AI-LAB/Unity-MCP-Tools-Behavior-Designer.git"
+                        "https://github.com/MiAO-AI-Lab/Unity-MCP-Tools-Behavior-Designer.git"
                     )
                 }
             };
@@ -131,7 +131,7 @@ namespace com.MiAO.MCP.Editor.Extensions
                     
                     // Get the actual directory name for this package in Assets structure
                     var actualDirectoryName = GetPackageDirectoryName(extension.Id);
-                    var packagePath = Path.Combine("Assets", actualDirectoryName);
+                    var packagePath = Path.Combine("Packages", actualDirectoryName);
                     
                     // Check if package already exists
                     if (Directory.Exists(packagePath))
@@ -213,7 +213,7 @@ namespace com.MiAO.MCP.Editor.Extensions
                     
                     // Get the actual directory name for this package in Assets structure
                     var actualDirectoryName = GetPackageDirectoryName(extension.Id);
-                    var packagePath = Path.Combine("Assets", actualDirectoryName);
+                    var packagePath = Path.Combine("Packages", actualDirectoryName);
                     
                     if (Directory.Exists(packagePath))
                     {
@@ -551,7 +551,7 @@ namespace com.MiAO.MCP.Editor.Extensions
         private static bool IsLocalPackage(string packageId)
         {
             // Check if the package directory exists
-            var packagePath = Path.Combine("Assets", packageId);
+            var packagePath = Path.Combine("Packages", packageId);
             if (Directory.Exists(packagePath))
             {
                 Debug.Log($"{Consts.Log.Tag} Found local package: {packageId} at {packagePath}");
@@ -560,7 +560,7 @@ namespace com.MiAO.MCP.Editor.Extensions
             
             // Check if it's a local package with a different directory name
             var actualDirectoryName = GetPackageDirectoryName(packageId);
-            var actualPackagePath = Path.Combine("Assets", actualDirectoryName);
+            var actualPackagePath = Path.Combine("Packages", actualDirectoryName);
             if (Directory.Exists(actualPackagePath))
             {
                 return true;
@@ -577,7 +577,7 @@ namespace com.MiAO.MCP.Editor.Extensions
         {
             try
             {
-                var lockFilePath = Path.Combine("Assets", "packages-lock.json");
+                var lockFilePath = Path.Combine("Packages", "packages-lock.json");
                 if (!File.Exists(lockFilePath))
                 {
                     return false;
@@ -609,7 +609,7 @@ namespace com.MiAO.MCP.Editor.Extensions
         /// </summary>
         private static string GetPackageDirectoryName(string packageId)
         {
-            // Map package IDs to actual directory names in Assets/MiAO-MCP-for-Unity structure
+            // Map package IDs to actual directory names in Packages/com.miao.mcp structure
             var packageIdToDirectoryMap = new Dictionary<string, string>
             {
                 { "com.miao.mcp.behavior-designer-tools", "Unity-MCP-Tools-Behavior-Designer" },
@@ -845,10 +845,10 @@ namespace com.MiAO.MCP.Editor.Extensions
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Path.GetFullPath("Assets")
+                    WorkingDirectory = Path.GetFullPath("Packages")
                 };
                 
-                Debug.Log($"{Consts.Log.Tag} Working directory: {Path.GetFullPath("Assets")}");
+                Debug.Log($"{Consts.Log.Tag} Working directory: {Path.GetFullPath("Packages")}");
                 Debug.Log($"{Consts.Log.Tag} Clone target: {directoryName}");
                 
                 using (var process = new System.Diagnostics.Process { StartInfo = startInfo })

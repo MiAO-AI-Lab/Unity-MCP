@@ -42,8 +42,8 @@ namespace com.MiAO.MCP.Editor.Common
 
         private static readonly Dictionary<Language, string> _resourceFilePaths = new Dictionary<Language, string>
         {
-            [Language.English] = "Assets/MiAO-MCP-for-Unity/Editor/Scripts/Common/Localization/Language/en.json",
-            [Language.ChineseSimplified] = "Assets/MiAO-MCP-for-Unity/Editor/Scripts/Common/Localization/Language/zh-CN.json"
+            [Language.English] = "Packages/com.miao.mcp/Editor/Scripts/Common/Localization/Language/en.json",
+            [Language.ChineseSimplified] = "Packages/com.miao.mcp/Editor/Scripts/Common/Localization/Language/zh-CN.json"
         };
 
         #endregion

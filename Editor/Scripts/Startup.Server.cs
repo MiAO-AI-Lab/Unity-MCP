@@ -32,7 +32,7 @@ namespace com.MiAO.MCP.Editor
 
                 if (string.IsNullOrEmpty(sourceDir))
                 {
-                    var path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Assets/MiAO-MCP-for-Unity/Editor/Scripts/Server"));
+                    var path = Path.GetFullPath(Path.Combine(Application.dataPath, "../Packages/com.miao.mcp/Editor/Scripts/Server"));
                     Debug.Log($"{Consts.Log.Tag} Set server path: <color=#8CFFD1>{path}</color>");
                     return path;
                 }

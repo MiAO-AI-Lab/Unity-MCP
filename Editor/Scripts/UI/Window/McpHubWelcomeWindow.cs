@@ -432,7 +432,7 @@ namespace com.MiAO.MCP.Editor.UI
             try
             {
                 // Try to read version from package.json
-                var packagePath = System.IO.Path.Combine(Application.dataPath, "..", "Assets", "Unity-MCP", "package.json");
+                var packagePath = System.IO.Path.Combine(Application.dataPath, "..", "Packages", "Unity-MCP", "package.json");
                 if (System.IO.File.Exists(packagePath))
                 {
                     var packageJson = System.IO.File.ReadAllText(packagePath);

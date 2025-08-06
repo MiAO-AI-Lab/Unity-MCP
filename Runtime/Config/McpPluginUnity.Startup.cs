@@ -62,10 +62,9 @@ namespace com.MiAO.MCP
                         _ => LogLevelMicrosoft.Warning
                     });
                 })
-                // .WithToolsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
-                // .WithPromptsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
-                // .WithResourcesFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
-                .WithAllFromAssemblyOptimized()
+                .WithToolsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
+                .WithPromptsFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
+                .WithResourcesFromAssembly(AppDomain.CurrentDomain.GetAssemblies())
                 .Build(CreateDefaultReflector());
 
             if (McpPluginUnity.KeepConnected)
