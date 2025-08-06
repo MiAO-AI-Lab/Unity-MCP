@@ -9,6 +9,204 @@ using UnityEditor.SceneManagement;
 namespace Unity.MCP
 {
     /// <summary>
+    /// Component state snapshot for Inspector diff comparison
+    /// </summary>
+    [System.Serializable]
+    public struct ComponentSnapshot
+    {
+        public Dictionary<string, ComponentState> components; // Component type -> Component state
+        public TransformState transformState; // Special handling for Transform
+        public DateTime captureTime; // When this snapshot was taken
+        
+        public ComponentSnapshot(GameObject gameObject)
+        {
+            components = new Dictionary<string, ComponentState>();
+            transformState = new TransformState();
+            captureTime = DateTime.Now;
+            
+            if (gameObject != null)
+            {
+                CaptureGameObjectState(gameObject);
+            }
+        }
+        
+        private void CaptureGameObjectState(GameObject gameObject)
+        {
+            // Capture Transform state (most common)
+            var transform = gameObject.transform;
+            transformState = new TransformState
+            {
+                position = transform.position,
+                rotation = transform.rotation,
+                localScale = transform.localScale,
+                parent = transform.parent != null ? transform.parent.GetInstanceID() : 0
+            };
+            
+            // Capture all components
+            var allComponents = gameObject.GetComponents<Component>();
+            foreach (var component in allComponents)
+            {
+                if (component == null) continue;
+                
+                var componentType = component.GetType().Name;
+                if (componentType == "Transform") continue; // Already handled
+                
+                var componentState = new ComponentState
+                {
+                    typeName = component.GetType().FullName,
+                    enabled = true,
+                    properties = new Dictionary<string, object>()
+                };
+                
+                // Try to get enabled state for MonoBehaviour
+                if (component is MonoBehaviour monoBehaviour)
+                {
+                    componentState.enabled = monoBehaviour.enabled;
+                }
+                else if (component is Renderer renderer)
+                {
+                    componentState.enabled = renderer.enabled;
+                }
+                else if (component is Collider collider)
+                {
+                    componentState.enabled = collider.enabled;
+                }
+                
+                // Capture key properties using reflection
+                CaptureComponentProperties(component, componentState);
+                
+                components[componentType] = componentState;
+            }
+        }
+        
+        private void CaptureComponentProperties(Component component, ComponentState state)
+        {
+            try
+            {
+                var componentType = component.GetType();
+                
+                // Capture common properties based on component type
+                switch (component)
+                {
+                    case Rigidbody rb:
+                        state.properties["mass"] = rb.mass;
+                        state.properties["drag"] = rb.drag;
+                        state.properties["angularDrag"] = rb.angularDrag;
+                        state.properties["useGravity"] = rb.useGravity;
+                        state.properties["isKinematic"] = rb.isKinematic;
+                        break;
+                        
+                    case MeshRenderer mr:
+                        state.properties["shadowCastingMode"] = mr.shadowCastingMode.ToString();
+                        state.properties["receiveShadows"] = mr.receiveShadows;
+                        if (mr.material != null)
+                            state.properties["materialName"] = mr.material.name;
+                        break;
+                        
+                    case BoxCollider bc:
+                        state.properties["center"] = bc.center;
+                        state.properties["size"] = bc.size;
+                        state.properties["isTrigger"] = bc.isTrigger;
+                        break;
+                        
+                    case SphereCollider sc:
+                        state.properties["center"] = sc.center;
+                        state.properties["radius"] = sc.radius;
+                        state.properties["isTrigger"] = sc.isTrigger;
+                        break;
+                        
+                    case Light light:
+                        state.properties["type"] = light.type.ToString();
+                        state.properties["color"] = light.color;
+                        state.properties["intensity"] = light.intensity;
+                        state.properties["range"] = light.range;
+                        break;
+                        
+                    case Camera cam:
+                        state.properties["fieldOfView"] = cam.fieldOfView;
+                        state.properties["nearClipPlane"] = cam.nearClipPlane;
+                        state.properties["farClipPlane"] = cam.farClipPlane;
+                        state.properties["clearFlags"] = cam.clearFlags.ToString();
+                        break;
+                        
+                    default:
+                        // For other components, try to capture some common properties via reflection
+                        CaptureCommonProperties(component, state);
+                        break;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[ComponentSnapshot] Failed to capture properties for {component.GetType().Name}: {ex.Message}");
+            }
+        }
+        
+        private void CaptureCommonProperties(Component component, ComponentState state)
+        {
+            var componentType = component.GetType();
+            var properties = componentType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            
+            foreach (var prop in properties)
+            {
+                try
+                {
+                    // Only capture readable, writable properties of simple types
+                    if (!prop.CanRead || !prop.CanWrite) continue;
+                    if (prop.GetIndexParameters().Length > 0) continue; // Skip indexed properties
+                    
+                    var propType = prop.PropertyType;
+                    if (IsSimpleType(propType))
+                    {
+                        var value = prop.GetValue(component);
+                        if (value != null)
+                        {
+                            state.properties[prop.Name] = value;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore properties that can't be accessed
+                }
+            }
+        }
+        
+        private bool IsSimpleType(System.Type type)
+        {
+            return type.IsPrimitive || 
+                   type == typeof(string) || 
+                   type == typeof(Vector3) || 
+                   type == typeof(Vector2) || 
+                   type == typeof(Quaternion) || 
+                   type == typeof(Color) || 
+                   type.IsEnum;
+        }
+    }
+    
+    /// <summary>
+    /// Component state information
+    /// </summary>
+    [System.Serializable]
+    public struct ComponentState
+    {
+        public string typeName;
+        public bool enabled;
+        public Dictionary<string, object> properties;
+    }
+    
+    /// <summary>
+    /// Transform state information
+    /// </summary>
+    [System.Serializable]
+    public struct TransformState
+    {
+        public Vector3 position;
+        public Quaternion rotation;
+        public Vector3 localScale;
+        public int parent; // Parent's InstanceID
+    }
+
+    /// <summary>
     /// Unity undo stack monitor - Real-time monitoring of all undo operations
     /// </summary>
     public static class UnityUndoMonitor
@@ -23,6 +221,9 @@ namespace Unity.MCP
             public bool isMcpOperation;
             public DateTime timestamp;
             public string operationGuid; // Unique identifier for this operation
+            public int targetInstanceID; // GameObject instanceID for accurate object tracking
+            public ComponentSnapshot beforeState; // Component state before operation
+            public ComponentSnapshot afterState; // Component state after operation
             
             /// <summary>
             /// Generate operation signature for duplicate detection
@@ -32,99 +233,69 @@ namespace Unity.MCP
                 return $"{groupId}:{operationName}:{isMcpOperation}";
             }
             
-            public string DisplayName => isMcpOperation 
-                ? $"[MCP] {operationName}" 
-                : $"[Manual] {operationName}";
-                
             /// <summary>
-            /// Parse operation name into [operation type] [source] object description format
+            /// Display name in format: 操作 -> ObjectName(instanceID)
             /// </summary>
-            public string ParsedDisplayName
+            public string DisplayName
             {
                 get
                 {
-                    var (operationType, objectDescription) = ParseOperationName(operationName);
-                    var sourceType = isMcpOperation ? "MCP" : "Manual";
+                    var objectInfo = GetObjectDisplayInfo();
                     
-                    if (string.IsNullOrEmpty(objectDescription))
-                    {
-                        return $"[{operationType}] [{sourceType}]";
-                    }
-                    else
-                    {
-                        return $"[{operationType}] [{sourceType}] {objectDescription}";
-                    }
+                    return $"{operationName} -> {objectInfo}";
                 }
             }
             
             /// <summary>
-            /// Parse operation name, extract operation type and object description
+            /// Get object display information in format: ObjectName(instanceID)
             /// </summary>
-            public static (string operationType, string objectDescription) ParseOperationName(string operationName)
+            private string GetObjectDisplayInfo()
             {
-                if (string.IsNullOrEmpty(operationName))
-                    return ("Unknown", "");
-                
-                var trimmedName = operationName.Trim();
-                
-                // Handle MCP operation prefix
-                if (trimmedName.StartsWith("[MCP]"))
+                if (targetInstanceID == 0)
                 {
-                    trimmedName = trimmedName.Substring(5).Trim();
+                    return "Unknown";
                 }
                 
-                // Define operation type matching rules
-                var operationPatterns = new[]
+                try
                 {
-                    // Basic operations
-                    ("Rename ", 7, "Rename"),
-                    ("Select ", 7, "Select"),
-                    ("Create ", 7, "Create"),
-                    ("Delete ", 7, "Delete"),
-                    ("Destroy ", 8, "Destroy"),
-                    ("Duplicate ", 10, "Duplicate"),
-                    ("Copy ", 5, "Copy"),
-                    ("Move ", 5, "Move"),
-                    ("Modify ", 7, "Modify"),
-                    
-                    // Component operations
-                    ("Add Component ", 14, "Add Component"),
-                    ("Remove Component ", 17, "Remove Component"),
-                    
-                    // Special operations
-                    ("Drag and Drop ", 14, "Drag and Drop"),
-                };
-                
-                // Match explicit operation types
-                foreach (var (prefix, prefixLength, operationType) in operationPatterns)
-                {
-                    if (trimmedName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    var targetObject = UnityEditor.EditorUtility.InstanceIDToObject(targetInstanceID);
+                    if (targetObject == null)
                     {
-                        var objectDescription = trimmedName.Substring(prefixLength).Trim();
-                        return (operationType, objectDescription);
+                        return $"Deleted({targetInstanceID})";
+                    }
+                    
+                    return $"{targetObject.name}({targetInstanceID})";
+                }
+                catch
+                {
+                    return $"Invalid({targetInstanceID})";
+                }
+            }
+            
+            /// <summary>
+            /// Simply extract operation name from raw undo operation, removing MCP prefix if present
+            /// </summary>
+            public static string ExtractOperationName(string rawOperationName)
+            {
+                if (string.IsNullOrEmpty(rawOperationName))
+                    return "Unknown Operation";
+                
+                var cleanName = rawOperationName.Trim();
+                
+                // Remove MCP prefix and GUID if present
+                if (cleanName.StartsWith("[MCP]"))
+                {
+                    cleanName = cleanName.Substring(5).Trim();
+                    
+                    // Remove GUID part if present: [GUID:xxxxxxxx] operationName
+                    var guidMatch = System.Text.RegularExpressions.Regex.Match(cleanName, @"^\[GUID:[a-fA-F0-9]{8}\]\s*(.*)$");
+                    if (guidMatch.Success)
+                    {
+                        cleanName = guidMatch.Groups[1].Value.Trim();
                     }
                 }
                 
-                // Special handling: Clear Selection (no object description)
-                if (trimmedName.Equals("Clear Selection", StringComparison.OrdinalIgnoreCase))
-                {
-                    return ("Clear Selection", "");
-                }
-                
-                // For unmatched long names, try to extract first two words as operation type
-                if (trimmedName.Length > 20)
-                {
-                    var words = trimmedName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (words.Length >= 2)
-                    {
-                        var operationType = string.Join(" ", words.Take(2));
-                        var objectDescription = string.Join(" ", words.Skip(2));
-                        return (operationType, objectDescription);
-                    }
-                }
-                
-                // Default case: use entire name as operation type
-                return (trimmedName, "");
+                return string.IsNullOrEmpty(cleanName) ? "Unknown Operation" : cleanName;
             }
         }
         
@@ -325,6 +496,8 @@ namespace Unity.MCP
                         currentGroupName = Undo.GetCurrentGroupName();
                     }
                     catch { }
+                    
+                    
                     // Early duplicate detection for both MCP and manual operations
                     bool shouldProcess = true;
                     if (!string.IsNullOrEmpty(currentGroupName))
@@ -397,7 +570,7 @@ namespace Unity.MCP
             // Process operations with explicit group names
             if (!string.IsNullOrEmpty(groupName) && IsValidUndoableOperation(groupName))
             {
-                var extractedName = ExtractOperationName(groupName);
+                var extractedName = UndoOperation.ExtractOperationName(groupName);
                 bool shouldRecord = true;
                 
                 // Delete operation detection has been moved to duplicate detection logic, no longer need time recording
@@ -435,8 +608,10 @@ namespace Unity.MCP
                         CheckAndRemoveTemporarySelection();
                     }
                     
-                    // Add the operation
-                    AddOperation(currentGroup, extractedName, groupName.StartsWith("[MCP]"), operationGuid);
+                    
+                    // Add the operation with cleaned name
+                    var cleanedName = UndoOperation.ExtractOperationName(groupName);
+                    AddOperationSimple(currentGroup, cleanedName, groupName.StartsWith("[MCP]"), operationGuid);
                 }
                 else
                 {
@@ -448,6 +623,7 @@ namespace Unity.MCP
                 // For operations without explicit group names, perform limited inference
                 // Mainly handle selection operations and other important undoable operations
                 var inferredName = InferSelectionOperationType(currentGroup);
+                
                 if (!string.IsNullOrEmpty(inferredName) && IsValidUndoableOperation(inferredName))
                 {
                     // Check if it's auto-selection after delete operation
@@ -459,8 +635,17 @@ namespace Unity.MCP
                     // Check if duplicate with recent operations
                     if (!IsDuplicateOperation(inferredName))
                     {
-                        AddOperation(currentGroup, ExtractOperationName(inferredName), false, null);
+                        var cleanedName = UndoOperation.ExtractOperationName(inferredName);
+                        AddOperationSimple(currentGroup, cleanedName, false, null);
                     }
+                    else
+                    {
+                        // Operation is duplicate, skip
+                    }
+                }
+                else
+                {
+                    // Operation is invalid or empty, skip
                 }
             }
         }
@@ -557,14 +742,46 @@ namespace Unity.MCP
         }
 
         /// <summary>
-        /// Unified method for adding new operations
+        /// Get target object instanceID from current selection
         /// </summary>
-        private static void AddOperation(int groupId, string operationName, bool isMcpOperation, string operationGuid = null)
+        private static int GetTargetInstanceID()
+        {
+            var selectedObjects = UnityEditor.Selection.gameObjects;
+            if (selectedObjects != null && selectedObjects.Length > 0)
+            {
+                return selectedObjects[0].GetInstanceID();
+            }
+            
+            return 0; // No selection
+        }
+
+
+
+        /// <summary>
+        /// Unified method for adding new operations with component state snapshots
+        /// </summary>
+        private static void AddOperation(int groupId, string operationName, bool isMcpOperation, string operationGuid = null, int targetInstanceID = 0, ComponentSnapshot beforeState = default, ComponentSnapshot afterState = default)
         {
             // Generate GUID if not provided
             if (string.IsNullOrEmpty(operationGuid))
             {
                 operationGuid = System.Guid.NewGuid().ToString();
+            }
+            
+            // If targetInstanceID is not provided, try to get it from current selection
+            if (targetInstanceID == 0)
+            {
+                targetInstanceID = GetTargetInstanceID();
+            }
+            
+            // If no state snapshots provided, try to capture current state as "after" state
+            if (afterState.Equals(default(ComponentSnapshot)) && targetInstanceID != 0)
+            {
+                var targetObject = UnityEditor.EditorUtility.InstanceIDToObject(targetInstanceID) as GameObject;
+                if (targetObject != null)
+                {
+                    afterState = new ComponentSnapshot(targetObject);
+                }
             }
             
             var operation = new UndoOperation
@@ -573,7 +790,10 @@ namespace Unity.MCP
                 operationName = operationName,
                 isMcpOperation = isMcpOperation,
                 timestamp = DateTime.Now,
-                operationGuid = operationGuid
+                operationGuid = operationGuid,
+                targetInstanceID = targetInstanceID,
+                beforeState = beforeState,
+                afterState = afterState
             };
             
             allOperations.Add(operation);
@@ -593,6 +813,29 @@ namespace Unity.MCP
             
             // Immediately trigger event, UI layer will handle delayed refresh
             OnOperationsChanged?.Invoke();
+        }
+        
+        /// <summary>
+        /// Simplified method for adding operations without state snapshots (backward compatibility)
+        /// </summary>
+        private static void AddOperationSimple(int groupId, string operationName, bool isMcpOperation, string operationGuid = null, int targetInstanceID = 0)
+        {
+            // Call the full version with default snapshots
+            AddOperation(groupId, operationName, isMcpOperation, operationGuid, targetInstanceID, default, default);
+        }
+        
+        /// <summary>
+        /// Public method for adding operations with component state snapshots (for MCP operations)
+        /// </summary>
+        public static void AddOperationWithStateSnapshot(string operationName, GameObject targetObject, ComponentSnapshot beforeState)
+        {
+            if (targetObject == null) return;
+            
+            var targetInstanceID = targetObject.GetInstanceID();
+            var afterState = new ComponentSnapshot(targetObject);
+            var operationGuid = System.Guid.NewGuid().ToString();
+            
+            AddOperation(Undo.GetCurrentGroup(), operationName, true, operationGuid, targetInstanceID, beforeState, afterState);
         }
         
         /// <summary>
@@ -850,7 +1093,7 @@ namespace Unity.MCP
             if (allOperations.Count == 0)
                 return false;
             
-            var extractedName = ExtractOperationName(operationName);
+            var extractedName = UndoOperation.ExtractOperationName(operationName);
             
             // For MCP operations, more sophisticated duplicate detection
             if (operationName.StartsWith("[MCP]"))
@@ -953,21 +1196,39 @@ namespace Unity.MCP
             }
             else
             {
-                // For other operations, check last 2 operations
-                var recentOperations = allOperations.TakeLast(2).ToList();
-                var identicalOps = recentOperations.Where(op => op.operationName == extractedName && !op.isMcpOperation).ToList();
+                // For other operations, use more nuanced duplicate detection
+                var recentOperations = allOperations.TakeLast(3).ToList();
                 
-                if (identicalOps.Count > 0)
+                // For selection operations, only check the last operation
+                if (extractedName.StartsWith("Select ") || extractedName == "Clear Selection")
                 {
-                    // For selection operations, only check the last operation
-                    if (extractedName.StartsWith("Select ") || extractedName == "Clear Selection")
+                    if (allOperations.Count > 0 && allOperations.Last().operationName == extractedName)
                     {
-                        if (allOperations.Count > 0 && allOperations.Last().operationName == extractedName)
+                        return true;
+                    }
+                }
+                // For state-changing operations, use time-based duplicate detection
+                else if (IsStateChangingOperation(extractedName))
+                {
+                    // State-changing operations should be allowed to repeat as they represent distinct user actions
+                    // Only filter out operations that are identical and occur within a very short time window
+                    if (allOperations.Count > 0)
+                    {
+                        var lastOp = allOperations.Last();
+                        if (lastOp.operationName == extractedName && 
+                            !lastOp.isMcpOperation &&
+                            (DateTime.Now - lastOp.timestamp).TotalMilliseconds < 500) // 0.5 seconds
                         {
-                            return true;
+                            return true; // Same operation within 0.5 seconds - likely a duplicate
                         }
                     }
-                    else
+                    return false; // Allow distinct state-changing operations
+                }
+                // For other operations (non-transform, non-selection), use the old logic
+                else
+                {
+                    var identicalOps = recentOperations.Where(op => op.operationName == extractedName && !op.isMcpOperation).ToList();
+                    if (identicalOps.Count > 0)
                     {
                         return true;
                     }
@@ -977,6 +1238,83 @@ namespace Unity.MCP
             return false;
         }
         
+        /// <summary>
+        /// Check if operation represents a state-changing action (not just viewing/selecting)
+        /// Uses heuristic patterns to identify operations that modify object state
+        /// </summary>
+        private static bool IsStateChangingOperation(string operationName)
+        {
+            if (string.IsNullOrEmpty(operationName))
+                return false;
+                
+            var lowerName = operationName.ToLower();
+            
+            // Define patterns for state-changing operations (generic approach)
+            var stateChangingPrefixes = new[]
+            {
+                "set ",        // Set Position, Set Rotation, Set Scale, Set Value, etc.
+                "add ",        // Add Component, Add Item, etc.
+                "remove ",     // Remove Component, Remove Item, etc.
+                "create ",     // Create GameObject, Create Asset, etc.
+                "delete ",     // Delete Object, Delete File, etc.
+                "destroy ",    // Destroy GameObject, etc.
+                "modify ",     // Modify Property, Modify Settings, etc.
+                "change ",     // Change Value, Change Settings, etc.
+                "update ",     // Update Value, Update Settings, etc.
+                "edit ",       // Edit Property, Edit Value, etc.
+                "move ",       // Move Object, Move Component, etc.
+                "copy ",       // Copy Object, Copy Component, etc.
+                "paste ",      // Paste Object, Paste Component, etc.
+                "duplicate ",  // Duplicate Object, etc.
+                "rename ",     // Rename Object, etc.
+                "replace ",    // Replace Component, Replace Value, etc.
+                "assign ",     // Assign Value, Assign Reference, etc.
+                "apply ",      // Apply Changes, Apply Settings, etc.
+                "toggle "      // Toggle Setting, Toggle Active, etc.
+            };
+            
+            // Check if operation starts with any state-changing prefix
+            foreach (var prefix in stateChangingPrefixes)
+            {
+                if (lowerName.StartsWith(prefix))
+                {
+                    return true;
+                }
+            }
+            
+            // Define patterns for non-state-changing operations (viewing/selection)
+            var nonStateChangingPrefixes = new[]
+            {
+                "select ",
+                "deselect ",
+                "clear selection",
+                "focus ",
+                "view ",
+                "show ",
+                "hide ",
+                "highlight ",
+                "inspect ",
+                "expand ",
+                "collapse ",
+                "scroll ",
+                "zoom ",
+                "pan "
+            };
+            
+            // If it's explicitly a non-state-changing operation, return false
+            foreach (var prefix in nonStateChangingPrefixes)
+            {
+                if (lowerName.StartsWith(prefix) || lowerName.Contains(prefix))
+                {
+                    return false;
+                }
+            }
+            
+            // For ambiguous cases, assume it's state-changing (safer approach)
+            // This allows more operations to be recorded rather than filtered out
+            return true;
+        }
+
         /// <summary>
         /// Check if a word exists as a complete word in the text using word boundaries
         /// </summary>
@@ -1026,7 +1364,7 @@ namespace Unity.MCP
                 "create", "delete", "destroy", "duplicate", "copy", "paste", "clone",
                 "move", "rotate", "scale", "rename", "transform", "modify", "edit",
                 "drag", "drop", "instantiate", "spawn", "add", "place", "insert",
-                "new", "gameobject", "prefab", "asset", "import", "build", "generate"
+                "new", "gameobject", "prefab", "asset", "import", "build", "generate","set"
             };
             
             foreach (var keyword in validEditingKeywords)
@@ -1042,7 +1380,7 @@ namespace Unity.MCP
             {
                 "console", "window", "panel", "tab", "focus", "click", "ui",
                 "inspector", "editor", "quick", "continuous", "selection change",
-                "unknown action", "internal", "system", "temp", "debug"
+                "internal", "system", "temp", "debug"
             };
             
             foreach (var keyword in invalidUIKeywords)
@@ -1077,7 +1415,6 @@ namespace Unity.MCP
             // STEP 5: Lenient filter for operations that look like real editing operations
             // Must be longer than 3 characters and not obviously invalid
             if (lowerName.Length > 3 && 
-                !lowerName.Contains("unknown") &&
                 !lowerName.Contains("internal") &&
                 !lowerName.Contains("system") &&
                 !lowerName.Contains("temp") &&
@@ -1235,62 +1572,9 @@ namespace Unity.MCP
             }
         }
         
-        /// <summary>
-        /// Standardize operation name - Map Unity's internal operation names to more user-friendly names
-        /// </summary>
-        private static string StandardizeOperationName(string operationName)
-        {
-            if (string.IsNullOrEmpty(operationName))
-                return operationName;
-            
-            var lowerName = operationName.ToLower();
-            
-            // Standardize Paste operations to Duplicate (exclude clipboard operations)
-            if ((lowerName.StartsWith("paste ") || lowerName.Contains(" paste ") || lowerName.EndsWith(" paste")) 
-                && !lowerName.Contains("clipboard"))
-            {
-                var standardizedName = operationName
-                    .Replace("Paste ", "Duplicate ").Replace("paste ", "Duplicate ")
-                    .Replace(" Paste ", " Duplicate ").Replace(" paste ", " Duplicate ")
-                    .Replace(" Paste", " Duplicate").Replace(" paste", " Duplicate");
-                return standardizedName;
-            }
-            
-            // "Copy Game Objects" -> "Duplicate Game Objects"
-            if (lowerName.Contains("copy ") && lowerName.Contains("game object"))
-            {
-                var standardizedName = operationName.Replace("Copy ", "Duplicate ").Replace("copy ", "Duplicate ");
-                return standardizedName;
-            }
-            
-            return operationName;
-        }
+
         
-        /// <summary>
-        /// Extract operation name from group name
-        /// </summary>
-        private static string ExtractOperationName(string groupName)
-        {
-            string operationName;
-            if (groupName.StartsWith("[MCP]"))
-            {
-                operationName = groupName.Substring(5).Trim();
-                
-                // Remove GUID part if present: [GUID:xxxxxxxx] operationName
-                var guidMatch = System.Text.RegularExpressions.Regex.Match(operationName, @"^\[GUID:[a-fA-F0-9]{8}\]\s*(.*)$");
-                if (guidMatch.Success)
-                {
-                    operationName = guidMatch.Groups[1].Value.Trim();
-                }
-            }
-            else
-            {
-                operationName = groupName;
-            }
-            
-            // Standardize operation name
-            return StandardizeOperationName(operationName);
-        }
+
         
         /// <summary>
         /// Get all operation history
@@ -1609,20 +1893,25 @@ namespace Unity.MCP
             
             // Get current target GameObject (usually the selected one)
             int currentTargetID = Selection.activeInstanceID;
+            var targetObject = EditorUtility.InstanceIDToObject(currentTargetID);
+            var sceneIsDirty = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().isDirty;
             
             // Check if this operation is the same as the last manual operation
             // Consider it duplicate only if both operation name AND target GameObject are the same
             if (!string.IsNullOrEmpty(lastManualOperationName) && 
                 operationName.Equals(lastManualOperationName, StringComparison.Ordinal) &&
                 currentTargetID == lastManualOperationTargetID &&
-                currentTargetID != 0) // Valid InstanceID
+                currentTargetID != 0 && 
+                !sceneIsDirty) // Valid InstanceID
             {
-                return true; // Consecutive duplicate detected
+                return true; // Consecutive duplicate detected (same operation, same target, object not dirty)
             }
             
             // Update last manual operation info
             lastManualOperationName = operationName;
             lastManualOperationTargetID = currentTargetID;
+            // save scene clean dirty
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
             return false; // Not a duplicate
         }
         
@@ -1657,5 +1946,23 @@ namespace Unity.MCP
             
             return false;
         }
+    
+        /// <summary>
+        /// Check if operation name already contains detailed parameters
+        /// </summary>
+        private static bool AlreadyContainsDetailedParameters(string operationName)
+        {
+            if (string.IsNullOrEmpty(operationName))
+                return false;
+            
+            // Check for common patterns that indicate detailed parameters
+            return operationName.Contains("to (") ||     // "Set Position to (1.0, 2.0, 3.0)"
+                   operationName.Contains(" in ") ||     // "Set Position in GameObject"
+                   operationName.Contains("Pos:(") ||    // "Set Transform - Pos:(1,2,3)"
+                   operationName.Contains("X:") ||       // "Set Rotation X:90"
+                   operationName.Contains("Y:") ||       // "Set Rotation Y:90"  
+                   operationName.Contains("Z:");         // "Set Rotation Z:90"
+        }
+
     }
 } 

@@ -239,8 +239,38 @@
     padding: 8px 12px;
     margin-bottom: 4px;
     border-left-width: 3px;
-    border-left-color: rgba(120, 180, 255, 0.8);
+    border-left-color: rgba(120, 180, 255, 0.8); /* Default blue color */
     transition-duration: 200ms;
+}
+
+/* MCP operation styling - Blue accent */
+.undo-stack-item.mcp-operation {
+    border-left-color: rgba(70, 130, 255, 0.9); /* Bright blue for MCP operations */
+    background-color: rgba(70, 130, 255, 0.05);
+}
+
+.undo-stack-item.mcp-operation:hover {
+    background-color: rgba(70, 130, 255, 0.1);
+    border-left-color: rgba(70, 130, 255, 1.0);
+}
+
+.undo-stack-item.mcp-operation .undo-stack-item-title {
+    color: rgba(120, 180, 255, 0.95); /* Blue text for MCP operations */
+}
+
+/* Manual operation styling - Orange accent */
+.undo-stack-item.manual-operation {
+    border-left-color: rgba(255, 140, 60, 0.9); /* Orange for manual operations */
+    background-color: rgba(255, 140, 60, 0.05);
+}
+
+.undo-stack-item.manual-operation:hover {
+    background-color: rgba(255, 140, 60, 0.1);
+    border-left-color: rgba(255, 140, 60, 1.0);
+}
+
+.undo-stack-item.manual-operation .undo-stack-item-title {
+    color: rgba(255, 170, 100, 0.95); /* Orange text for manual operations */
 }
 
 .undo-stack-item:hover {
@@ -254,11 +284,12 @@
     justify-content: space-between;
 }
 
-.undo-stack-item-icon {
-    font-size: 16px;
-    width: 24px;
-    -unity-text-align: middle-center;
+.undo-stack-item-source {
+    font-size: 12px;
+    width: 60px;
+    -unity-text-align: middle-left;
     margin-right: 8px;
+    font-weight: bold;
 }
 
 .undo-stack-item-title {
@@ -467,7 +498,7 @@
     padding: 8px 12px;
     margin-bottom: 4px;
     border-left-width: 3px;
-    border-left-color: rgba(100, 150, 255, 0.8);
+    border-left-color: rgba(100, 150, 255, 0.8); /* Default blue color */
     transition-duration: 200ms;
     min-height: 50px;
 }
@@ -475,6 +506,36 @@
 .undo-stack-item:hover {
     background-color: rgba(255, 255, 255, 0.1);
     transition-duration: 200ms;
+}
+
+/* MCP operation styling - Blue accent (Fixed overlapping version) */
+.undo-stack-item.mcp-operation {
+    border-left-color: rgba(70, 130, 255, 0.9); /* Bright blue for MCP operations */
+    background-color: rgba(70, 130, 255, 0.05);
+}
+
+.undo-stack-item.mcp-operation:hover {
+    background-color: rgba(70, 130, 255, 0.1);
+    border-left-color: rgba(70, 130, 255, 1.0);
+}
+
+.undo-stack-item.mcp-operation .undo-stack-item-title {
+    color: rgba(120, 180, 255, 0.95); /* Blue text for MCP operations */
+}
+
+/* Manual operation styling - Orange accent (Fixed overlapping version) */
+.undo-stack-item.manual-operation {
+    border-left-color: rgba(255, 140, 60, 0.9); /* Orange for manual operations */
+    background-color: rgba(255, 140, 60, 0.05);
+}
+
+.undo-stack-item.manual-operation:hover {
+    background-color: rgba(255, 140, 60, 0.1);
+    border-left-color: rgba(255, 140, 60, 1.0);
+}
+
+.undo-stack-item.manual-operation .undo-stack-item-title {
+    color: rgba(255, 170, 100, 0.95); /* Orange text for manual operations */
 }
 
 .undo-stack-item-header {
@@ -485,7 +546,7 @@
     width: 100%;
 }
 
-.undo-stack-item-icon {
+.undo-stack-item-source {
     width: 65px;
     min-width: 65px;
     max-width: 65px;
@@ -559,4 +620,21 @@
 .undo-stack-item-button:hover {
     background-color: rgba(175, 232, 230, 1);
     transition-duration: 200ms;
+}
+
+/* High priority operation type styling - Ensure these override general styles */
+.undo-stack-item.mcp-operation .undo-stack-item-title {
+    color: rgba(120, 180, 255, 0.95) !important; /* Blue text for MCP operations */
+}
+
+.undo-stack-item.mcp-operation .undo-stack-item-source {
+    color: rgba(120, 180, 255, 0.9) !important; /* Blue source indicator for MCP operations */
+}
+
+.undo-stack-item.manual-operation .undo-stack-item-title {
+    color: rgba(255, 170, 100, 0.95) !important; /* Orange text for manual operations */
+}
+
+.undo-stack-item.manual-operation .undo-stack-item-source {
+    color: rgba(255, 170, 100, 0.9) !important; /* Orange source indicator for manual operations */
 }

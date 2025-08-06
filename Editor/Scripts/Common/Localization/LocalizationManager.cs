@@ -115,6 +115,7 @@ namespace com.MiAO.Unity.MCP.Editor.Common
             catch (Exception ex)
             {
                 // Fallback to English if initialization fails
+                Debug.LogWarning($"[LocalizationManager] Failed to initialize localization: {ex.Message}");
                 _currentLanguage = Language.English;
                 _isInitialized = true;
             }

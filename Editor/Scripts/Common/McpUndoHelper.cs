@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using Unity.MCP;
 
 namespace com.MiAO.Unity.MCP.Common
 {
@@ -11,6 +12,12 @@ namespace com.MiAO.Unity.MCP.Common
     public static class McpUndoHelper
     {
         private const string MCP_PREFIX = "[MCP]";
+        
+        // Track consecutive operations on the same object
+        private static int lastOperationInstanceID = 0;
+        private static DateTime lastOperationTime = DateTime.MinValue;
+        private static string lastOperationGuid = "";
+        private const double OPERATION_GROUP_TIMEOUT_SECONDS = 5.0; // Operations within 5 seconds can be grouped
 
         /// <summary>
         /// Generate MCP group name with embedded GUID for duplicate detection
@@ -19,6 +26,76 @@ namespace com.MiAO.Unity.MCP.Common
         {
             var operationGuid = System.Guid.NewGuid().ToString("N")[..8]; // Use first 8 characters for brevity
             return $"{MCP_PREFIX} [GUID:{operationGuid}] {groupName}";
+        }
+
+        /// <summary>
+        /// Get GameObject instanceID from Unity Object
+        /// </summary>
+        private static int GetInstanceID(UnityEngine.Object obj)
+        {
+            if (obj == null) return 0;
+            
+            // For GameObject, return its instanceID directly
+            if (obj is GameObject gameObject)
+            {
+                return gameObject.GetInstanceID();
+            }
+            
+            // For Component, return the GameObject's instanceID
+            if (obj is Component component && component.gameObject != null)
+            {
+                return component.gameObject.GetInstanceID();
+            }
+            
+            // For other objects, return their own instanceID
+            return obj.GetInstanceID();
+        }
+
+        /// <summary>
+        /// Check if current operation should be grouped with the previous one
+        /// </summary>
+        private static bool ShouldGroupWithPreviousOperation(int currentInstanceID)
+        {
+            if (currentInstanceID == 0 || lastOperationInstanceID == 0)
+                return false;
+                
+            // Same object and within time window
+            bool sameObject = currentInstanceID == lastOperationInstanceID;
+            bool withinTimeWindow = (DateTime.Now - lastOperationTime).TotalSeconds <= OPERATION_GROUP_TIMEOUT_SECONDS;
+            
+            return sameObject && withinTimeWindow;
+        }
+
+        /// <summary>
+        /// Update operation tracking information
+        /// </summary>
+        private static void UpdateOperationTracking(int instanceID, string operationGuid)
+        {
+            lastOperationInstanceID = instanceID;
+            lastOperationTime = DateTime.Now;
+            lastOperationGuid = operationGuid;
+        }
+
+        /// <summary>
+        /// Reset operation grouping state. Call this to force the next operation to start a new group.
+        /// </summary>
+        public static void ResetOperationGrouping()
+        {
+            lastOperationInstanceID = 0;
+            lastOperationTime = DateTime.MinValue;
+            lastOperationGuid = "";
+        }
+
+        /// <summary>
+        /// Check if the current operation would be grouped with the previous one
+        /// </summary>
+        /// <param name="targetObject">The target object for the operation</param>
+        /// <returns>True if the operation would be grouped</returns>
+        public static bool WouldGroupWithPrevious(UnityEngine.Object targetObject)
+        {
+            if (targetObject == null) return false;
+            var instanceID = GetInstanceID(targetObject);
+            return ShouldGroupWithPreviousOperation(instanceID);
         }
 
         #region Creation Operations
@@ -33,13 +110,21 @@ namespace com.MiAO.Unity.MCP.Common
         {
             if (createdObject == null) return;
 
+            // Creation operations typically start a new group
             Undo.IncrementCurrentGroup();
             Undo.RegisterCreatedObjectUndo(createdObject, $"{operationName}: {createdObject.name}");
             
             var groupName = string.IsNullOrEmpty(targetName) 
                 ? $"{operationName}: {createdObject.name}"
                 : $"{operationName} {createdObject.name} to {targetName}";
-            Undo.SetCurrentGroupName(GenerateMcpGroupName(groupName));
+            
+            var operationGuid = System.Guid.NewGuid().ToString("N")[..8];
+            var finalGroupName = $"{MCP_PREFIX} [GUID:{operationGuid}] {groupName}";
+            Undo.SetCurrentGroupName(finalGroupName);
+            
+            // Update tracking so subsequent operations on this object can be grouped
+            var instanceID = GetInstanceID(createdObject);
+            UpdateOperationTracking(instanceID, operationGuid);
         }
 
         /// <summary>
@@ -85,22 +170,78 @@ namespace com.MiAO.Unity.MCP.Common
         #region Modification Operations
 
         /// <summary>
-        /// Register single object modification with undo
+        /// Register single object modification with undo and component state tracking
         /// </summary>
         /// <param name="targetObject">The object to be modified</param>
         /// <param name="operationName">Operation description (e.g., "Modify GameObject", "Set Property")</param>
         /// <param name="details">Optional details about the modification</param>
         public static void RegisterModifiedObject(UnityEngine.Object targetObject, string operationName, string details = null)
         {
+            RegisterModifiedObjectWithStateTracking(targetObject, operationName, details);
+        }
+        
+        /// <summary>
+        /// Register single object modification with undo and component state tracking
+        /// </summary>
+        /// <param name="targetObject">The object to be modified</param>
+        /// <param name="operationName">Operation description (e.g., "Modify GameObject", "Set Property")</param>
+        /// <param name="details">Optional details about the modification</param>
+        public static void RegisterModifiedObjectWithStateTracking(UnityEngine.Object targetObject, string operationName, string details = null)
+        {
             if (targetObject == null) return;
 
-            Undo.IncrementCurrentGroup();
+            var gameObject = targetObject as GameObject ?? (targetObject as Component)?.gameObject;
+            var currentInstanceID = GetInstanceID(targetObject);
+            var shouldGroup = ShouldGroupWithPreviousOperation(currentInstanceID);
+            
+            // Capture before state if it's a GameObject
+            ComponentSnapshot beforeState = default;
+            if (gameObject != null)
+            {
+                beforeState = new ComponentSnapshot(gameObject);
+            }
+            
+            // Only create new group if not grouping with previous operation
+            if (!shouldGroup)
+            {
+                Undo.IncrementCurrentGroup();
+            }
+            
             Undo.RegisterCompleteObjectUndo(targetObject, $"{operationName}: {targetObject.name}");
 
             var groupName = string.IsNullOrEmpty(details)
                 ? $"{operationName}: {targetObject.name}"
                 : $"{operationName} {targetObject.name}: {details}";
-            Undo.SetCurrentGroupName(GenerateMcpGroupName(groupName));
+            
+            string finalGroupName;
+            string operationGuid;
+            if (shouldGroup)
+            {
+                // Use the same GUID as the previous operation for grouping
+                operationGuid = lastOperationGuid;
+                finalGroupName = $"{MCP_PREFIX} [GUID:{operationGuid}] {groupName}";
+            }
+            else
+            {
+                // Generate new GUID and group name
+                operationGuid = System.Guid.NewGuid().ToString("N")[..8];
+                finalGroupName = $"{MCP_PREFIX} [GUID:{operationGuid}] {groupName}";
+                UpdateOperationTracking(currentInstanceID, operationGuid);
+            }
+            
+            Undo.SetCurrentGroupName(finalGroupName);
+            
+            // Schedule state snapshot recording after the operation completes
+            if (gameObject != null)
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    if (gameObject != null) // Check if still valid
+                    {
+                        UnityUndoMonitor.AddOperationWithStateSnapshot(operationName, gameObject, beforeState);
+                    }
+                };
+            }
         }
 
         /// <summary>
@@ -113,7 +254,27 @@ namespace com.MiAO.Unity.MCP.Common
         {
             if (targetObjects == null || targetObjects.Count == 0) return;
 
-            Undo.IncrementCurrentGroup();
+            bool shouldGroup = false;
+            string operationGuid = "";
+            
+            // For single object, use smart grouping
+            if (targetObjects.Count == 1)
+            {
+                var currentInstanceID = GetInstanceID(targetObjects[0]);
+                shouldGroup = ShouldGroupWithPreviousOperation(currentInstanceID);
+                
+                if (!shouldGroup)
+                {
+                    operationGuid = System.Guid.NewGuid().ToString("N")[..8];
+                    UpdateOperationTracking(currentInstanceID, operationGuid);
+                }
+            }
+            
+            // Only create new group if not grouping with previous operation
+            if (!shouldGroup)
+            {
+                Undo.IncrementCurrentGroup();
+            }
 
             foreach (var obj in targetObjects)
             {
@@ -138,7 +299,23 @@ namespace com.MiAO.Unity.MCP.Common
                     : $"{operationName} {targetObjects.Count} objects: {details}";
             }
 
-            Undo.SetCurrentGroupName(GenerateMcpGroupName(groupName));
+            string finalGroupName;
+            if (shouldGroup)
+            {
+                // Use the same GUID as the previous operation for grouping
+                finalGroupName = $"{MCP_PREFIX} [GUID:{lastOperationGuid}] {groupName}";
+            }
+            else
+            {
+                // Generate new GUID and group name
+                if (string.IsNullOrEmpty(operationGuid))
+                {
+                    operationGuid = System.Guid.NewGuid().ToString("N")[..8];
+                }
+                finalGroupName = $"{MCP_PREFIX} [GUID:{operationGuid}] {groupName}";
+            }
+            
+            Undo.SetCurrentGroupName(finalGroupName);
         }
 
         #endregion

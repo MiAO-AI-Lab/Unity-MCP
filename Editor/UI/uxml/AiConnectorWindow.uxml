@@ -181,7 +181,7 @@
                                  </ui:VisualElement>
                              </ui:VisualElement>
                                                            <ui:VisualElement style="flex-direction: row; flex-grow: 1; align-items: center;">
-                                  <ui:Label text="Augment (VS Code)" class="section-title" style="margin: 0; margin-right: 8px;" />
+                                  <ui:Label text="Augment" class="section-title" style="margin: 0; margin-right: 8px;" />
                                   <ui:Label text="Not configured" name="configureStatusText" class="section-desc" style="margin: 0; font-size: 10px; opacity: 0.7;" />
                               </ui:VisualElement>
                              <ui:VisualElement style="flex-direction: row; align-items: center; width: 120px; justify-content: flex-end;">
@@ -407,6 +407,75 @@
                             <ui:VisualElement name="undoStackControls" style="margin-top: 15px; flex-direction: row;">
                                 <ui:Button name="btnClearUndoStack" text="Clear Stack" class="undo-operation-button danger-button" style="flex-grow: 1; height: 35px; font-size: 13px;" />
                             </ui:VisualElement>
+                        </ui:Foldout>
+                    </ui:VisualElement>
+                    
+                    <!-- State Detector submodule -->
+                    <ui:VisualElement class="config-group" style="margin-top: 20px;">
+                        <ui:Foldout text="State Detection Tools" value="true" class="config-group-foldout" data-localization-key="operations.state_detector">
+                            <!-- State detection controls -->
+                            <ui:VisualElement style="margin-bottom: 15px;">
+                                <ui:Label text="Unity Editor State Detection and Analysis" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 10px; color: rgba(200, 200, 200, 0.9);" data-localization-key="operations.state_detector_desc" />
+                                <ui:Label text="Capture and compare Unity Editor state snapshots including windows and interactive elements." class="section-desc" style="margin-bottom: 15px;" data-localization-key="operations.state_detector_help" />
+                                
+                                <!-- Snapshot controls -->
+                                <ui:VisualElement style="flex-direction: row; margin-bottom: 12px;">
+                                    <ui:TextField name="snapshotIdField" label="Snapshot ID" placeholder-text="Enter snapshot ID..." style="flex-grow: 1; margin-right: 8px;" data-localization-key="operations.snapshot_id" />
+                                    <ui:Button name="btnCaptureSnapshot" text="Capture" class="Button-Primary" style="width: 80px; height: 26px; font-size: 12px;" data-localization-key="operations.capture" />
+                                </ui:VisualElement>
+                                
+                                <!-- Comparison controls -->
+                                <ui:VisualElement style="flex-direction: row; margin-bottom: 12px;">
+                                    <!-- Before snapshot drop zone -->
+                                    <ui:VisualElement style="flex-grow: 1; margin-right: 4px;">
+                                        <ui:Label text="Before Snapshot" style="font-size: 12px; margin-bottom: 4px;" data-localization-key="operations.before_snapshot" />
+                                        <ui:VisualElement name="beforeDropZone" style="min-height: 60px; background-color: rgba(100, 100, 100, 0.3); border-width: 2px; border-color: rgba(150, 150, 150, 0.5); border-radius: 4px; border-style: dashed; justify-content: center; align-items: center;">
+                                            <ui:Label name="beforeDropLabel" text="Drag snapshot here" style="color: rgba(150, 150, 150, 0.8); font-size: 11px; text-align: center;" data-localization-key="operations.drag_snapshot_here" />
+                                            <ui:VisualElement name="beforeSnapshotCard" style="display: none; padding: 4px; background-color: rgba(70, 120, 180, 0.8); border-radius: 4px; margin: 2px;">
+                                                <ui:Label name="beforeSnapshotId" style="font-size: 11px; -unity-font-style: bold;" />
+                                                <ui:Label name="beforeSnapshotInfo" style="font-size: 10px; color: rgba(200, 200, 200, 0.9);" />
+                                            </ui:VisualElement>
+                                        </ui:VisualElement>
+                                    </ui:VisualElement>
+                                    
+                                    <!-- After snapshot drop zone -->
+                                    <ui:VisualElement style="flex-grow: 1; margin-left: 4px; margin-right: 8px;">
+                                        <ui:Label text="After Snapshot" style="font-size: 12px; margin-bottom: 4px;" data-localization-key="operations.after_snapshot" />
+                                        <ui:VisualElement name="afterDropZone" style="min-height: 60px; background-color: rgba(100, 100, 100, 0.3); border-width: 2px; border-color: rgba(150, 150, 150, 0.5); border-radius: 4px; border-style: dashed; justify-content: center; align-items: center;">
+                                            <ui:Label name="afterDropLabel" text="Drag snapshot here" style="color: rgba(150, 150, 150, 0.8); font-size: 11px; text-align: center;" data-localization-key="operations.drag_snapshot_here" />
+                                            <ui:VisualElement name="afterSnapshotCard" style="display: none; padding: 4px; background-color: rgba(180, 120, 70, 0.8); border-radius: 4px; margin: 2px;">
+                                                <ui:Label name="afterSnapshotId" style="font-size: 11px; -unity-font-style: bold;" />
+                                                <ui:Label name="afterSnapshotInfo" style="font-size: 10px; color: rgba(200, 200, 200, 0.9);" />
+                                            </ui:VisualElement>
+                                        </ui:VisualElement>
+                                    </ui:VisualElement>
+                                    
+                                    <ui:Button name="btnCompareSnapshots" text="Compare" class="Button-Primary" style="width: 80px; height: 26px; font-size: 12px;" data-localization-key="operations.compare" />
+                                </ui:VisualElement>
+                                
+                                <!-- Window stats controls -->
+                                <ui:VisualElement style="flex-direction: row; margin-bottom: 12px;">
+                                    <ui:VisualElement style="flex-direction: row; align-items: center; flex-grow: 1; margin-right: 8px;">
+                                        <ui:Toggle name="showOnlyWithElementsToggle" label="" value="false" style="margin-right: 6px;" />
+                                        <ui:Label text="Show Only Windows with Elements" style="color: rgba(200, 200, 200, 0.9); font-size: 12px;" data-localization-key="operations.show_only_with_elements" />
+                                    </ui:VisualElement>
+                                    <ui:Button name="btnGetWindowStats" text="Get Stats" class="Button-Primary" style="width: 80px; height: 26px; font-size: 12px;" data-localization-key="operations.get_stats" />
+                                </ui:VisualElement>
+                                
+                                <!-- Snapshot management -->
+                                <ui:VisualElement style="flex-direction: row; margin-bottom: 15px;">
+                                    <ui:Button name="btnListSnapshots" text="List Snapshots" class="Button-Secondary" style="flex-grow: 1; height: 30px; font-size: 12px; margin-right: 4px;" data-localization-key="operations.list_snapshots" />
+                                    <ui:Button name="btnCleanSnapshots" text="Clean All" class="Button-Secondary danger-button" style="flex-grow: 1; height: 30px; font-size: 12px; margin-left: 4px;" data-localization-key="operations.clean_all" />
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                            
+                            <!-- State detection results display -->
+                            <ui:Label text="Detection Results" style="font-size: 14px; -unity-font-style: bold; margin-bottom: 10px; color: rgba(200, 200, 200, 0.9);" data-localization-key="operations.detection_results" />
+                            <ui:ScrollView name="stateDetectionResults" class="undo-stack-scroll" style="max-height: 300px; margin-bottom: 15px;">
+                                <ui:VisualElement name="stateDetectionContainer" style="padding: 8px; background-color: rgba(60, 60, 60, 0.3); border-radius: 4px;">
+                                    <ui:Label name="stateDetectionEmptyLabel" text="No detection results available" class="empty-state" style="color: rgba(150, 150, 150, 0.8); text-align: center; margin: 20px;" data-localization-key="operations.no_detection_results" />
+                                </ui:VisualElement>
+                            </ui:ScrollView>
                         </ui:Foldout>
                     </ui:VisualElement>
                 </ui:VisualElement>

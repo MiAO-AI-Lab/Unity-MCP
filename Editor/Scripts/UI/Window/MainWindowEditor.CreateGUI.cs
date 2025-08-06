@@ -521,7 +521,7 @@ namespace com.MiAO.Unity.MCP.Editor
                 { "Claude", new ClientConfig("Claude Desktop", GetClaudeDesktopPath(), "mcpServers") },
                 { "VSCode", new ClientConfig("VS Code", Path.Combine(".vscode", "mcp.json"), "servers") },
                 { "VisualStudio", new ClientConfig("Visual Studio", GetVisualStudioConfigPath(VisualStudioConfigLocation.Global), "servers") },
-                { "Augment", new ClientConfig("Augment (VS Code)", GetVSCodeSettingsPath(), "augment.advanced.mcpServers") },
+                { "Augment", new ClientConfig("Augment", GetVSCodeSettingsPath(), "augment.advanced.mcpServers") },
                 { "Windsurf", new ClientConfig("Windsurf", GetWindsurfSettingsPath(), "mcpServers") },
                 { "Cline", new ClientConfig("Cline", GetClineSettingsPath(), "mcpServers") }
             };

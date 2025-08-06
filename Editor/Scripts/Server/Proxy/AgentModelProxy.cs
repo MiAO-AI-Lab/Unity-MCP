@@ -902,8 +902,6 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
 #endif
         }
 
-        // LoadConfigFromJson method removed - no longer needed since we use EditorPrefs and built-in defaults
-
 #if UNITY_5_3_OR_NEWER
         /// <summary>
         /// Load configuration directly from EditorPrefs (Unity environment)
@@ -938,10 +936,6 @@ namespace com.MiAO.Unity.MCP.Server.Proxy
             };
         }
 #endif
-
-// LoadConfigFromUnityPackage method removed - no longer needed since we use built-in defaults
-
-        // SaveConfig method removed - no longer needed since we don't save JSON files
 
         /// <summary>
         /// Reload configuration file
