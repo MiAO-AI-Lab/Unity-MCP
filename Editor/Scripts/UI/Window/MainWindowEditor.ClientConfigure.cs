@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -223,10 +224,20 @@ namespace com.MiAO.MCP.Editor
 
                 foreach (var kv in mcpServers)
                 {
-                    var isPortMatched = kv.Value?["args"]?.AsArray()
-                        ?.Any(arg => arg?.GetValue<string>() == McpPluginUnity.Port.ToString()) ?? false;
+                    var serverConfig = kv.Value?.AsObject();
+                    if (serverConfig == null) continue;
+                    
+                    var command = serverConfig["command"]?.GetValue<string>();
+                    var argsArray = serverConfig["args"]?.AsArray();
+                    
+                    string[] args = null;
+                    if (argsArray != null)
+                    {
+                        args = argsArray.Select(arg => arg?.GetValue<string>()).ToArray();
+                    }
+                    
+                    var isPortMatched = argsArray?.Any(arg => arg?.GetValue<string>() == McpPluginUnity.Port.ToString()) ?? false;
 
-                    var command = kv.Value?["command"]?.GetValue<string>();
                     if (!string.IsNullOrEmpty(command))
                     {
                         // Normalize both paths for comparison
@@ -373,6 +384,12 @@ namespace com.MiAO.MCP.Editor
                     return IsMcpClientConfigured(configPath, bodyName);
                 }
 
+                foreach (var server in mcpServers)
+                {
+                    var command = server.Value?["command"]?.GetValue<string>();
+                    var args = server.Value?["args"]?.AsArray()?.Select(a => a?.GetValue<string>()).ToArray();
+                }
+
                 // Find all command values in injectMcpServers
                 var injectCommands = injectMcpServers
                     .Select(kv => kv.Value?["command"]?.GetValue<string>())
@@ -504,14 +521,69 @@ namespace com.MiAO.MCP.Editor
             );
         }
 
+        List<string> GetAllClineSettingsPaths()
+        {
+            var paths = new List<string>
+            {
+                GetVSCodeBasePath(Path.Combine(
+                    "globalStorage",
+                    "saoudrizwan.claude-dev",
+                    "settings",
+                    "cline_mcp_settings.json"
+                )),
+                
+                GetCursorBasePath(Path.Combine(
+                    "globalStorage",
+                    "saoudrizwan.claude-dev",
+                    "settings",
+                    "cline_mcp_settings.json"
+                )),
+                
+                GetWindsurfBasePath(Path.Combine(
+                    "globalStorage",
+                    "saoudrizwan.claude-dev",
+                    "settings",
+                    "cline_mcp_settings.json"
+                ))
+            };
+            
+            return paths;
+        }
+
         string GetClineSettingsPath()
         {
-            return GetVSCodeBasePath(Path.Combine(
-                "globalStorage",
-                "saoudrizwan.claude-dev",
-                "settings",
-                "cline_mcp_settings.json"
-            ));
+            var possiblePaths = GetAllClineSettingsPaths();
+
+            foreach (var path in possiblePaths)
+            {
+                if (File.Exists(path))
+                {
+                    return path;
+                }
+            }
+
+            return possiblePaths[0];
+        }
+
+        string GetCursorBasePath(string fileName)
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Cursor",
+                "User",
+                fileName
+            );
+        }
+
+        string GetWindsurfBasePath(string fileName)
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                ".codeium",
+                "windsurf",
+                "User",
+                fileName
+            );
         }
     }
 }
