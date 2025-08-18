@@ -523,7 +523,7 @@ namespace com.MiAO.MCP.Editor
                 { "VisualStudio", new ClientConfig("Visual Studio", GetVisualStudioConfigPath(VisualStudioConfigLocation.Global), "servers") },
                 { "Augment", new ClientConfig("Augment (VS Code)", GetVSCodeSettingsPath(), "augment.advanced.mcpServers") },
                 { "Windsurf", new ClientConfig("Windsurf", GetWindsurfSettingsPath(), "mcpServers") },
-                { "Cline", new ClientConfig("Cline", GetClineSettingsPath(), "mcpServers") }
+                { "Cline", new ClientConfig("Cline (Multi-Editor)", GetAllClineSettingsPaths(), "mcpServers") }
             };
 
             // Setup each client item
@@ -545,15 +545,131 @@ namespace com.MiAO.MCP.Editor
         private class ClientConfig
         {
             public string DisplayName { get; }
-            public string ConfigPath { get; }
+            public List<string> ConfigPaths { get; }
             public string BodyName { get; }
+
+            // Backward compatibility - returns first path
+            public string ConfigPath => ConfigPaths?.FirstOrDefault() ?? string.Empty;
 
             public ClientConfig(string displayName, string configPath, string bodyName)
             {
                 DisplayName = displayName;
-                ConfigPath = configPath;
+                ConfigPaths = new List<string> { configPath };
                 BodyName = bodyName;
             }
+
+            public ClientConfig(string displayName, List<string> configPaths, string bodyName)
+            {
+                DisplayName = displayName;
+                ConfigPaths = configPaths ?? new List<string>();
+                BodyName = bodyName;
+            }
+
+            /// <summary>
+            /// Get all valid (existing) configuration paths
+            /// </summary>
+            public List<string> GetExistingPaths()
+            {
+                return ConfigPaths.Where(File.Exists).ToList();
+            }
+
+            /// <summary>
+            /// Check if any configuration path exists
+            /// </summary>
+            public bool HasExistingPaths()
+            {
+                return ConfigPaths.Any(File.Exists);
+            }
+        }
+
+        /// <summary>
+        /// Check configuration status for multi-path client configuration
+        /// </summary>
+        private bool CheckMultiPathConfiguration(ClientConfig config)
+        {
+            
+            // For single path configurations (backward compatibility)
+            if (config.ConfigPaths.Count == 1)
+            {
+                return IsMcpClientConfigured(config.ConfigPath, config.BodyName);
+            }
+
+            // For multi-path configurations (like Cline)
+            var existingPaths = config.GetExistingPaths();
+            // Check if any existing path is configured
+            foreach (var path in existingPaths)
+            {
+                if (IsMcpClientConfigured(path, config.BodyName))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Configure multi-path client configuration
+        /// </summary>
+        private bool ConfigureMultiPathClient(ClientConfig config)
+        {
+            // For single path configurations (backward compatibility)
+            if (config.ConfigPaths.Count == 1)
+            {
+                return ConfigureMcpClient(config.ConfigPath, config.BodyName);
+            }
+
+            // For multi-path configurations (like Cline)
+            var existingPaths = config.GetExistingPaths();
+            var allPaths = config.ConfigPaths;
+            
+            bool anySuccess = false;
+            
+            // Configure ALL possible paths, not just existing ones
+            foreach (var path in allPaths)
+            {
+                var pathExists = File.Exists(path);
+                
+                // Check if the directory structure can be created
+                try
+                {
+                    var directory = Path.GetDirectoryName(path);
+                    if (string.IsNullOrEmpty(directory))
+                    {
+                        continue;
+                    }
+                    
+                    // For non-existing paths, check if we can create the directory structure
+                    if (!pathExists)
+                    {
+                        if (!Directory.Exists(directory))
+                        {
+                            try
+                            {
+                                Directory.CreateDirectory(directory);
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    var success = ConfigureMcpClient(path, config.BodyName);
+                    if (success)
+                    {
+                        anySuccess = true;
+                    }
+                    else
+                    {
+                    }
+                }
+                catch
+                {
+                    continue; // Skip this path and continue with others
+                }
+            }
+            
+            return anySuccess;
         }
 
         /// <summary>
@@ -570,14 +686,14 @@ namespace com.MiAO.MCP.Editor
 
             if (statusCircle == null || statusText == null || configureBtn == null) return;
 
-            // Check configuration status
-            var isConfigured = IsMcpClientConfigured(config.ConfigPath, config.BodyName);
+            // Check configuration status (multi-path support)
+            var isConfigured = CheckMultiPathConfiguration(config);
             UpdateClientStatus(statusCircle, statusText, configureBtn, isConfigured);
 
             // Configure button click event
             configureBtn.clicked += () =>
             {
-                var success = ConfigureMcpClient(config.ConfigPath, config.BodyName);
+                var success = ConfigureMultiPathClient(config);
                 UpdateClientStatus(statusCircle, statusText, configureBtn, success);
                 
                 if (success)
@@ -602,7 +718,9 @@ namespace com.MiAO.MCP.Editor
                     vsConfigLocation.RegisterValueChangedCallback(evt =>
                     {
                         var newPath = GetVisualStudioConfigPath((VisualStudioConfigLocation)evt.newValue);
-                        var newIsConfigured = IsMcpClientConfigured(newPath, config.BodyName);
+                        // Create a temporary single-path config for the new path
+                        var tempConfig = new ClientConfig(config.DisplayName, newPath, config.BodyName);
+                        var newIsConfigured = CheckMultiPathConfiguration(tempConfig);
                         UpdateClientStatus(statusCircle, statusText, configureBtn, newIsConfigured);
                     });
                 }
